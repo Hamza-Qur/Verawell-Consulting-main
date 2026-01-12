@@ -63,6 +63,7 @@ export const getMyFacilities = createAsyncThunk(
 );
 
 // Get assigned users for a specific facility
+// NOTE: API now returns user details (name, email, role) directly in assignment data
 export const getAssignedUsers = createAsyncThunk(
   "facility/getAssignedUsers",
   async ({ facilityId, page = 1 }, { rejectWithValue }) => {
@@ -264,14 +265,14 @@ const facilitySlice = createSlice({
     isDeleting: false,
     isAssigningAssessment: false,
     myFacilities: {
-      data: [],
+      data: [], // Facility data array
       current_page: 1,
       total: 0,
       per_page: 10,
       last_page: 1,
     },
     assignedUsers: {
-      data: [],
+      data: [], // Array of assignments with user details: { id, user_id, facility_id, name, email, role, created_at, updated_at }
       current_page: 1,
       total: 0,
       per_page: 10,
@@ -332,7 +333,7 @@ const facilitySlice = createSlice({
         state.error = action.payload;
       });
 
-         // NEW: Assign Assessment
+    // NEW: Assign Assessment
     builder
       .addCase(assignAssessment.pending, (state) => {
         state.isAssigningAssessment = true;
@@ -378,6 +379,8 @@ const facilitySlice = createSlice({
       .addCase(getAssignedUsers.fulfilled, (state, action) => {
         state.isFetchingAssignedUsers = false;
         if (action.payload.success) {
+          // API now returns user details directly in assignment data
+          // Structure: { data: { current_page: 1, data: [{ id, user_id, name, email, role, created_at, ... }], ... } }
           state.assignedUsers = action.payload.data;
         } else {
           state.assignedUsersError =

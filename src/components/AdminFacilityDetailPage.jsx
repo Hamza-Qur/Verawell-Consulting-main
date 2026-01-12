@@ -253,9 +253,9 @@ const AdminFacilityDetailPage = () => {
       return {
         id: `${assignment.user_id}`,
         userId: assignment.user_id,
-        name: userDetails?.name || `User ${assignment.user_id}`,
-        role: userDetails?.role || "Assigned",
-        email: userDetails?.email || "",
+        name: assignment.name,
+        role: assignment.role,
+        email: assignment.email,
         assignmentDate: new Date(assignment.created_at).toLocaleDateString(),
         originalData: assignment,
       };

@@ -136,7 +136,7 @@ const MasterLayout = ({ children, Chain }) => {
                       width="25"
                       height="25"
                     />
-                    <span>Employees</span>
+                    <span>Employees | Customer</span>
                   </NavLink>
                 </li>
                 <li>
