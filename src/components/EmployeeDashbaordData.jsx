@@ -3,12 +3,19 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import MUIDataTable from "mui-datatables";
 import { createPortal } from "react-dom";
+// ADD THESE TWO IMPORTS
+import DynamicModal from "./DynamicModal";
+import CreateEmployeeModal from "./CreateEmployeeModal";
 
 const EmployeeDashboardData = () => {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
   const buttonRefs = useRef([]);
+
+  // ADD THESE TWO STATES FOR THE EDIT MODAL
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   const handleDropdownToggle = (index, e) => {
     e.stopPropagation();
@@ -24,14 +31,22 @@ const EmployeeDashboardData = () => {
     setDropdownOpen(dropdownOpen === index ? null : index);
   };
 
+  // UPDATE THIS FUNCTION TO OPEN MODAL INSTEAD OF ALERT
   const handleEdit = (row) => {
-    alert(`Edit Employee: ${row.employeeName} successfully`);
-    setDropdownOpen(null);
+    setSelectedEmployee(row); // Store the employee data
+    setShowEditModal(true); // Open the modal
+    setDropdownOpen(null); // Close the dropdown
   };
 
   const handleDelete = (row) => {
     alert(`Deleted Employee: ${row.employeeName} successfully`);
     setDropdownOpen(null);
+  };
+
+  // ADD THIS FUNCTION TO CLOSE THE EDIT MODAL
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setSelectedEmployee(null);
   };
 
   // Close dropdown when clicking outside
@@ -56,8 +71,6 @@ const EmployeeDashboardData = () => {
     { name: "employeeID", label: "Employee ID" },
     { name: "facility", label: "Facility" },
     { name: "hoursWorked", label: "Hours Worked" },
-    { name: "status", label: "Status" },
-    { name: "late", label: "Late" },
     { name: "formsSubmitted", label: "Forms Submitted" },
     {
       name: "action",
@@ -168,6 +181,23 @@ const EmployeeDashboardData = () => {
           className="overflow-hidden packageTable"
         />
       </div>
+
+      {/* ADD THIS EDIT MODAL COMPONENT */}
+      <DynamicModal
+        show={showEditModal}
+        handleClose={handleCloseEditModal}
+        title={`Edit Employee - ${selectedEmployee?.employeeName || ""}`}
+        content={
+          <div className="modal-fix">
+            <CreateEmployeeModal
+              employeeData={selectedEmployee}
+              isEditMode={true}
+              onClose={handleCloseEditModal}
+            />
+          </div>
+        }
+        modalWidth="40%"
+      />
 
       {/* Portal dropdown to body */}
       {dropdownOpen !== null &&

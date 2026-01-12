@@ -1,69 +1,157 @@
-import React, { useState } from "react";
-import mapImage from "../otherImages/mapImage.png"
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  createFacility,
+  clearFacilityState,
+} from "../redux/slices/facilitySlice";
+import {
+  getDashboardUsers,
+  clearDashboardErrors,
+} from "../redux/slices/dashboardSlice";
+import Toast from "../components/Toast"; // <-- import the component
 
-const CreateFaciltyModal = () => {
+const CreateFacilityModal = () => {
+  const dispatch = useDispatch();
+
+  // Facility form state
   const [facilityName, setFacilityName] = useState("");
   const [location, setLocation] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [selectedUser, setSelectedUser] = useState("");
+
+  // Get dashboard users data
+  const { users, isLoading: isLoadingUsers } = useSelector(
+    (state) => state.dashboard
+  );
+
+  // Get facility creation state - This will now work!
+  const { isCreating, error, successMessage } = useSelector(
+    (state) => state.facility
+  );
+
+  // Toast state
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "success",
+  });
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+  };
+
+  const hideToast = () => {
+    setToast({ show: false, message: "", type: "success" });
+  };
+
+  useEffect(() => {
+    dispatch(getDashboardUsers());
+    return () => dispatch(clearDashboardErrors());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (successMessage) {
+      showToast(successMessage, "success");
+      setFacilityName("");
+      setLocation("");
+      setSelectedUser("");
+      dispatch(clearFacilityState());
+      dispatch(getDashboardUsers());
+    }
+
+    if (error) {
+      showToast(error, "error");
+      dispatch(clearFacilityState());
+    }
+  }, [successMessage, error, dispatch]);
 
   const handleSubmit = () => {
-    // Handle form submission logic here
-    alert("Facility added!");
+    if (!facilityName.trim()) {
+      showToast("Facility name is required", "error");
+      return;
+    }
+
+    if (!location.trim()) {
+      showToast("Location is required", "error");
+      return;
+    }
+
+    dispatch(
+      createFacility({
+        name: facilityName,
+        address: location,
+        assign_to_user_id: selectedUser ? [selectedUser] : [],
+      })
+    );
   };
 
   return (
     <div className="announcementModal">
+      {/* Toast Component */}
+      <Toast
+        show={toast.show}
+        message={toast.message}
+        type={toast.type}
+        onClose={hideToast}
+      />
+
       <div className="row">
-        <div className="col-md-6 mt-20 position-relative">
-          <div className="form-group">
-            <label htmlFor="facilityName">Facility Name</label>
-            <input
-              type="text"
-              id="facilityName"
-              className="form-control mb-20"
-              placeholder="Enter facility name"
-              value={facilityName}
-              onChange={(e) => setFacilityName(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="location">Location</label>
-            <input
-              type="text"
-              id="location"
-              className="form-control mb-20"
-              placeholder="Enter your location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="employee">Assign Employee</label>
-            <select
-              id="employee"
-              className="form-control mb-20 "
-              value={selectedEmployee}
-              onChange={(e) => setSelectedEmployee(e.target.value)}
-            >
-              <option value="">Select Employee</option>
-              <option value="employee1">John Doe</option>
-              <option value="employee2">Jane Smith</option>
-              <option value="employee3">Michael Johnson</option>
-            </select>
-          </div>
-
-          <button className="btn announceButton facilityButton" onClick={handleSubmit}>
-            Add Facility
-          </button>
+        {/* Facility Name */}
+        <div className="form-group mb-20">
+          <label className="fw-bold mb-2">Facility Name</label>
+          <input
+            type="text"
+            className="form-control"
+            value={facilityName}
+            onChange={(e) => setFacilityName(e.target.value)}
+            disabled={isCreating}
+          />
         </div>
-        <div className="col-md-6">
-            <img src={mapImage} className="w-100"/>
+
+        {/* Location */}
+        <div className="form-group mb-20">
+          <label className="fw-bold mb-2">Location</label>
+          <input
+            type="text"
+            className="form-control"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            disabled={isCreating}
+          />
         </div>
+
+        {/* Assign User */}
+        <div className="form-group mb-30">
+          <label className="fw-bold mb-2">Assign User</label>
+          <select
+            className="form-control"
+            value={selectedUser}
+            onChange={(e) => setSelectedUser(e.target.value)}
+            disabled={isCreating || isLoadingUsers}>
+            <option value="">Select User</option>
+            {isLoadingUsers ? (
+              <option disabled>Loading users...</option>
+            ) : users.length > 0 ? (
+              users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.name} - {user.role}
+                  {user.facility_name ? ` (${user.facility_name})` : ""}
+                </option>
+              ))
+            ) : (
+              <option disabled>No users found</option>
+            )}
+          </select>
+        </div>
+
+        <button
+          className="btn announceButton facilityButton"
+          onClick={handleSubmit}
+          disabled={isCreating}>
+          {isCreating ? "Creating..." : "Add Facility"}
+        </button>
       </div>
     </div>
   );
 };
 
-export default CreateFaciltyModal;
+export default CreateFacilityModal;

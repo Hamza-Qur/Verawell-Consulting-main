@@ -69,7 +69,7 @@ const Timelogs = () => {
       startTime: "08:30",
       endTime: "10:30",
       day: "Tuesday",
-      date: "2025-12-23", // This week
+      date: "2025-12-23",
       description: "Monthly safety compliance check.",
     },
     {
@@ -79,7 +79,7 @@ const Timelogs = () => {
       startTime: "11:00",
       endTime: "14:00",
       day: "Wednesday",
-      date: "2025-12-24", // This week
+      date: "2025-12-24",
       description: "Deep cleaning of kitchen equipment.",
     },
     {
@@ -89,7 +89,7 @@ const Timelogs = () => {
       startTime: "15:00",
       endTime: "16:30",
       day: "Thursday",
-      date: "2025-12-25", // This week
+      date: "2025-12-25",
       description: "Holiday schedule discussion.",
     },
     {
@@ -99,7 +99,7 @@ const Timelogs = () => {
       startTime: "09:00",
       endTime: "11:00",
       day: "Friday",
-      date: "2025-12-26", // This week
+      date: "2025-12-26",
       description: "Weekly seafood delivery and inspection.",
     },
     {
@@ -109,7 +109,7 @@ const Timelogs = () => {
       startTime: "13:00",
       endTime: "15:00",
       day: "Saturday",
-      date: "2025-12-27", // This week
+      date: "2025-12-27",
       description: "Food quality and freshness audit.",
     },
     {
@@ -119,7 +119,7 @@ const Timelogs = () => {
       startTime: "08:00",
       endTime: "12:00",
       day: "Sunday",
-      date: "2025-12-28", // This week
+      date: "2025-12-28",
       description: "Year-end stock taking.",
     },
     {
@@ -129,7 +129,7 @@ const Timelogs = () => {
       startTime: "10:00",
       endTime: "13:00",
       day: "Monday",
-      date: "2025-12-29", // Next week
+      date: "2025-12-29",
       description: "Planning for New Year's Eve rush.",
     },
     {
@@ -139,7 +139,7 @@ const Timelogs = () => {
       startTime: "14:00",
       endTime: "16:00",
       day: "Tuesday",
-      date: "2025-12-30", // Next week
+      date: "2025-12-30",
       description: "Testing new menu items for January.",
     },
     {
@@ -149,7 +149,7 @@ const Timelogs = () => {
       startTime: "07:00",
       endTime: "11:00",
       day: "Wednesday",
-      date: "2025-12-31", // Next week
+      date: "2025-12-31",
       description: "Deep cleaning before New Year.",
     },
     {
@@ -159,7 +159,7 @@ const Timelogs = () => {
       startTime: "09:30",
       endTime: "12:30",
       day: "Thursday",
-      date: "2026-01-01", // Next week
+      date: "2026-01-01",
       description: "New year safety protocols training.",
     },
     {
@@ -169,7 +169,7 @@ const Timelogs = () => {
       startTime: "11:00",
       endTime: "13:00",
       day: "Friday",
-      date: "2026-01-02", // Next week
+      date: "2026-01-02",
       description: "Discussing 2026 supply contracts.",
     },
     {
@@ -179,7 +179,7 @@ const Timelogs = () => {
       startTime: "08:00",
       endTime: "10:00",
       day: "Saturday",
-      date: "2026-01-03", // Next week
+      date: "2026-01-03",
       description: "Random health department inspection.",
     },
     {
@@ -189,7 +189,7 @@ const Timelogs = () => {
       startTime: "16:00",
       endTime: "18:00",
       day: "Sunday",
-      date: "2026-01-04", // Next week
+      date: "2026-01-04",
       description: "Training staff on new wine selections.",
     },
     {
@@ -199,7 +199,7 @@ const Timelogs = () => {
       startTime: "07:00",
       endTime: "15:00",
       day: "Monday",
-      date: "2026-01-05", // Next week
+      date: "2026-01-05",
       description: "Installing new fryer systems.",
     },
     {
@@ -209,7 +209,7 @@ const Timelogs = () => {
       startTime: "10:00",
       endTime: "12:00",
       day: "Tuesday",
-      date: "2026-01-06", // Next week
+      date: "2026-01-06",
       description: "Analyzing December customer surveys.",
     },
     {
@@ -219,7 +219,7 @@ const Timelogs = () => {
       startTime: "13:00",
       endTime: "15:30",
       day: "Wednesday",
-      date: "2026-01-07", // Next week
+      date: "2026-01-07",
       description: "Q1 2026 marketing campaign planning.",
     },
     {
@@ -229,7 +229,7 @@ const Timelogs = () => {
       startTime: "09:00",
       endTime: "11:00",
       day: "Thursday",
-      date: "2026-01-08", // Next week
+      date: "2026-01-08",
       description: "Restocking after holiday season.",
     },
     {
@@ -239,7 +239,7 @@ const Timelogs = () => {
       startTime: "14:00",
       endTime: "17:00",
       day: "Friday",
-      date: "2026-01-09", // Next week
+      date: "2026-01-09",
       description: "Masterclass on new cooking techniques.",
     },
   ]);
@@ -292,41 +292,40 @@ const Timelogs = () => {
     return baseDate.getTime() === currentMonday.getTime();
   };
 
-  // n-1 LOGIC: Allows editing for today/future, and up to 24 hours in the past
-  const isPastTime = (selectedDateStr, selectedTimeStr) => {
-    const now = new Date();
-    const [hours, minutes] = selectedTimeStr.split(":").map(Number);
-
-    // Combine date and time (Local ISO format)
-    const taskTime = new Date(
-      `${selectedDateStr}T${selectedTimeStr.padStart(5, "0")}:00`
-    );
-
-    const diffInMs = now - taskTime;
-    const diffInHours = diffInMs / (1000 * 60 * 60);
-
-    return diffInHours > 24; // True if task is older than 24 hours
-  };
+  // REMOVED: isPastTime function (24-hour restriction removed)
 
   const saveTask = (taskData) => {
-    if (taskData.endTime <= taskData.startTime) {
-      alert("Error: End time must be later than start time.");
+    // Parse datetime values from combined fields
+    const startDateTime = new Date(taskData.startDateTime);
+    const endDateTime = new Date(taskData.endDateTime);
+
+    // Extract date and time separately
+    const startDate = startDateTime.toISOString().split("T")[0];
+    const startTime = startDateTime.toTimeString().slice(0, 5);
+    const endDate = endDateTime.toISOString().split("T")[0];
+    const endTime = endDateTime.toTimeString().slice(0, 5);
+
+    // Get day name from date
+    const dayIndex = (startDateTime.getDay() + 6) % 7; // Convert JS day (0=Sunday) to Monday=0
+    const day = DAYS[dayIndex];
+
+    // Validate end is after start
+    if (endDateTime <= startDateTime) {
+      alert("Error: End date/time must be later than start date/time.");
       return;
     }
 
-    const dayIndex = DAYS.indexOf(taskData.day);
-    const targetDate = new Date(baseDate);
-    targetDate.setDate(baseDate.getDate() + dayIndex);
-    const dateStr = targetDate.toISOString().split("T")[0];
+    const taskWithDate = {
+      ...taskData,
+      date: startDate,
+      startTime: startTime,
+      endTime: endTime,
+      day: day,
+    };
 
-    if (isPastTime(dateStr, taskData.startTime)) {
-      alert(
-        "Error: This time slot is older than the 24-hour grace period and cannot be modified."
-      );
-      return;
-    }
-
-    const taskWithDate = { ...taskData, date: dateStr };
+    // Remove combined datetime fields
+    delete taskWithDate.startDateTime;
+    delete taskWithDate.endDateTime;
 
     if (activeModal === "edit") {
       setTasks(
@@ -381,7 +380,7 @@ const Timelogs = () => {
             marginBottom: "30px",
           }}>
           <h2 style={{ fontSize: "24px", fontWeight: "700", margin: 0 }}>
-            Timelogs
+            Timelogs - Form Completion Tracking
           </h2>
           <button
             className="dsgnbtn"
@@ -585,11 +584,6 @@ const Timelogs = () => {
           content={
             <TaskView
               task={selectedTask}
-              isPast={
-                selectedTask
-                  ? isPastTime(selectedTask.date, selectedTask.startTime)
-                  : false
-              }
               onEdit={() => setActiveModal("edit")}
               onDelete={(id) => setTasks(tasks.filter((t) => t.id !== id))}
               close={closeModals}
@@ -604,16 +598,34 @@ const Timelogs = () => {
 // --- SUBSIDIARY COMPONENTS ---
 
 const TaskForm = ({ initialData, onSave }) => {
-  const [formData, setFormData] = useState(
-    initialData || {
-      facility: "KFC",
-      title: "",
-      startTime: "09:00",
-      endTime: "10:00",
-      description: "",
-      day: "Monday",
+  // Helper to prepare initial data with datetime values
+  const prepareInitialData = () => {
+    if (initialData) {
+      // For editing: combine existing date and time
+      return {
+        facility: initialData.facility || "KFC",
+        title: initialData.title || "",
+        description: initialData.description || "",
+        startDateTime: `${initialData.date}T${initialData.startTime}`,
+        endDateTime: `${initialData.date}T${initialData.endTime}`,
+      };
+    } else {
+      // For new task: use current time and 1 hour later
+      const now = new Date();
+      const later = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour later
+
+      return {
+        facility: "KFC",
+        title: "",
+        description: "",
+        startDateTime: now.toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
+        endDateTime: later.toISOString().slice(0, 16),
+      };
     }
-  );
+  };
+
+  const [formData, setFormData] = useState(prepareInitialData());
+
   const inputStyle = {
     background: "#F7F8FA",
     border: "none",
@@ -624,69 +636,58 @@ const TaskForm = ({ initialData, onSave }) => {
     marginTop: "8px",
     marginBottom: "16px",
     boxSizing: "border-box",
-    wordBreak: "break-all",
   };
 
   return (
     <div>
-      <div style={{ display: "flex", gap: "10px" }}>
-        <div style={{ flex: 1 }}>
-          <label>Facility</label>
-          <select
-            value={formData.facility}
-            style={inputStyle}
-            onChange={(e) =>
-              setFormData({ ...formData, facility: e.target.value })
-            }>
-            <option>KFC</option>
-            <option>Nobu</option>
-            <option>Burger King</option>
-            <option>White Castle</option>
-            <option>Cluckin' Bell</option>
-          </select>
-        </div>
-        <div style={{ flex: 1 }}>
-          <label>Day</label>
-          <select
-            value={formData.day}
-            style={inputStyle}
-            onChange={(e) => setFormData({ ...formData, day: e.target.value })}>
-            {DAYS.map((d) => (
-              <option key={d}>{d}</option>
-            ))}
-          </select>
-        </div>
+      <div>
+        <label>Facility</label>
+        <select
+          value={formData.facility}
+          style={inputStyle}
+          onChange={(e) =>
+            setFormData({ ...formData, facility: e.target.value })
+          }>
+          <option>KFC</option>
+          <option>Nobu</option>
+          <option>Burger King</option>
+          <option>White Castle</option>
+          <option>Cluckin' Bell</option>
+        </select>
       </div>
+
       <label>Title</label>
       <input
         value={formData.title}
         style={inputStyle}
         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
       />
+
       <div style={{ display: "flex", gap: "10px" }}>
         <div style={{ flex: 1 }}>
-          <label>Start</label>
+          <label>Start Date & Time</label>
           <input
-            type="time"
-            value={formData.startTime}
+            type="datetime-local"
+            value={formData.startDateTime}
             style={inputStyle}
             onChange={(e) =>
-              setFormData({ ...formData, startTime: e.target.value })
+              setFormData({ ...formData, startDateTime: e.target.value })
             }
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label>End</label>
+          <label>End Date & Time</label>
           <input
-            type="time"
-            value={formData.endTime}
+            type="datetime-local"
+            value={formData.endDateTime}
             style={inputStyle}
             onChange={(e) =>
-              setFormData({ ...formData, endTime: e.target.value })
+              setFormData({ ...formData, endDateTime: e.target.value })
             }
           />
         </div>
       </div>
+
       <label>Description</label>
       <textarea
         value={formData.description}
@@ -695,6 +696,7 @@ const TaskForm = ({ initialData, onSave }) => {
           setFormData({ ...formData, description: e.target.value })
         }
       />
+
       <button
         onClick={() => onSave(formData)}
         style={{
@@ -713,7 +715,7 @@ const TaskForm = ({ initialData, onSave }) => {
   );
 };
 
-const TaskView = ({ task, isPast, onEdit, onDelete, close }) => (
+const TaskView = ({ task, onEdit, onDelete, close }) => (
   <div>
     <div
       style={{
@@ -751,69 +753,40 @@ const TaskView = ({ task, isPast, onEdit, onDelete, close }) => (
         }}>
         {task?.description}
       </p>
-      {isPast && (
-        <div
-          style={{
-            marginTop: "10px",
-            color: "#d64c4c",
-            fontWeight: "600",
-            fontSize: "12px",
-            wordBreak: "break-word",
-          }}>
-          Note: This task is locked as it is outside the 24h grace period.
-        </div>
-      )}
     </div>
 
     <div style={{ display: "flex", gap: "10px" }}>
-      {!isPast ? (
-        <>
-          <button
-            onClick={() => {
-              if (window.confirm("Delete?")) {
-                onDelete(task.id);
-                close();
-              }
-            }}
-            style={{
-              flex: 1,
-              padding: "12px",
-              border: "1px solid #ff0000ff",
-              borderRadius: "12px",
-              color: "#ff0000ff",
-              background: "white",
-              cursor: "pointer",
-            }}>
-            Delete
-          </button>
-          <button
-            className="dsgnbtn"
-            onClick={onEdit}
-            style={{
-              flex: 2,
-              padding: "12px",
-              borderRadius: "12px",
-              color: "white",
-              border: "none",
-              cursor: "pointer",
-            }}>
-            Edit Task
-          </button>
-        </>
-      ) : (
-        <button
-          style={{
-            width: "100%",
-            padding: "12px",
-            borderRadius: "12px",
-            background: "#eee",
-            color: "#999",
-            border: "none",
-            cursor: "not-allowed",
-          }}>
-          Locked (Past Record)
-        </button>
-      )}
+      <button
+        onClick={() => {
+          if (window.confirm("Delete?")) {
+            onDelete(task.id);
+            close();
+          }
+        }}
+        style={{
+          flex: 1,
+          padding: "12px",
+          border: "1px solid #ff0000ff",
+          borderRadius: "12px",
+          color: "#ff0000ff",
+          background: "white",
+          cursor: "pointer",
+        }}>
+        Delete
+      </button>
+      <button
+        className="dsgnbtn"
+        onClick={onEdit}
+        style={{
+          flex: 2,
+          padding: "12px",
+          borderRadius: "12px",
+          color: "white",
+          border: "none",
+          cursor: "pointer",
+        }}>
+        Edit Task
+      </button>
     </div>
   </div>
 );

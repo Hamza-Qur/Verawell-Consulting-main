@@ -8,7 +8,20 @@ const CustomerDetailDashboardData = ({ rows }) => {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
+  const [selectedFacility, setSelectedFacility] = useState("All");
   const buttonRefs = useRef([]);
+
+  // Facility filter tabs
+  const facilities = [
+    "All",
+    "KFC Facility",
+    "Starbucks Facility",
+    "Burger King Facility",
+  ];
+
+  const handleFacilityFilter = (facility) => {
+    setSelectedFacility(facility);
+  };
 
   const handleDropdownToggle = (index, e) => {
     e.stopPropagation();
@@ -48,6 +61,144 @@ const CustomerDetailDashboardData = ({ rows }) => {
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
+
+  // Updated employeeData with facility field
+  const employeeData = [
+    {
+      formName: "Kitchen Sanitation",
+      time: "09:12:33",
+      date: "25 November, 2025",
+      hoursWorked: "3",
+      formStatus: false,
+      facility: "KFC", // Added facility field
+    },
+    {
+      formName: "Meal Observation",
+      time: "07:45:38",
+      date: "25 November, 2025",
+      hoursWorked: "5",
+      formStatus: true,
+      facility: "Starbucks", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "08:45:00",
+      date: "17 December, 2025",
+      hoursWorked: "6",
+      formStatus: true,
+      facility: "Burger King", // Added facility field
+    },
+    {
+      formName: "Meal Observation",
+      time: "11:15:00",
+      date: "17 December, 2025",
+      hoursWorked: "1",
+      formStatus: false,
+      facility: "KFC", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "07:50:00",
+      date: "17 December, 2025",
+      hoursWorked: "8",
+      formStatus: true,
+      facility: "Starbucks", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "09:12:33",
+      date: "25 November, 2025",
+      hoursWorked: "3",
+      formStatus: false,
+      facility: "Burger King", // Added facility field
+    },
+    {
+      formName: "Meal Observation",
+      time: "07:45:38",
+      date: "25 November, 2025",
+      hoursWorked: "5",
+      formStatus: true,
+      facility: "KFC", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "08:45:00",
+      date: "17 December, 2025",
+      hoursWorked: "6",
+      formStatus: true,
+      facility: "Starbucks", // Added facility field
+    },
+    {
+      formName: "Meal Observation",
+      time: "11:15:00",
+      date: "17 December, 2025",
+      hoursWorked: "1",
+      formStatus: false,
+      facility: "Burger King", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "07:50:00",
+      date: "17 December, 2025",
+      hoursWorked: "8",
+      formStatus: true,
+      facility: "KFC", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "09:12:33",
+      date: "25 November, 2025",
+      hoursWorked: "3",
+      formStatus: false,
+      facility: "Starbucks", // Added facility field
+    },
+    {
+      formName: "Meal Observation",
+      time: "07:45:38",
+      date: "25 November, 2025",
+      hoursWorked: "5",
+      formStatus: true,
+      facility: "Burger King", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "08:45:00",
+      date: "17 December, 2025",
+      hoursWorked: "6",
+      formStatus: true,
+      facility: "KFC", // Added facility field
+    },
+    {
+      formName: "Meal Observation",
+      time: "11:15:00",
+      date: "17 December, 2025",
+      hoursWorked: "1",
+      formStatus: false,
+      facility: "Starbucks", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "07:50:00",
+      date: "17 December, 2025",
+      hoursWorked: "8",
+      formStatus: true,
+      facility: "Burger King", // Added facility field
+    },
+  ];
+
+  // Filter data based on selected facility
+  const filteredData =
+    selectedFacility === "All"
+      ? employeeData
+      : employeeData.filter((item) => {
+          if (selectedFacility === "KFC Facility")
+            return item.facility === "KFC";
+          if (selectedFacility === "Starbucks Facility")
+            return item.facility === "Starbucks";
+          if (selectedFacility === "Burger King Facility")
+            return item.facility === "Burger King";
+          return true;
+        });
 
   const employeeColumns = [
     { name: "formName", label: "Form Name" },
@@ -99,7 +250,7 @@ const CustomerDetailDashboardData = ({ rows }) => {
         filter: false,
         sort: false,
         customBodyRenderLite: (dataIndex) => {
-          const row = employeeData[dataIndex];
+          const row = filteredData[dataIndex];
           const isCompleted = row.formStatus;
 
           const handleActionClick = () => {
@@ -157,114 +308,6 @@ const CustomerDetailDashboardData = ({ rows }) => {
     },
   ];
 
-  const employeeData = [
-    {
-      formName: "Kitchen Sanitation",
-      time: "09:12:33",
-      date: "25 November, 2025",
-      hoursWorked: "3",
-      formStatus: false,
-    },
-    {
-      formName: "Meal Observation",
-      time: "07:45:38",
-      date: "25 November, 2025",
-      hoursWorked: "5",
-      formStatus: true,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "08:45:00",
-      date: "17 December, 2025",
-      hoursWorked: "6",
-      formStatus: true,
-    },
-    {
-      formName: "Meal Observation",
-      time: "11:15:00",
-      date: "17 December, 2025",
-      hoursWorked: "1",
-      formStatus: false,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "07:50:00",
-      date: "17 December, 2025",
-      hoursWorked: "8",
-      formStatus: true,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "09:12:33",
-      date: "25 November, 2025",
-      hoursWorked: "3",
-      formStatus: false,
-    },
-    {
-      formName: "Meal Observation",
-      time: "07:45:38",
-      date: "25 November, 2025",
-      hoursWorked: "5",
-      formStatus: true,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "08:45:00",
-      date: "17 December, 2025",
-      hoursWorked: "6",
-      formStatus: true,
-    },
-    {
-      formName: "Meal Observation",
-      time: "11:15:00",
-      date: "17 December, 2025",
-      hoursWorked: "1",
-      formStatus: false,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "07:50:00",
-      date: "17 December, 2025",
-      hoursWorked: "8",
-      formStatus: true,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "09:12:33",
-      date: "25 November, 2025",
-      hoursWorked: "3",
-      formStatus: false,
-    },
-    {
-      formName: "Meal Observation",
-      time: "07:45:38",
-      date: "25 November, 2025",
-      hoursWorked: "5",
-      formStatus: true,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "08:45:00",
-      date: "17 December, 2025",
-      hoursWorked: "6",
-      formStatus: true,
-    },
-    {
-      formName: "Meal Observation",
-      time: "11:15:00",
-      date: "17 December, 2025",
-      hoursWorked: "1",
-      formStatus: false,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "07:50:00",
-      date: "17 December, 2025",
-      hoursWorked: "8",
-      formStatus: true,
-    },
-  ];
-
   const options = {
     selectableRows: "none",
     rowsPerPageOptions: [5, 10, 15, 100],
@@ -280,9 +323,60 @@ const CustomerDetailDashboardData = ({ rows }) => {
 
   return (
     <>
+      {/* Facility Filter Tabs */}
+      <div
+        style={{
+          marginBottom: "20px",
+          borderBottom: "1px solid #E0E0E0",
+          paddingBottom: "0px",
+        }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
+            justifyContent: "center",
+          }}>
+          {facilities.map((facility) => (
+            <button
+              key={facility}
+              onClick={() => handleFacilityFilter(facility)}
+              style={{
+                padding: "8px 25px",
+                borderRadius: "0px",
+                borderBottom: "3px solid",
+                borderColor:
+                  selectedFacility === facility ? "#8B2885" : "transparent",
+                backgroundColor:
+                  selectedFacility === facility ? "transparent" : "transparent",
+                color: selectedFacility === facility ? "#8B2885" : "#000",
+                fontWeight: "500",
+                fontSize: "16px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                minWidth: "auto",
+                textAlign: "center",
+              }}
+              onMouseEnter={(e) => {
+                if (selectedFacility !== facility) {
+                  e.currentTarget.style.borderColor = "#8B2885";
+                  e.currentTarget.style.color = "#8B2885";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (selectedFacility !== facility) {
+                  e.currentTarget.style.borderColor = "transparent";
+                  e.currentTarget.style.color = "#000";
+                }
+              }}>
+              {facility}
+            </button>
+          ))}
+        </div>
+      </div>
       <div>
         <MUIDataTable
-          data={employeeData}
+          data={filteredData}
           columns={employeeColumns}
           options={options}
           className="overflow-hidden packageTable"
@@ -313,7 +407,7 @@ const CustomerDetailDashboardData = ({ rows }) => {
                 alignItems: "center",
                 gap: "8px",
               }}
-              onClick={() => handleEdit(employeeData[dropdownOpen])}>
+              onClick={() => handleEdit(filteredData[dropdownOpen])}>
               <Icon icon="line-md:edit" width="16" height="16" /> Edit
             </div>
             <div
@@ -326,7 +420,7 @@ const CustomerDetailDashboardData = ({ rows }) => {
                 gap: "8px",
                 borderTop: "1px solid #eee",
               }}
-              onClick={() => handleDelete(employeeData[dropdownOpen])}>
+              onClick={() => handleDelete(filteredData[dropdownOpen])}>
               <Icon
                 icon="material-symbols:delete-outline"
                 width="16"

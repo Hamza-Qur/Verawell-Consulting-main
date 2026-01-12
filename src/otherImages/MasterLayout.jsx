@@ -1,3 +1,5 @@
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../redux/slices/authSlice";
 import React, { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { Link, NavLink, useLocation } from "react-router-dom";
@@ -8,8 +10,12 @@ import DynamicModal from "../components/DynamicModal";
 import CreateNewModal from "../components/CreateNewModal";
 import NotificationTab from "../components/NotificationTab";
 import NotificationDropdown from "../components/NotificatioDropdown";
+import { getUserProfile } from "../redux/slices/userSlice";
 
 const MasterLayout = ({ children, Chain }) => {
+  const dispatch = useDispatch();
+  const { user, isLoading } = useSelector((state) => state.auth);
+  const { profile, isLoadingProfile } = useSelector((state) => state.user);
   const role = localStorage.getItem("role");
   const [sidebarActive, setSidebarActive] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -47,6 +53,29 @@ const MasterLayout = ({ children, Chain }) => {
 
   const sidebarControl = () => setSidebarActive(!sidebarActive);
   const mobileMenuControl = () => setMobileMenu(!mobileMenu);
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = "/";
+  };
+
+  useEffect(() => {
+    // Only fetch if profile doesn't exist in state AND localStorage
+    const cachedProfile = localStorage.getItem("userProfile");
+
+    if (!profile && !cachedProfile && !isLoadingProfile) {
+      dispatch(getUserProfile());
+    }
+  }, [dispatch, profile, isLoadingProfile]);
+
+  useEffect(() => {
+    // This will run whenever Redux user state changes
+    const cachedProfile = localStorage.getItem("userProfile");
+    if (cachedProfile) {
+      const parsedProfile = JSON.parse(cachedProfile);
+      // You can set a local state here if needed
+      console.log("Profile updated:", parsedProfile);
+    }
+  }, [profile]);
 
   return (
     <section className={mobileMenu ? "overlay active" : "overlay "}>
@@ -125,12 +154,33 @@ const MasterLayout = ({ children, Chain }) => {
                     <span>Documents</span>
                   </NavLink>
                 </li>
-                <li>
+                {/* <li>
                   <NavLink
                     to="/facilities"
                     className={(navData) =>
                       navData.isActive ? "active-page" : ""
                     }>
+                    <Icon
+                      icon="tabler:building-store"
+                      className="menu-icon"
+                      width="28"
+                      height="28"
+                    />
+                    <span>Facilities</span>
+                  </NavLink>
+                </li> */}
+                <li>
+                  <NavLink
+                    to="/facilities"
+                    className={(navData) => {
+                      // Match both exact /facilities AND /facilities/*
+                      const isExactFacilities = navData.isActive;
+                      const isFacilityDetail =
+                        location.pathname.startsWith("/facilities/");
+                      return isExactFacilities || isFacilityDetail
+                        ? "active-page"
+                        : "";
+                    }}>
                     <Icon
                       icon="tabler:building-store"
                       className="menu-icon"
@@ -483,20 +533,35 @@ const MasterLayout = ({ children, Chain }) => {
                     className="d-flex justify-content-center align-items-center rounded-circle"
                     type="button"
                     data-bs-toggle="dropdown">
-                    <img
-                      src={profilePic}
-                      alt="image_user"
-                      className="w-40-px h-40-px object-fit-cover rounded-circle"
-                    />
+                    {isLoadingProfile ? (
+                      <div className="w-40-px h-40-px rounded-circle bg-gray-200 d-flex align-items-center justify-content-center">
+                        <Icon
+                          icon="eos-icons:loading"
+                          className="text-gray-500"
+                        />
+                      </div>
+                    ) : profile?.data?.profile_picture ? (
+                      <img
+                        src={profile.data.profile_picture}
+                        alt={profile?.data?.name || "User"}
+                        className="w-40-px h-40-px object-fit-cover rounded-circle"
+                      />
+                    ) : (
+                      <div className="w-40-px h-40-px rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-semibold">
+                        {profile?.data?.name?.charAt(0) || "U"}
+                      </div>
+                    )}
                   </button>
                   <div className="dropdown-menu to-top dropdown-menu-sm">
                     <div className="py-12 px-16 radius-8 bg-primary-50 mb-16 d-flex align-items-center justify-content-between gap-2">
                       <div>
                         <h6 className="text-lg text-primary-light fw-semibold mb-2">
-                          John Doe
+                          {profile?.data?.name || "User Name"}{" "}
+                          {/* Use profile from userSlice */}
                         </h6>
                         <span className="text-secondary-light fw-medium text-sm">
-                          Admin
+                          {profile?.data?.role || "Admin"}{" "}
+                          {/* Use profile from userSlice */}
                         </span>
                       </div>
                       <button type="button" className="hover-text-danger">
@@ -508,12 +573,13 @@ const MasterLayout = ({ children, Chain }) => {
                     </div>
                     <ul className="to-top-list">
                       <li>
-                        <Link
-                          className="dropdown-item text-black px-0 py-8 hover-bg-transparent hover-text-danger d-flex align-items-center gap-3"
-                          to="/">
-                          <Icon icon="lucide:power" className="icon text-xl" />{" "}
-                          Log Out
-                        </Link>
+                        <button
+                          className="dropdown-item text-black px-0 py-8 hover-bg-transparent hover-text-danger d-flex align-items-center gap-3 w-100 bg-transparent border-0"
+                          onClick={handleLogout}
+                          disabled={isLoading}>
+                          <Icon icon="lucide:power" className="icon text-xl" />
+                          {isLoading ? "Logging out..." : "Log Out"}
+                        </button>
                       </li>
                     </ul>
                   </div>

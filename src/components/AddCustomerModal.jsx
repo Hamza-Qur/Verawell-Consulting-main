@@ -1,76 +1,38 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { register } from "../redux/slices/authSlice";
 
-const CreateEmployeeModal = ({
-  employeeData: propEmployeeData,
-  isEditMode = false,
-  onClose,
-}) => {
-  // Renamed prop
+const AddCustomerModal = ({ onClose }) => {
   const dispatch = useDispatch();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [employeeID, setEmployeeID] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
-
-  // Pre-fill form when in edit mode
-  useEffect(() => {
-    if (isEditMode && propEmployeeData) {
-      // Use renamed prop
-      setFullName(propEmployeeData.employeeName || "");
-      setEmail(propEmployeeData.email || "");
-      setPhone(propEmployeeData.phone || "");
-      setEmployeeID(propEmployeeData.id || "");
-    } else {
-      // Reset form for create mode
-      setFullName("");
-      setEmail("");
-      setPhone("");
-      setPassword("");
-      setConfirmPassword("");
-      setEmployeeID("");
-      setError("");
-      setSuccess(false);
-    }
-  }, [isEditMode, propEmployeeData]); // Use renamed prop
+  const [success, setSuccess] = useState(false); // Add success state
 
   const handleSubmit = async () => {
-    if (!fullName || !email || !phone || !password) {
-      setError("Please fill in all required fields");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
     setIsLoading(true);
     setError("");
     setSuccess(false);
 
     try {
-      const registrationData = {
-        // Changed variable name
+      const customerData = {
         name: fullName,
         email: email,
         password: password,
         password_confirmation: confirmPassword,
         phone_number: phone || "1234567890",
-        role: "team",
+        role: "customer",
       };
 
-      const result = await dispatch(register(registrationData)).unwrap(); // Use new name
+      const result = await dispatch(register(customerData)).unwrap();
 
       if (result.success) {
         setSuccess(true);
-        // Clear form
+        // Clear form after successful submission
         setFullName("");
         setEmail("");
         setPhone("");
@@ -82,7 +44,7 @@ const CreateEmployeeModal = ({
           if (onClose) onClose();
         }, 2000);
       } else {
-        setError(result.message || "Failed to add employee");
+        setError(result.message || "Failed to add customer");
       }
     } catch (err) {
       if (err.errors) {
@@ -93,7 +55,7 @@ const CreateEmployeeModal = ({
       } else {
         setError("Something went wrong");
       }
-      console.error("Add employee error:", err);
+      console.error("Add customer error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -122,9 +84,10 @@ const CreateEmployeeModal = ({
           {!success ? (
             <>
               <div className="form-group">
-                <label>Full Name *</label>
+                <label htmlFor="fullName">Full Name *</label>
                 <input
                   type="text"
+                  id="fullName"
                   className="form-control mb-10"
                   placeholder="Enter full name"
                   value={fullName}
@@ -134,9 +97,10 @@ const CreateEmployeeModal = ({
               </div>
 
               <div className="form-group">
-                <label>Email Address *</label>
+                <label htmlFor="email">Email Address *</label>
                 <input
                   type="email"
+                  id="email"
                   className="form-control mb-10"
                   placeholder="Enter email address"
                   value={email}
@@ -146,9 +110,10 @@ const CreateEmployeeModal = ({
               </div>
 
               <div className="form-group">
-                <label>Phone Number *</label>
+                <label htmlFor="phone">Phone Number</label>
                 <input
                   type="tel"
+                  id="phone"
                   className="form-control mb-10"
                   placeholder="1234567890"
                   value={phone}
@@ -158,14 +123,16 @@ const CreateEmployeeModal = ({
                   }}
                   disabled={isLoading}
                 />
+                <small className="text-muted">Enter numbers only</small>
               </div>
 
               <div className="form-group">
-                <label>Password *</label>
+                <label htmlFor="password">Password *</label>
                 <input
                   type="password"
+                  id="password"
                   className="form-control mb-10"
-                  placeholder="Set password for employee"
+                  placeholder="Set password for customer"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
@@ -173,9 +140,10 @@ const CreateEmployeeModal = ({
               </div>
 
               <div className="form-group">
-                <label>Confirm Password *</label>
+                <label htmlFor="confirmPassword">Confirm Password *</label>
                 <input
                   type="password"
+                  id="confirmPassword"
                   className="form-control mb-10"
                   placeholder="Confirm password"
                   value={confirmPassword}
@@ -189,7 +157,7 @@ const CreateEmployeeModal = ({
                   className="btn announceButton flex-grow-1"
                   onClick={handleSubmit}
                   disabled={isLoading}>
-                  {isLoading ? "Adding Employee..." : "Add Employee"}
+                  {isLoading ? "Adding Customer..." : "Add Customer"}
                 </button>
 
                 <button
@@ -215,9 +183,9 @@ const CreateEmployeeModal = ({
                   />
                 </svg>
               </div>
-              <h5 className="text-success">Employee Added Successfully!</h5>
+              <h5 className="text-success">Customer Added Successfully!</h5>
               <p className="text-muted">
-                The employee can now log in with their credentials.
+                The customer can now log in with their credentials.
               </p>
             </div>
           )}
@@ -227,4 +195,4 @@ const CreateEmployeeModal = ({
   );
 };
 
-export default CreateEmployeeModal;
+export default AddCustomerModal;

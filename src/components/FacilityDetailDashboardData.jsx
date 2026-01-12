@@ -8,7 +8,22 @@ const FacilityDetailDashboardData = ({ rows }) => {
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
+  const [selectedFacility, setSelectedFacility] = useState("All");
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [selectedForm, setSelectedForm] = useState(null);
   const buttonRefs = useRef([]);
+
+  // Facility filter tabs
+  const facilities = [
+    "All",
+    "KFC Facility",
+    "Starbucks Facility",
+    "Burger King Facility",
+  ];
+
+  const handleFacilityFilter = (facility) => {
+    setSelectedFacility(facility);
+  };
 
   const handleDropdownToggle = (index, e) => {
     e.stopPropagation();
@@ -40,6 +55,19 @@ const FacilityDetailDashboardData = ({ rows }) => {
     navigate(`/facility-detail-page/${encodeURIComponent(facility)}`);
   };
 
+  const handleAddTask = (form) => {
+    setSelectedForm(form);
+    setShowAddTaskModal(true);
+  };
+
+  const handleSaveTask = (taskData) => {
+    // Here you would save the task to your backend
+    console.log("Saving task:", taskData);
+    alert(`Task "${taskData.title}" added successfully to Timelogs!`);
+    setShowAddTaskModal(false);
+    setSelectedForm(null);
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
@@ -48,6 +76,144 @@ const FacilityDetailDashboardData = ({ rows }) => {
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
+
+  // Updated employeeData with facility field
+  const employeeData = [
+    {
+      formName: "Kitchen Sanitation",
+      time: "09:12:33",
+      date: "25 November, 2025",
+      hoursWorked: "3",
+      formStatus: false,
+      facility: "KFC", // Added facility field
+    },
+    {
+      formName: "Meal Observation",
+      time: "07:45:38",
+      date: "25 November, 2025",
+      hoursWorked: "5",
+      formStatus: true,
+      facility: "Starbucks", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "08:45:00",
+      date: "17 December, 2025",
+      hoursWorked: "6",
+      formStatus: true,
+      facility: "Burger King", // Added facility field
+    },
+    {
+      formName: "Meal Observation",
+      time: "11:15:00",
+      date: "17 December, 2025",
+      hoursWorked: "1",
+      formStatus: false,
+      facility: "KFC", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "07:50:00",
+      date: "17 December, 2025",
+      hoursWorked: "8",
+      formStatus: true,
+      facility: "Starbucks", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "09:12:33",
+      date: "25 November, 2025",
+      hoursWorked: "3",
+      formStatus: false,
+      facility: "Burger King", // Added facility field
+    },
+    {
+      formName: "Meal Observation",
+      time: "07:45:38",
+      date: "25 November, 2025",
+      hoursWorked: "5",
+      formStatus: true,
+      facility: "KFC", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "08:45:00",
+      date: "17 December, 2025",
+      hoursWorked: "6",
+      formStatus: true,
+      facility: "Starbucks", // Added facility field
+    },
+    {
+      formName: "Meal Observation",
+      time: "11:15:00",
+      date: "17 December, 2025",
+      hoursWorked: "1",
+      formStatus: false,
+      facility: "Burger King", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "07:50:00",
+      date: "17 December, 2025",
+      hoursWorked: "8",
+      formStatus: true,
+      facility: "KFC", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "09:12:33",
+      date: "25 November, 2025",
+      hoursWorked: "3",
+      formStatus: false,
+      facility: "Starbucks", // Added facility field
+    },
+    {
+      formName: "Meal Observation",
+      time: "07:45:38",
+      date: "25 November, 2025",
+      hoursWorked: "5",
+      formStatus: true,
+      facility: "Burger King", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "08:45:00",
+      date: "17 December, 2025",
+      hoursWorked: "6",
+      formStatus: true,
+      facility: "KFC", // Added facility field
+    },
+    {
+      formName: "Meal Observation",
+      time: "11:15:00",
+      date: "17 December, 2025",
+      hoursWorked: "1",
+      formStatus: false,
+      facility: "Starbucks", // Added facility field
+    },
+    {
+      formName: "Kitchen Sanitation",
+      time: "07:50:00",
+      date: "17 December, 2025",
+      hoursWorked: "8",
+      formStatus: true,
+      facility: "Burger King", // Added facility field
+    },
+  ];
+
+  // Filter data based on selected facility
+  const filteredData =
+    selectedFacility === "All"
+      ? employeeData
+      : employeeData.filter((item) => {
+          if (selectedFacility === "KFC Facility")
+            return item.facility === "KFC";
+          if (selectedFacility === "Starbucks Facility")
+            return item.facility === "Starbucks";
+          if (selectedFacility === "Burger King Facility")
+            return item.facility === "Burger King";
+          return true;
+        });
 
   const employeeColumns = [
     { name: "formName", label: "Form Name" },
@@ -92,171 +258,91 @@ const FacilityDetailDashboardData = ({ rows }) => {
         },
       },
     },
-{
-  name: "action",
-  label: "Action",
-  options: {
-    filter: false,
-    sort: false,
-    customBodyRenderLite: (dataIndex) => {
-      const row = employeeData[dataIndex];
-      const isCompleted = row.formStatus;
+    {
+      name: "action",
+      label: "Action",
+      options: {
+        filter: false,
+        sort: false,
+        customBodyRenderLite: (dataIndex) => {
+          const row = filteredData[dataIndex];
+          const isCompleted = row.formStatus;
 
-      const handleActionClick = () => {
-        // Navigate based on form type
-        if (row.formName === "Kitchen Sanitation") {
-          navigate(isCompleted ? "/kitchen-view-form" : "/kitchen-fill-form", {
-            state: { form: row },
-          });
-        } else if (row.formName === "Meal Observation") {
-          navigate(isCompleted ? "/meal-view-form" : "/meal-fill-form", {
-            state: { form: row },
-          });
-        } else {
-          // fallback, just in case
-          navigate(isCompleted ? "/client-view-form" : "/client-fill-form", {
-            state: { form: row },
-          });
-        }
-      };
-
-      return (
-        <button
-          onClick={handleActionClick}
-          style={{
-            background: "#8B2885",
-            border: "none",
-            cursor: "pointer",
-            padding: "5px 12px",
-            color: "white",
-            borderRadius: "7px",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-          }}
-        >
-          <Icon
-            icon={
-              isCompleted
-                ? "ic:baseline-remove-red-eye"
-                : "material-symbols:edit-document"
+          const handleActionClick = () => {
+            // Navigate based on form type
+            if (row.formName === "Kitchen Sanitation") {
+              navigate(
+                isCompleted ? "/kitchen-view-form" : "/kitchen-fill-form",
+                {
+                  state: { form: row },
+                }
+              );
+            } else if (row.formName === "Meal Observation") {
+              navigate(isCompleted ? "/meal-view-form" : "/meal-fill-form", {
+                state: { form: row },
+              });
+            } else {
+              // fallback, just in case
+              navigate(
+                isCompleted ? "/client-view-form" : "/client-fill-form",
+                {
+                  state: { form: row },
+                }
+              );
             }
-            width="17"
-            height="20"
-          />
-          {isCompleted ? "View Form" : "Fill Form"}
-        </button>
-      );
-    },
-  },
-}
-  ];
+          };
 
-  const employeeData = [
-    {
-      formName: "Kitchen Sanitation",
-      time: "09:12:33",
-      date: "25 November, 2025",
-      hoursWorked: "3",
-      formStatus: false,
-    },
-    {
-      formName: "Meal Observation",
-      time: "07:45:38",
-      date: "25 November, 2025",
-      hoursWorked: "5",
-      formStatus: true,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "08:45:00",
-      date: "17 December, 2025",
-      hoursWorked: "6",
-      formStatus: true,
-    },
-    {
-      formName: "Meal Observation",
-      time: "11:15:00",
-      date: "17 December, 2025",
-      hoursWorked: "1",
-      formStatus: false,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "07:50:00",
-      date: "17 December, 2025",
-      hoursWorked: "8",
-      formStatus: true,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "09:12:33",
-      date: "25 November, 2025",
-      hoursWorked: "3",
-      formStatus: false,
-    },
-    {
-      formName: "Meal Observation",
-      time: "07:45:38",
-      date: "25 November, 2025",
-      hoursWorked: "5",
-      formStatus: true,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "08:45:00",
-      date: "17 December, 2025",
-      hoursWorked: "6",
-      formStatus: true,
-    },
-    {
-      formName: "Meal Observation",
-      time: "11:15:00",
-      date: "17 December, 2025",
-      hoursWorked: "1",
-      formStatus: false,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "07:50:00",
-      date: "17 December, 2025",
-      hoursWorked: "8",
-      formStatus: true,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "09:12:33",
-      date: "25 November, 2025",
-      hoursWorked: "3",
-      formStatus: false,
-    },
-    {
-      formName: "Meal Observation",
-      time: "07:45:38",
-      date: "25 November, 2025",
-      hoursWorked: "5",
-      formStatus: true,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "08:45:00",
-      date: "17 December, 2025",
-      hoursWorked: "6",
-      formStatus: true,
-    },
-    {
-      formName: "Meal Observation",
-      time: "11:15:00",
-      date: "17 December, 2025",
-      hoursWorked: "1",
-      formStatus: false,
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "07:50:00",
-      date: "17 December, 2025",
-      hoursWorked: "8",
-      formStatus: true,
+          return (
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <button
+                onClick={handleActionClick}
+                style={{
+                  background: "#8B2885",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "5px 12px",
+                  color: "white",
+                  borderRadius: "7px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}>
+                <Icon
+                  icon={
+                    isCompleted
+                      ? "ic:baseline-remove-red-eye"
+                      : "material-symbols:edit-document"
+                  }
+                  width="17"
+                  height="20"
+                />
+                {isCompleted ? "View Form" : "Fill Form"}
+              </button>
+              
+              <button
+                onClick={() => handleAddTask(row)}
+                style={{
+                  background: "#2196F3",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "5px 12px",
+                  color: "white",
+                  borderRadius: "7px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}>
+                <Icon
+                  icon="mdi:plus-circle-outline"
+                  width="17"
+                  height="20"
+                />
+                Add Task
+              </button>
+            </div>
+          );
+        },
+      },
     },
   ];
 
@@ -273,11 +359,291 @@ const FacilityDetailDashboardData = ({ rows }) => {
     search: true,
   };
 
+  // Add Task Modal Component
+  const AddTaskModal = ({ form, onClose, onSave }) => {
+    const [taskData, setTaskData] = useState({
+      title: form ? `${form.formName} - ${form.facility}` : "",
+      facility: form?.facility || "KFC",
+      description: "",
+      startDateTime: new Date().toISOString().slice(0, 16),
+      endDateTime: new Date(new Date().getTime() + 60 * 60 * 1000).toISOString().slice(0, 16),
+    });
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      onSave(taskData);
+    };
+
+    return createPortal(
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10000,
+        }}
+        onClick={onClose}>
+        <div
+          style={{
+            backgroundColor: "white",
+            borderRadius: "12px",
+            padding: "24px",
+            width: "90%",
+            maxWidth: "500px",
+            maxHeight: "90vh",
+            overflowY: "auto",
+          }}
+          onClick={(e) => e.stopPropagation()}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "20px",
+            }}>
+            <h3 style={{ margin: 0, color: "#8B2885" }}>
+              Add Task to Timelogs
+            </h3>
+            <button
+              onClick={onClose}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: "20px",
+                cursor: "pointer",
+                color: "#666",
+              }}>
+              ×
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            <div style={{ marginBottom: "16px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontWeight: "500",
+                }}>
+                Task Title
+              </label>
+              <input
+                type="text"
+                value={taskData.title}
+                onChange={(e) => setTaskData({ ...taskData, title: e.target.value })}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  borderRadius: "6px",
+                  border: "1px solid #ddd",
+                  fontSize: "14px",
+                }}
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: "16px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontWeight: "500",
+                }}>
+                Facility
+              </label>
+              <select
+                value={taskData.facility}
+                onChange={(e) => setTaskData({ ...taskData, facility: e.target.value })}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  borderRadius: "6px",
+                  border: "1px solid #ddd",
+                  fontSize: "14px",
+                }}>
+                <option value="KFC">KFC</option>
+                <option value="Starbucks">Starbucks</option>
+                <option value="Burger King">Burger King</option>
+                <option value="McDonald">McDonald</option>
+              </select>
+            </div>
+
+            <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+              <div style={{ flex: 1 }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "6px",
+                    fontWeight: "500",
+                  }}>
+                  Start Date & Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={taskData.startDateTime}
+                  onChange={(e) => setTaskData({ ...taskData, startDateTime: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "6px",
+                    border: "1px solid #ddd",
+                    fontSize: "14px",
+                  }}
+                  required
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "6px",
+                    fontWeight: "500",
+                  }}>
+                  End Date & Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={taskData.endDateTime}
+                  onChange={(e) => setTaskData({ ...taskData, endDateTime: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "6px",
+                    border: "1px solid #ddd",
+                    fontSize: "14px",
+                  }}
+                  required
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: "24px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "6px",
+                  fontWeight: "500",
+                }}>
+                Description
+              </label>
+              <textarea
+                value={taskData.description}
+                onChange={(e) => setTaskData({ ...taskData, description: e.target.value })}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  borderRadius: "6px",
+                  border: "1px solid #ddd",
+                  fontSize: "14px",
+                  minHeight: "80px",
+                  resize: "vertical",
+                }}
+                placeholder="Add task details..."
+              />
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+              }}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: "10px 20px",
+                  border: "1px solid #ddd",
+                  borderRadius: "6px",
+                  background: "white",
+                  cursor: "pointer",
+                  color: "#666",
+                }}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={{
+                  padding: "10px 20px",
+                  border: "none",
+                  borderRadius: "6px",
+                  background: "#8B2885",
+                  cursor: "pointer",
+                  color: "white",
+                  fontWeight: "500",
+                }}>
+                Add to Timelogs
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
   return (
     <>
+      {/* Facility Filter Tabs */}
+      <div
+        style={{
+          marginBottom: "20px",
+          borderBottom: "1px solid #E0E0E0",
+          paddingBottom: "0px",
+        }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
+            justifyContent: "center",
+          }}>
+          {facilities.map((facility) => (
+            <button
+              key={facility}
+              onClick={() => handleFacilityFilter(facility)}
+              style={{
+                padding: "8px 25px",
+                borderRadius: "0px",
+                borderBottom: "3px solid",
+                borderColor:
+                  selectedFacility === facility ? "#8B2885" : "transparent",
+                backgroundColor:
+                  selectedFacility === facility ? "transparent" : "transparent",
+                color: selectedFacility === facility ? "#8B2885" : "#000",
+                fontWeight: "500",
+                fontSize: "16px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                minWidth: "auto",
+                textAlign: "center",
+              }}
+              onMouseEnter={(e) => {
+                if (selectedFacility !== facility) {
+                  e.currentTarget.style.borderColor = "#8B2885";
+                  e.currentTarget.style.color = "#8B2885";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (selectedFacility !== facility) {
+                  e.currentTarget.style.borderColor = "transparent";
+                  e.currentTarget.style.color = "#000";
+                }
+              }}>
+              {facility}
+            </button>
+          ))}
+        </div>
+      </div>
       <div>
         <MUIDataTable
-          data={employeeData}
+          data={filteredData}
           columns={employeeColumns}
           options={options}
           className="overflow-hidden packageTable"
@@ -308,7 +674,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
                 alignItems: "center",
                 gap: "8px",
               }}
-              onClick={() => handleEdit(employeeData[dropdownOpen])}>
+              onClick={() => handleEdit(filteredData[dropdownOpen])}>
               <Icon icon="line-md:edit" width="16" height="16" /> Edit
             </div>
             <div
@@ -321,7 +687,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
                 gap: "8px",
                 borderTop: "1px solid #eee",
               }}
-              onClick={() => handleDelete(employeeData[dropdownOpen])}>
+              onClick={() => handleDelete(filteredData[dropdownOpen])}>
               <Icon
                 icon="material-symbols:delete-outline"
                 width="16"
@@ -333,6 +699,18 @@ const FacilityDetailDashboardData = ({ rows }) => {
           </div>,
           document.body
         )}
+
+      {/* Add Task Modal */}
+      {showAddTaskModal && (
+        <AddTaskModal
+          form={selectedForm}
+          onClose={() => {
+            setShowAddTaskModal(false);
+            setSelectedForm(null);
+          }}
+          onSave={handleSaveTask}
+        />
+      )}
     </>
   );
 };

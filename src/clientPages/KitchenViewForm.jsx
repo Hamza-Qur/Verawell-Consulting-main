@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import MasterLayout from "../otherImages/MasterLayout";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react/dist/iconify.js";
@@ -230,12 +230,39 @@ const sectionsData = [
   },
 ];
 
+const mockSubmissionData = {
+  submittedBy: "EMP-1001", // Mock employee ID
+  submittedByName: "John Smith", // Mock employee name
+  submissionDate: "2024-01-15", // Mock submission date
+  submissionTime: "14:30:45", // Mock submission time
+  facility: "KFC Facility", // Mock facility name
+  score: 68, // This will be calculated from sectionsData
+};
+
 const KitchenViewForm = () => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
-  const [sections, setSections] = useState(sectionsData); // <-- local editable copy
+  const [sections, setSections] = useState(sectionsData);
+  const [userRole, setUserRole] = useState(null);
+
+  // Use useEffect to read localStorage after component mounts
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+    setUserRole(role || "guest"); // default to guest if no role
+    console.log("User role:", role); // Debug log
+  }, []);
+
+  // Determine if user can edit based on role
+  const canEdit = userRole === "admin" || userRole === "team"; // Only admin and team can edit
+  const isCustomer = userRole === "customer"; // Customer can only view
 
   const handleStatusChange = (id, newStatus) => {
+    console.log("Can edit?", canEdit, "Role:", userRole); // Debug log
+    if (!canEdit) {
+      alert("Customers cannot edit forms. Please contact your administrator.");
+      return;
+    }
+
     setSections((prev) =>
       prev.map((section) =>
         section.id === id ? { ...section, status: newStatus } : section
@@ -244,6 +271,12 @@ const KitchenViewForm = () => {
   };
 
   const handleCommentChange = (id, newComment) => {
+    console.log("Can edit?", canEdit, "Role:", userRole); // Debug log
+    if (!canEdit) {
+      alert("Customers cannot edit forms. Please contact your administrator.");
+      return;
+    }
+
     setSections((prev) =>
       prev.map((section) =>
         section.id === id ? { ...section, comment: newComment } : section
@@ -251,71 +284,299 @@ const KitchenViewForm = () => {
     );
   };
 
+  // Handle edit button click with protection
+  const handleEditClick = () => {
+    if (!canEdit) {
+      alert("Customers cannot edit forms. Please contact your administrator.");
+      return;
+    }
+    setIsEditing(!isEditing);
+  };
+
   // --- Total Score Calculation ---
-  const pointsPerSection = 3;
-  const totalSections = sections.length;
-  const maxScore = totalSections * pointsPerSection;
+  const calculateScore = () => {
+    const pointsPerSection = 3;
+    const totalSections = sections.length;
+    const maxScore = totalSections * pointsPerSection;
 
-  const rawScore = sections.reduce((acc, section) => {
-    if (section.status === "satisfactory") return acc + pointsPerSection;
-    if (section.status === "improvement") return acc - pointsPerSection;
-    return acc;
-  }, 0);
+    const rawScore = sections.reduce((acc, section) => {
+      if (section.status === "satisfactory") return acc + pointsPerSection;
+      if (section.status === "improvement") return acc - pointsPerSection;
+      return acc;
+    }, 0);
 
-  const percentageScore = Math.max(Math.round((rawScore / maxScore) * 100), 0);
+    return Math.round((rawScore / maxScore) * 100);
+  };
 
-  let scoreColor = "#28a745"; // green
-  if (percentageScore < 40) scoreColor = "#dc3545"; // red
-  else if (percentageScore < 70) scoreColor = "#fd7e14"; // orange
+  const percentageScore = calculateScore();
+
+  // Format submission date
+  const formattedDate = new Date(
+    mockSubmissionData.submissionDate
+  ).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Determine color including negative scores
+  let scoreColor = "#28a745";
+  if (percentageScore < 0) scoreColor = "#dc3545";
+  else if (percentageScore < 40) scoreColor = "#dc3545";
+  else if (percentageScore < 70) scoreColor = "#fd7e14";
 
   return (
     <MasterLayout>
-      <h2
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          fontSize: "30px",
-        }}>
-        <span
-          onClick={() => navigate(-1)}
-          style={{
-            cursor: "pointer",
-            display: "inline-flex",
-            alignItems: "center",
-            color: "#8B2885",
-          }}>
-          <Icon
-            icon="mdi:arrow-left-bold-circle"
-            width="34"
-            height="34"
-            color="#8B2885"
-          />
-        </span>
-        Kitchen Sanitation Assessment
-      </h2>
-
-      {/* --- Display Total Score --- */}
       <div
         style={{
           display: "flex",
+          justifyContent: "space-between",
           alignItems: "center",
-          gap: "10px",
-          margin: "20px 0",
+          marginBottom: "20px",
         }}>
-        <h3>Total Score:</h3>
-        <span
-          style={{ fontSize: "35px", fontWeight: "bold", color: scoreColor }}>
-          {percentageScore}%
-        </span>
+        <h2
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontSize: "30px",
+          }}>
+          <span
+            onClick={() => navigate(-1)}
+            style={{
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              color: "#8B2885",
+            }}>
+            <Icon
+              icon="mdi:arrow-left-bold-circle"
+              width="34"
+              height="34"
+              color="#8B2885"
+            />
+          </span>
+          Kitchen Sanitation Assessment
+        </h2>
+
+        {/* Add print button */}
+        <button
+          onClick={() => window.print()}
+          style={{
+            padding: "8px 16px",
+            backgroundColor: "#8B2885",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}>
+          <Icon icon="mdi:printer" width="20" height="20" />
+          Print Report
+        </button>
       </div>
+
+      {/* ADD SUBMISSION INFO SECTION */}
+      <div
+        style={{
+          backgroundColor: "#f8f9fa",
+          border: "1px solid #e9ecef",
+          borderRadius: "8px",
+          padding: "20px",
+          marginBottom: "30px",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+        }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            gap: "20px",
+          }}>
+          {/* Left side - Submission details */}
+          <div>
+            <h3
+              style={{
+                color: "#8B2885",
+                marginBottom: "15px",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+              }}>
+              <Icon icon="mdi:file-document-outline" width="24" height="24" />
+              Submission Details
+            </h3>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, 1fr)",
+                gap: "15px",
+              }}>
+              <div>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#666",
+                    marginBottom: "4px",
+                  }}>
+                  Submitted By
+                </div>
+                <div
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    color: "#333",
+                  }}>
+                  {mockSubmissionData.submittedByName}
+                  <span
+                    style={{
+                      fontSize: "14px",
+                      fontWeight: "normal",
+                      color: "#666",
+                      marginLeft: "8px",
+                    }}>
+                    ({mockSubmissionData.submittedBy})
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#666",
+                    marginBottom: "4px",
+                  }}>
+                  Facility
+                </div>
+                <div
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    color: "#333",
+                  }}>
+                  {mockSubmissionData.facility}
+                </div>
+              </div>
+
+              <div>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#666",
+                    marginBottom: "4px",
+                  }}>
+                  Submission Date
+                </div>
+                <div
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "bold",
+                    color: "#333",
+                  }}>
+                  {formattedDate} at {mockSubmissionData.submissionTime}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right side - Score card */}
+          <div
+            style={{
+              backgroundColor: "white",
+              border: `2px solid ${scoreColor}`,
+              borderRadius: "8px",
+              padding: "20px",
+              minWidth: "200px",
+              textAlign: "center",
+            }}>
+            <div
+              style={{ fontSize: "14px", color: "#666", marginBottom: "8px" }}>
+              Overall Score
+            </div>
+            <div
+              style={{
+                fontSize: "48px",
+                fontWeight: "bold",
+                color: scoreColor,
+                marginBottom: "8px",
+              }}>
+              {percentageScore}%
+            </div>
+            <div
+              style={{
+                fontSize: "12px",
+                color: "#666",
+                padding: "4px 12px",
+                backgroundColor:
+                  scoreColor === "#28a745"
+                    ? "#d4edda"
+                    : scoreColor === "#fd7e14"
+                    ? "#ffe5d0"
+                    : "#f8d7da",
+                borderRadius: "12px",
+                display: "inline-block",
+              }}>
+              {percentageScore >= 70
+                ? "Satisfactory"
+                : percentageScore >= 40
+                ? "Needs Improvement"
+                : "Unsatisfactory"}
+            </div>
+          </div>
+        </div>
+
+        {/* Add a summary line */}
+        <div
+          style={{
+            marginTop: "20px",
+            paddingTop: "15px",
+            borderTop: "1px solid #e9ecef",
+            fontSize: "14px",
+            color: "#666",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+          }}>
+          <Icon icon="mdi:information-outline" width="18" height="18" />
+          This inspection was completed on {formattedDate} and submitted to the
+          system by {mockSubmissionData.submittedByName}.
+        </div>
+      </div>
+
+      {/* Show role indicator */}
+      {userRole && isCustomer && (
+        <div
+          style={{
+            marginBottom: "20px",
+            padding: "12px",
+            backgroundColor: "#fff3cd",
+            border: "1px solid #ffeaa7",
+            borderRadius: "6px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            color: "#856404",
+          }}>
+          <Icon icon="mdi:eye-outline" width="20" height="20" />
+          <span>
+            View Only Mode - This form has been submitted and is now read-only
+            for customer review.
+          </span>
+        </div>
+      )}
 
       <div
         className="container py-16"
         style={{
-          background: isEditing
-            ? "linear-gradient(90deg, rgba(216, 81, 80, 1) 0%, rgba(87, 36, 103, 1) 100%)"
-            : "transparent",
+          background:
+            isEditing && canEdit
+              ? "linear-gradient(90deg, rgba(216, 81, 80, 1) 0%, rgba(87, 36, 103, 1) 100%)"
+              : "transparent",
           transition: "background 0.3s ease",
           padding: "20px",
           borderRadius: "8px",
@@ -332,10 +593,17 @@ const KitchenViewForm = () => {
                     type="checkbox"
                     className="toggle"
                     checked={section.status === "satisfactory"}
-                    disabled={!isEditing}
-                    onChange={() =>
-                      handleStatusChange(section.id, "satisfactory")
-                    }
+                    disabled={!isEditing || !canEdit} // Disable if not allowed to edit
+                    onChange={(e) => {
+                      e.preventDefault(); // Prevent default behavior
+                      handleStatusChange(section.id, "satisfactory");
+                    }}
+                    onClick={(e) => {
+                      if (!canEdit) {
+                        e.preventDefault();
+                        alert("Customers cannot edit forms.");
+                      }
+                    }}
                   />
                 </div>
 
@@ -345,10 +613,17 @@ const KitchenViewForm = () => {
                     type="checkbox"
                     className="toggle grey"
                     checked={section.status === "improvement"}
-                    disabled={!isEditing}
-                    onChange={() =>
-                      handleStatusChange(section.id, "improvement")
-                    }
+                    disabled={!isEditing || !canEdit} // Disable if not allowed to edit
+                    onChange={(e) => {
+                      e.preventDefault(); // Prevent default behavior
+                      handleStatusChange(section.id, "improvement");
+                    }}
+                    onClick={(e) => {
+                      if (!canEdit) {
+                        e.preventDefault();
+                        alert("Customers cannot edit forms.");
+                      }
+                    }}
                   />
                 </div>
               </div>
@@ -356,10 +631,21 @@ const KitchenViewForm = () => {
               <textarea
                 className="comment-box"
                 value={section.comment}
-                disabled={!isEditing}
-                onChange={(e) =>
-                  handleCommentChange(section.id, e.target.value)
-                }
+                disabled={!isEditing || !canEdit} // Disable if not allowed to edit
+                onChange={(e) => {
+                  if (!canEdit) {
+                    e.preventDefault();
+                    alert("Customers cannot edit forms.");
+                    return;
+                  }
+                  handleCommentChange(section.id, e.target.value);
+                }}
+                onFocus={(e) => {
+                  if (!canEdit) {
+                    e.target.blur(); // Remove focus if not allowed
+                    alert("Customers cannot edit forms.");
+                  }
+                }}
                 style={{
                   resize: "none",
                   height: "90px",
@@ -367,7 +653,7 @@ const KitchenViewForm = () => {
                   padding: "12px",
                   borderRadius: "8px",
                   border: "none",
-                  backgroundColor: isEditing ? "#fff" : "#f1f1f1",
+                  backgroundColor: isEditing && canEdit ? "#fff" : "#f1f1f1",
                   color: "#555",
                 }}
               />
@@ -375,22 +661,46 @@ const KitchenViewForm = () => {
           </div>
         ))}
 
-        {/* --- EDIT BUTTON --- */}
-        <div style={{ textAlign: "center", marginTop: "30px" }}>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
+        {/* --- EDIT BUTTON ---
+        {canEdit ? (
+          <div style={{ textAlign: "center", marginTop: "30px" }}>
+            <button
+              onClick={handleEditClick}
+              style={{
+                padding: "12px 30px",
+                backgroundColor: "#8B2885",
+                color: "#fff",
+                fontSize: "16px",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+              }}>
+              {isEditing ? "Save" : "Edit"}
+            </button>
+          </div>
+        ) : (
+          <div
             style={{
-              padding: "12px 30px",
-              backgroundColor: "#8B2885",
-              color: "#fff",
-              fontSize: "16px",
-              border: "none",
+              textAlign: "center",
+              marginTop: "30px",
+              padding: "20px",
+              background: "#f9f9f9",
               borderRadius: "8px",
-              cursor: "pointer",
+              color: "#666",
             }}>
-            {isEditing ? "Save" : "Edit"}
-          </button>
-        </div>
+            <Icon
+              icon="mdi:lock-outline"
+              width="24"
+              height="24"
+              style={{ marginBottom: "10px" }}
+            />
+            <p style={{ margin: 0 }}>
+              {userRole === "customer"
+                ? "This form is view-only for customers. Contact your admin for edits."
+                : "Please log in to edit this form."}
+            </p>
+          </div>
+        )} */}
       </div>
     </MasterLayout>
   );
