@@ -5,6 +5,8 @@ import dashboardReducer from "./slices/dashboardSlice";
 import facilityReducer from "./slices/facilitySlice";
 import documentReducer from "./slices/documentSlice";
 import formReducer from "./slices/formSlice";
+import attendanceReducer from "./slices/attendanceSlice";
+import notificationReducer from "./slices/notificationSlice";
 
 export const store = configureStore({
   reducer: {
@@ -14,5 +16,7 @@ export const store = configureStore({
     facility: facilityReducer,
     document: documentReducer,
     form: formReducer,
+    attendance: attendanceReducer,
+    notification: notificationReducer,
   },
 });

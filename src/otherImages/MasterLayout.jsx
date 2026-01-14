@@ -115,11 +115,16 @@ const MasterLayout = ({ children, Chain }) => {
                     to="/dashboard"
                     className={(navData) =>
                       navData.isActive ? "active-page" : ""
-                    }>
+                    }
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}>
                     <Icon
-                      icon="hugeicons:dashboard-square-01"
-                      className="menu-icon"
-                      width="23"
+                      icon="svg-spinners:blocks-wave"
+                      width="24"
+                      height="24"
                     />
                     <span>Dashboard</span>
                   </NavLink>
@@ -136,7 +141,7 @@ const MasterLayout = ({ children, Chain }) => {
                       width="25"
                       height="25"
                     />
-                    <span>Employees | Customer</span>
+                    <span>Employees | Customers</span>
                   </NavLink>
                 </li>
                 <li>

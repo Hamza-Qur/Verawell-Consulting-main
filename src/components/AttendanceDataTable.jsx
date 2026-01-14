@@ -3,25 +3,32 @@ import MUIDataTable from "mui-datatables";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
+import { useDispatch, useSelector } from "react-redux";
 import DynamicModal from "./DynamicModal";
 import EditAttendanceModal from "./EditAttendanceModal";
+import {
+  getAttendance,
+  deleteAttendance,
+} from "../redux/slices/attendanceSlice";
 
 const AttendanceDataTable = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const { attendanceList, isLoading, error, isDeleting } = useSelector(
+    (state) => state.attendance
+  );
+
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
   const [selectedFacility, setSelectedFacility] = useState("All");
-  const buttonRefs = useRef([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAttendance, setSelectedAttendance] = useState(null);
+  const buttonRefs = useRef([]);
 
-  // Facility filter tabs
-  const facilities = [
-    "All",
-    "KFC Facility",
-    "Starbucks Facility",
-    "Burger King Facility",
-  ];
+  useEffect(() => {
+    dispatch(getAttendance());
+  }, [dispatch]);
 
   const handleFacilityFilter = (facility) => {
     setSelectedFacility(facility);
@@ -42,10 +49,11 @@ const AttendanceDataTable = () => {
   };
 
   const handleEdit = (rowData) => {
-    setSelectedAttendance(rowData); // Store the attendance data
-    setShowEditModal(true); // Open the modal
-    setDropdownOpen(null); // Close the dropdown
+    setSelectedAttendance(rowData);
+    setShowEditModal(true);
+    setDropdownOpen(null);
   };
+
   const handleCloseEditModal = () => {
     setShowEditModal(false);
     setSelectedAttendance(null);
@@ -54,17 +62,19 @@ const AttendanceDataTable = () => {
   const handleDelete = (rowData) => {
     if (
       window.confirm(
-        `Are you sure you want to delete attendance record for ${rowData.employeeName}?`
+        `Are you sure you want to delete attendance record for "${rowData.title}"?`
       )
     ) {
-      alert(
-        `Deleted attendance record for ${rowData.employeeName} successfully`
-      );
+      dispatch(deleteAttendance(rowData.id)).then((result) => {
+        // Refresh after successful deletion
+        if (result.payload?.success) {
+          dispatch(getAttendance());
+        }
+      });
     }
     setDropdownOpen(null);
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setDropdownOpen(null);
@@ -73,105 +83,81 @@ const AttendanceDataTable = () => {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  // Attendance data matching your image exactly
-  const attendanceData = [
-    {
-      employeeName: "Savannah Nguyen",
-      id: "70668",
-      facility: "KFC",
-      month: "October 2025",
-      hoursWorked: "84",
-    },
-    {
-      employeeName: "Darlene Robertson",
-      id: "97774",
-      facility: "Starbucks",
-      month: "October 2025",
-      hoursWorked: "84",
-    },
-    {
-      employeeName: "Marvin McKinney",
-      id: "97774",
-      facility: "Burger King",
-      month: "October 2025",
-      hoursWorked: "84",
-    },
-    {
-      employeeName: "Jerome Bell",
-      id: "22739",
-      facility: "Starbucks",
-      month: "September 2025",
-      hoursWorked: "90",
-    },
-    {
-      employeeName: "Jacob Jones",
-      id: "22739",
-      facility: "KFC",
-      month: "September 2025",
-      hoursWorked: "91",
-    },
-    {
-      employeeName: "Esther Howard",
-      id: "43718",
-      facility: "Burger King",
-      month: "September 2025",
-      hoursWorked: "95",
-    },
-    {
-      employeeName: "Annette Block",
-      id: "70668",
-      facility: "KFC",
-      month: "August 2025",
-      hoursWorked: "84",
-    },
-    {
-      employeeName: "Guy Howkins",
-      id: "39635",
-      facility: "Starbucks",
-      month: "August 2025",
-      hoursWorked: "84",
-    },
-    {
-      employeeName: "Keith Watson",
-      id: "43756",
-      facility: "Burger King",
-      month: "August 2025",
-      hoursWorked: "84",
-    },
-    {
-      employeeName: "Floyd Miles",
-      id: "22739",
-      facility: "Starbucks",
-      month: "July 2025",
-      hoursWorked: "90",
-    },
-    {
-      employeeName: "Esther Howard",
-      id: "70668",
-      facility: "KFC",
-      month: "July 2025",
-      hoursWorked: "91",
-    },
-    {
-      employeeName: "Jerome Bell",
-      id: "70668",
-      facility: "Burger King",
-      month: "July 2025",
-      hoursWorked: "95",
-    },
-  ];
+  const calculateHoursWorked = (startTime, endTime) => {
+    if (!startTime || !endTime) return "N/A";
 
-  // Filter data based on selected facility
+    try {
+      const start = new Date(startTime);
+      const end = new Date(endTime);
+      const diffInMs = end - start;
+      const diffInHours = diffInMs / (1000 * 60 * 60);
+      return `${diffInHours.toFixed(1)}`;
+    } catch (error) {
+      return "N/A";
+    }
+  };
+
+  const transformAttendanceData = (apiData) => {
+    return apiData.map((task) => {
+      const hoursWorked = calculateHoursWorked(task.start_time, task.end_time);
+
+      let month = "N/A";
+      if (task.start_time) {
+        try {
+          const startDate = new Date(task.start_time);
+          month = startDate.toLocaleDateString("en-US", {
+            month: "long",
+            year: "numeric",
+          });
+        } catch (error) {
+          month = "N/A";
+        }
+      }
+
+      return {
+        id: task.id || "N/A",
+        title: task.title || "No Title",
+        description: task.description || "No Description",
+        startTime: task.start_time
+          ? new Date(task.start_time).toLocaleDateString()
+          : "N/A",
+        endTime: task.end_time
+          ? new Date(task.end_time).toLocaleDateString()
+          : "N/A",
+        month: month,
+        employeeName: task.user_name || `User ${task.user_id || "N/A"}`,
+        employeeId: task.user_id || "N/A",
+        employeeEmail: task.user_email || "N/A",
+        facility: task.facility_name || "Unknown Facility",
+        hoursWorked: hoursWorked,
+        originalData: task,
+      };
+    });
+  };
+
+  const attendanceData = isLoading
+    ? []
+    : transformAttendanceData(attendanceList);
+
   const filteredData =
     selectedFacility === "All"
       ? attendanceData
-      : attendanceData.filter((employee) => {
+      : attendanceData.filter((task) => {
           if (selectedFacility === "KFC Facility")
-            return employee.facility === "KFC";
+            return (
+              task.facility === "KFC" ||
+              task.facility.toLowerCase().includes("kfc")
+            );
           if (selectedFacility === "Starbucks Facility")
-            return employee.facility === "Starbucks";
+            return (
+              task.facility === "Starbucks" ||
+              task.facility.toLowerCase().includes("starbucks")
+            );
           if (selectedFacility === "Burger King Facility")
-            return employee.facility === "Burger King";
+            return (
+              task.facility === "Burger King" ||
+              task.facility.toLowerCase().includes("burger king")
+            );
           return true;
         });
 
@@ -180,15 +166,21 @@ const AttendanceDataTable = () => {
       name: "employeeName",
       label: "Employee Name",
       options: {
-        customBodyRender: (value) => {
+        customBodyRender: (value, tableMeta) => {
+          const rowData = filteredData[tableMeta.rowIndex];
           return (
-            <div style={{ fontWeight: "500", color: "#1A1A1A" }}>{value}</div>
+            <div>
+              <div style={{ fontWeight: "500", color: "#1A1A1A" }}>{value}</div>
+              <div style={{ fontSize: "12px", color: "#666" }}>
+                {rowData.employeeEmail}
+              </div>
+            </div>
           );
         },
       },
     },
     {
-      name: "id",
+      name: "employeeId",
       label: "Employee ID",
       options: {
         customBodyRender: (value) => {
@@ -201,10 +193,47 @@ const AttendanceDataTable = () => {
     {
       name: "facility",
       label: "Facility",
+      options: {
+        customBodyRender: (value) => {
+          return (
+            <div
+              style={{
+                padding: "4px 8px",
+                backgroundColor: "#E5F4FF",
+                color: "#1976D2",
+                borderRadius: "12px",
+                fontSize: "0.85rem",
+                fontWeight: 500,
+                display: "inline-block",
+              }}>
+              {value}
+            </div>
+          );
+        },
+      },
     },
     {
       name: "hoursWorked",
       label: "Hours Worked",
+      options: {
+        customBodyRender: (value) => {
+          let color = "#666";
+          let displayValue = value;
+
+          if (value !== "N/A") {
+            const hoursNum = parseFloat(value);
+            if (!isNaN(hoursNum)) {
+              if (hoursNum < 4) color = "#D32F2F";
+              else if (hoursNum < 8) color = "#FF8104";
+              else color = "#29BF5A";
+
+              displayValue = `${hoursNum} hours`;
+            }
+          }
+
+          return <div style={{ color, fontWeight: "500" }}>{displayValue}</div>;
+        },
+      },
     },
     {
       name: "month",
@@ -217,7 +246,6 @@ const AttendanceDataTable = () => {
         sort: false,
         filter: false,
         customBodyRenderLite: (dataIndex) => {
-          const rowData = filteredData[dataIndex];
           return (
             <div style={{ position: "relative", display: "inline-block" }}>
               <button
@@ -240,8 +268,6 @@ const AttendanceDataTable = () => {
 
   const options = {
     selectableRows: "none",
-    rowsPerPage: 10,
-    rowsPerPageOptions: [5, 10, 15, 20],
     responsive: "standard",
     elevation: 0,
     print: false,
@@ -249,89 +275,94 @@ const AttendanceDataTable = () => {
     viewColumns: false,
     filter: false,
     search: true,
-    searchPlaceholder: "Search attendance...",
-    pagination: true,
+    searchPlaceholder: "Search by employee name, facility...",
+    pagination: false,
     tableBodyHeight: "auto",
   };
 
   return (
     <>
-      {/* Facility Filter Tabs */}
-      <div
-        style={{
-          marginBottom: "20px",
-          borderBottom: "1px solid #E0E0E0",
-          paddingBottom: "0px",
-        }}>
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            flexWrap: "wrap",
-            justifyContent: "center",
-          }}>
-          {facilities.map((facility) => (
-            <button
-              key={facility}
-              onClick={() => handleFacilityFilter(facility)}
-              style={{
-                padding: "8px 25px",
-                borderRadius: "0px",
-                borderBottom: "3px solid",
-                borderColor:
-                  selectedFacility === facility ? "#8B2885" : "transparent",
-                backgroundColor:
-                  selectedFacility === facility ? "transparent" : "transparent",
-                color: selectedFacility === facility ? "#8B2885" : "#000",
-                fontWeight: "500",
-                fontSize: "16px",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                minWidth: "auto",
-                textAlign: "center",
-              }}
-              onMouseEnter={(e) => {
-                if (selectedFacility !== facility) {
-                  e.currentTarget.style.borderColor = "#8B2885";
-                  e.currentTarget.style.color = "#8B2885";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (selectedFacility !== facility) {
-                  e.currentTarget.style.borderColor = "transparent";
-                  e.currentTarget.style.color = "#000";
-                }
-              }}>
-              {facility}
-            </button>
-          ))}
+      {isLoading ? (
+        <div style={{ textAlign: "center", padding: "40px" }}>
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p style={{ marginTop: "10px" }}>Loading attendance data...</p>
         </div>
-      </div>
+      ) : error ? (
+        <div style={{ textAlign: "center", padding: "40px", color: "#D32F2F" }}>
+          <Icon icon="material-symbols:error-outline" width="48" height="48" />
+          <p style={{ marginTop: "10px" }}>Error: {error}</p>
+          <button
+            onClick={() => dispatch(getAttendance())}
+            style={{
+              marginTop: "20px",
+              padding: "10px 20px",
+              backgroundColor: "#8B2885",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}>
+            Retry
+          </button>
+        </div>
+      ) : (
+        <>
+          <div
+            style={{
+              marginBottom: "20px",
+              borderBottom: "1px solid #E0E0E0",
+              paddingBottom: "0px",
+            }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}></div>
+          </div>
 
-      <div className="basic-data-table">
-        <MUIDataTable
-          title=""
-          data={filteredData}
-          columns={columns}
-          options={options}
-          className="overflow-hidden packageTable"
-        />
-      </div>
+          {attendanceData.length === 0 ? (
+            <div
+              style={{ textAlign: "center", padding: "40px", color: "#666" }}>
+              <Icon icon="mdi:calendar-clock" width="48" height="48" />
+              <p style={{ marginTop: "10px" }}>No attendance records found.</p>
+            </div>
+          ) : (
+            <div className="basic-data-table">
+              <MUIDataTable
+                title=""
+                data={filteredData}
+                columns={columns}
+                options={options}
+                className="overflow-hidden packageTable"
+              />
+            </div>
+          )}
+        </>
+      )}
+
       <DynamicModal
         show={showEditModal}
         handleClose={handleCloseEditModal}
-        title={`Edit Attendance - ${selectedAttendance?.employeeName || ""}`}
+        title={`Edit Attendance - ${selectedAttendance?.title || ""}`}
         content={
           <EditAttendanceModal
             attendanceData={selectedAttendance}
             isEditMode={true}
             onClose={handleCloseEditModal}
+            onSuccess={() => {
+              // This will be called when the edit is successful
+              handleCloseEditModal();
+              dispatch(getAttendance()); // Refresh the attendance data
+            }}
           />
         }
         modalWidth="50%"
       />
 
-      {/* Portal dropdown to body */}
       {dropdownOpen !== null &&
         createPortal(
           <div
@@ -393,7 +424,7 @@ const AttendanceDataTable = () => {
                 height="18"
                 color="#D32F2F"
               />
-              <span>Delete</span>
+              <span>{isDeleting ? "Deleting..." : "Delete"}</span>
             </div>
           </div>,
           document.body

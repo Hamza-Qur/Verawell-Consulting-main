@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   getAssessments,
   deleteAssessment,
+  downloadAssessmentPDF,
   clearDocumentState,
 } from "../redux/slices/documentSlice";
 import PDFIcon from "../otherImages/pdf-icon.svg";
@@ -21,8 +22,10 @@ const DocumentDataTable = () => {
     assessments,
     isLoading,
     isDeleting,
+    isDownloadingPDF,
     error,
     deleteError,
+    downloadPDFError,
     successMessage,
   } = useSelector((state) => state.document);
 
@@ -50,7 +53,11 @@ const DocumentDataTable = () => {
       showToast(deleteError, "error");
       dispatch(clearDocumentState());
     }
-  }, [successMessage, error, deleteError, dispatch]);
+    if (downloadPDFError) {
+      showToast(downloadPDFError, "error");
+      dispatch(clearDocumentState());
+    }
+  }, [successMessage, error, deleteError, downloadPDFError, dispatch]);
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -59,67 +66,70 @@ const DocumentDataTable = () => {
     }, 3000);
   };
 
-  // Function to download PDF
-  const handleDownload = (assessment) => {
+  // Function to download PDF using Redux thunk
+  const handleDownload = async (assessment) => {
     try {
-      // Check if assessment has a PDF URL
-      const pdfUrl =
-        assessment.pdf_url ||
-        assessment.file_url ||
-        assessment.originalData?.pdf_url;
+      // Get the assessment_id from the assessment data
+      const assessmentId =
+        assessment.assessmentId ||
+        assessment.originalData?.assessment_id ||
+        assessment.originalData?.id;
 
-      if (pdfUrl) {
-        const link = document.createElement("a");
-        link.href = pdfUrl;
-        link.download = `${
-          assessment.documentName || assessment.title || "document"
-        }.pdf`;
-        link.target = "_blank";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        showToast("Download started", "success");
-      } else {
-        showToast("No PDF available for download", "error");
-      }
-    } catch (error) {
-      console.error("Error downloading PDF:", error);
-      showToast("Error downloading PDF", "error");
-    }
-    setDropdownOpen(null);
-  };
-
-  // Function to attach PDF to email
-  const handleAttachToEmail = async (assessment) => {
-    try {
-      const pdfUrl =
-        assessment.pdf_url ||
-        assessment.file_url ||
-        assessment.originalData?.pdf_url;
-
-      if (!pdfUrl) {
-        showToast("No PDF available for email attachment", "error");
+      if (!assessmentId) {
+        showToast("Cannot download: Missing assessment ID", "error");
         return;
       }
 
-      const subject = encodeURIComponent(
-        `${assessment.documentName || "Document"}`
-      );
-      const body = encodeURIComponent(
-        `Please find attached the ${
-          assessment.documentName || "document"
-        }.\n\n` +
-          `Submitted by: ${assessment.uploadedBy || "User"}\n` +
-          `Date: ${assessment.uploadDate}\n` +
-          `Description: ${assessment.description || "No description available"}`
-      );
+      // Dispatch the download thunk
+      dispatch(downloadAssessmentPDF(assessmentId)).then((result) => {
+        if (result.payload?.success) {
+          showToast("PDF downloaded successfully", "success");
+        }
+      });
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      showToast(`Error downloading PDF: ${error.message}`, "error");
+    } finally {
+      setDropdownOpen(null);
+    }
+  };
 
-      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  // Function to attach PDF to email (simplified version)
+  const handleAttachToEmail = async (assessment) => {
+    try {
+      const assessmentId =
+        assessment.assessmentId || assessment.originalData?.assessment_id;
 
-      showToast("Email client opened", "info");
+      if (!assessmentId) {
+        showToast("Cannot attach to email: Missing assessment ID", "error");
+        return;
+      }
+
+      // First download the PDF using the same method
+      handleDownload(assessment);
+
+      // Then open email client with instructions
+      setTimeout(() => {
+        const subject = encodeURIComponent(
+          `Assessment Document: ${assessment.documentName || "Document"}`
+        );
+        const body = encodeURIComponent(
+          `Please find attached the assessment document.\n\n` +
+            `Document: ${assessment.documentName || "Assessment Document"}\n` +
+            `Assessment ID: ${assessmentId}\n\n` +
+            `The PDF file "assessment-${assessmentId}.pdf" should be in your downloads folder. ` +
+            `Please attach it to this email.`
+        );
+
+        window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
+        showToast(
+          "Email client opened. Please attach the downloaded PDF file.",
+          "info"
+        );
+      }, 1500); // Give time for download to start
     } catch (error) {
       console.error("Error preparing email attachment:", error);
-      showToast("Error preparing email", "error");
+      showToast("Error preparing email attachment", "error");
     }
     setDropdownOpen(null);
   };
@@ -176,21 +186,9 @@ const DocumentDataTable = () => {
             `Document "${assessment.documentName}" deleted successfully`,
             "success"
           );
-          // Refresh the assessments list if we're on the last page and deleted the last item
+          // Refresh the assessments list
           const currentPage = assessments.current_page || 1;
-          const perPage = assessments.per_page || 10;
-          const remainingItems = assessments.total - 1;
-
-          if (
-            remainingItems <= (currentPage - 1) * perPage &&
-            currentPage > 1
-          ) {
-            // If we deleted the last item on the page, go to previous page
-            dispatch(getAssessments(currentPage - 1));
-          } else {
-            // Otherwise refresh current page
-            dispatch(getAssessments(currentPage));
-          }
+          dispatch(getAssessments(currentPage));
         }
       });
     }
@@ -233,19 +231,38 @@ const DocumentDataTable = () => {
   const transformAssessmentData = (apiData) => {
     if (!apiData || !Array.isArray(apiData)) return [];
 
-    return apiData.map((assessment) => ({
-      id: assessment.id,
-      assessmentId: assessment.assessment_id || assessment.id, // Use assessment_id if available, fallback to id
-      documentName: assessment.title || assessment.name || "Unnamed Document",
-      uploadedBy:
-        assessment.user_name || assessment.user?.name || "Unknown User",
-      userId: assessment.user_id || assessment.user?.id || "N/A",
-      uploadDate: formatDate(assessment.created_at || assessment.upload_date),
-      uploadTime: formatTime(assessment.created_at || assessment.upload_date),
-      description: assessment.description || "",
-      pdf_url: assessment.pdf_url || assessment.file_url,
-      originalData: assessment,
-    }));
+    return apiData.map((assessment) => {
+      // Create document name by combining facility_name and category_name
+      let documentName = "";
+      if (assessment.facility_name && assessment.category_name) {
+        documentName = `${assessment.facility_name} - ${assessment.category_name}`;
+      } else if (assessment.facility_name) {
+        documentName = `${assessment.facility_name} - Assessment`;
+      } else if (assessment.category_name) {
+        documentName = assessment.category_name;
+      } else {
+        documentName = "Unnamed Document";
+      }
+
+      // Use title/name if it exists, otherwise use the combined name
+      const finalDocumentName = assessment.title || assessment.name || documentName;
+
+      return {
+        id: assessment.id,
+        assessmentId: assessment.assessment_id || assessment.id,
+        documentName: finalDocumentName,
+        uploadedBy:
+          assessment.user_name || assessment.user?.name || "Unknown User",
+        userId: assessment.user_id || assessment.user?.id || "N/A",
+        uploadDate: formatDate(assessment.created_at || assessment.upload_date),
+        uploadTime: formatTime(assessment.created_at || assessment.upload_date),
+        description: assessment.description || "",
+        pdf_url: assessment.pdf_url || assessment.file_url,
+        facility_name: assessment.facility_name || "Unknown Facility",
+        category_name: assessment.category_name || "Uncategorized",
+        originalData: assessment,
+      };
+    });
   };
 
   const documentData = isLoading
@@ -277,7 +294,6 @@ const DocumentDataTable = () => {
                       : rowData.description
                     : "PDF Document"}
                 </div>
-                {/* Debug: Show the assessment_id */}
                 {rowData?.assessmentId && (
                   <div
                     style={{
@@ -288,6 +304,17 @@ const DocumentDataTable = () => {
                     Assessment ID: {rowData.assessmentId}
                   </div>
                 )}
+                {/* Optional: Show facility and category separately if needed */}
+                {/* <div
+                  style={{
+                    fontSize: "10px",
+                    color: "#666",
+                    marginTop: "2px",
+                  }}>
+                  {rowData?.facility_name && rowData?.category_name && (
+                    <span>{rowData.facility_name} • {rowData.category_name}</span>
+                  )}
+                </div> */}
               </div>
             </div>
           );
@@ -335,14 +362,15 @@ const DocumentDataTable = () => {
               <button
                 ref={(el) => (buttonRefs.current[dataIndex] = el)}
                 onClick={(e) => handleDropdownToggle(dataIndex, e)}
-                disabled={isDeleting}
+                disabled={isDeleting || isDownloadingPDF}
                 style={{
                   background: "none",
                   border: "1px solid #E0E0E0",
                   borderRadius: "4px",
-                  cursor: isDeleting ? "not-allowed" : "pointer",
+                  cursor:
+                    isDeleting || isDownloadingPDF ? "not-allowed" : "pointer",
                   padding: "4px 8px",
-                  opacity: isDeleting ? 0.6 : 1,
+                  opacity: isDeleting || isDownloadingPDF ? 0.6 : 1,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -358,8 +386,6 @@ const DocumentDataTable = () => {
 
   const options = {
     selectableRows: "none",
-    rowsPerPage: 10,
-    rowsPerPageOptions: [5, 10, 15, 20],
     responsive: "standard",
     elevation: 0,
     print: false,
@@ -368,16 +394,8 @@ const DocumentDataTable = () => {
     filter: false,
     search: true,
     searchPlaceholder: "Search documents...",
-    pagination: true,
+    pagination: false, // REMOVED PAGINATION
     tableBodyHeight: "auto",
-    count: assessments.total || 0,
-    page: (assessments.current_page || 1) - 1,
-    onChangePage: (page) => {
-      dispatch(getAssessments(page + 1));
-    },
-    onChangeRowsPerPage: (rowsPerPage) => {
-      dispatch(getAssessments(1));
-    },
     setRowProps: (row, dataIndex) => ({
       style: {
         backgroundColor: dataIndex % 2 === 0 ? "#f9f9f9" : "white",
@@ -485,60 +503,88 @@ const DocumentDataTable = () => {
             <div
               style={{
                 padding: "10px 16px",
-                cursor: "pointer",
+                cursor: isDownloadingPDF ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
                 fontSize: "14px",
-                color: "#333",
+                color: isDownloadingPDF ? "#999" : "#333",
                 transition: "background-color 0.2s",
+                opacity: isDownloadingPDF ? 0.6 : 1,
               }}
               onMouseEnter={(e) =>
+                !isDownloadingPDF &&
                 (e.currentTarget.style.backgroundColor = "#F5F5F5")
               }
               onMouseLeave={(e) =>
                 (e.currentTarget.style.backgroundColor = "transparent")
               }
-              onClick={() => handleDownload(documentData[dropdownOpen])}>
-              <Icon
-                icon="mdi:download-outline"
-                width="18"
-                height="18"
-                color="#666"
-              />
-              <span>Download PDF</span>
+              onClick={() =>
+                !isDownloadingPDF && handleDownload(documentData[dropdownOpen])
+              }>
+              {isDownloadingPDF ? (
+                <>
+                  <div
+                    className="spinner-border spinner-border-sm"
+                    style={{
+                      width: "18px",
+                      height: "18px",
+                      borderColor: "#666",
+                    }}
+                    role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <span>Downloading...</span>
+                </>
+              ) : (
+                <>
+                  <Icon
+                    icon="mdi:download-outline"
+                    width="18"
+                    height="18"
+                    color="#666"
+                  />
+                  <span>Download PDF</span>
+                </>
+              )}
             </div>
             <div
               style={{
                 padding: "10px 16px",
-                cursor: "pointer",
+                cursor: isDownloadingPDF ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
                 fontSize: "14px",
-                color: "#333",
+                color: isDownloadingPDF ? "#999" : "#333",
                 borderTop: "1px solid #F0F0F0",
                 transition: "background-color 0.2s",
+                opacity: isDownloadingPDF ? 0.6 : 1,
               }}
               onMouseEnter={(e) =>
+                !isDownloadingPDF &&
                 (e.currentTarget.style.backgroundColor = "#F5F5F5")
               }
               onMouseLeave={(e) =>
                 (e.currentTarget.style.backgroundColor = "transparent")
               }
-              onClick={() => handleAttachToEmail(documentData[dropdownOpen])}>
+              onClick={() =>
+                !isDownloadingPDF &&
+                handleAttachToEmail(documentData[dropdownOpen])
+              }>
               <Icon
                 icon="mdi:email-outline"
                 width="18"
                 height="18"
-                color="#666"
+                color={isDownloadingPDF ? "#999" : "#666"}
               />
               <span>Attach to Email</span>
             </div>
             <div
               style={{
                 padding: "10px 16px",
-                cursor: "pointer",
+                cursor:
+                  isDeleting || isDownloadingPDF ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
@@ -546,14 +592,21 @@ const DocumentDataTable = () => {
                 color: "#D32F2F",
                 borderTop: "1px solid #F0F0F0",
                 transition: "background-color 0.2s",
+                opacity: isDeleting || isDownloadingPDF ? 0.6 : 1,
               }}
               onMouseEnter={(e) =>
+                !isDeleting &&
+                !isDownloadingPDF &&
                 (e.currentTarget.style.backgroundColor = "#FFE5E5")
               }
               onMouseLeave={(e) =>
                 (e.currentTarget.style.backgroundColor = "transparent")
               }
-              onClick={() => handleDelete(documentData[dropdownOpen])}>
+              onClick={() =>
+                !isDeleting &&
+                !isDownloadingPDF &&
+                handleDelete(documentData[dropdownOpen])
+              }>
               {isDeleting ? (
                 <>
                   <div

@@ -29,7 +29,6 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
     myFacilities = { data: [] }, 
     isLoading: isLoadingFacilities = false,
     isAssigningAssessment = false,
-    assignAssessmentError = null,
     successMessage: facilitySuccessMessage = ""
   } = facilityState;
 
@@ -51,29 +50,13 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
     dispatch(getCategories());
   }, [dispatch]);
 
-  // Show toast messages - MOVED OUT OF CONDITIONAL
+  // Show toast messages
   useEffect(() => {
     if (facilitySuccessMessage) {
       showToast(facilitySuccessMessage, "success");
     }
   }, [facilitySuccessMessage]);
 
- // Add this debug useEffect
-useEffect(() => {
-  console.log("=== DEBUG DATA ===");
-  console.log("Users:", users);
-  console.log("Categories:", categories);
-  console.log("Facilities data:", myFacilities.data);
-  
-  if (myFacilities.data && myFacilities.data.length > 0) {
-    console.log("First facility object:", myFacilities.data[0]);
-    console.log("First facility available IDs:", {
-      id: myFacilities.data[0].id,
-      facility_id: myFacilities.data[0].facility_id,
-      allKeys: Object.keys(myFacilities.data[0])
-    });
-  }
-}, [users, categories, myFacilities.data]);
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
     setTimeout(() => {
@@ -90,16 +73,6 @@ useEffect(() => {
       return;
     }
 
-    // Debug log
-    console.log("Selected values:", {
-      user_id: selectedUser,
-      category_id: selectedCategory,
-      facility_id: selectedFacility,
-      user_id_type: typeof selectedUser,
-      category_id_type: typeof selectedCategory,
-      facility_id_type: typeof selectedFacility
-    });
-
     // Prepare the assignment data
     const assignmentData = {
       category_id: selectedCategory,
@@ -107,12 +80,8 @@ useEffect(() => {
       user_id: selectedUser,
     };
 
-    console.log("Dispatching assignment:", assignmentData);
-
     // Dispatch the new assessment assignment action
     dispatch(assignAssessment(assignmentData)).then((result) => {
-      console.log("Dispatch result:", result);
-      
       if (result.payload?.success) {
         showToast("Assessment assigned successfully!", "success");
         

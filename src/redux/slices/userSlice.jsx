@@ -77,6 +77,58 @@ export const updateUserProfile = createAsyncThunk(
   }
 );
 
+// Admin update user profile (for admin editing other users)
+export const adminUpdateUserProfile = createAsyncThunk(
+  "user/adminUpdateUserProfile",
+  async ({ userId, profileData }, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+      const formData = new FormData();
+
+      // Add user_id parameter (required)
+      formData.append("user_id", userId);
+
+      // Add only required fields
+      if (profileData.name) formData.append("name", profileData.name);
+      if (profileData.phone_number !== undefined)
+        formData.append("phone_number", profileData.phone_number || "");
+
+      // Add profile picture if it exists (File object)
+      if (profileData.profile_picture instanceof File) {
+        formData.append("profile_picture", profileData.profile_picture);
+      }
+
+      console.log("Admin Update FormData entries:");
+      for (let pair of formData.entries()) {
+        console.log(
+          pair[0] +
+            ": " +
+            (pair[1] instanceof File ? `File: ${pair[1].name}` : pair[1])
+        );
+      }
+
+      const response = await fetch(`${BASE_URL}/api/user/update-profile`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        return rejectWithValue(data.message || "Failed to update user profile");
+      }
+
+      return data;
+    } catch (err) {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
 // Change password (unchanged)
 export const changePassword = createAsyncThunk(
   "user/changePassword",
@@ -102,6 +154,37 @@ export const changePassword = createAsyncThunk(
   }
 );
 
+// Delete user
+export const deleteUser = createAsyncThunk(
+  "user/deleteUser",
+  async (userId, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${BASE_URL}/api/user/delete?user_id=${userId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        return rejectWithValue(data.message || "Failed to delete user");
+      }
+
+      return data;
+    } catch (err) {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
 const userSlice = createSlice({
   name: "user",
   initialState: {
@@ -109,15 +192,22 @@ const userSlice = createSlice({
     isLoading: false,
     isLoadingProfile: false,
     isLoadingPassword: false,
+    isDeleting: false,
+    isAdminUpdating: false,
     error: null,
     passwordError: null,
-    successMessage: "",
+    deleteError: null,
+    adminUpdateError: null,
+    adminUpdateSuccess: "",
   },
   reducers: {
     clearUserErrors: (state) => {
       state.error = null;
       state.passwordError = null;
+      state.deleteError = null;
+      state.adminUpdateError = null;
       state.successMessage = "";
+      state.adminUpdateSuccess = "";
     },
   },
   extraReducers: (builder) => {
@@ -163,6 +253,30 @@ const userSlice = createSlice({
         state.error = action.error.message || "Failed to update profile";
       });
 
+    // Admin update user profile
+    builder
+      .addCase(adminUpdateUserProfile.pending, (state) => {
+        state.isAdminUpdating = true;
+        state.adminUpdateError = null;
+        state.adminUpdateSuccess = "";
+      })
+      .addCase(adminUpdateUserProfile.fulfilled, (state, action) => {
+        state.isAdminUpdating = false;
+        console.log("Admin update payload:", action.payload);
+
+        if (action.payload.success) {
+          state.adminUpdateSuccess =
+            action.payload.message || "User updated successfully!";
+        } else {
+          state.adminUpdateError =
+            action.payload.message || "Failed to update user";
+        }
+      })
+      .addCase(adminUpdateUserProfile.rejected, (state, action) => {
+        state.isAdminUpdating = false;
+        state.adminUpdateError = action.payload || "Failed to update user";
+      });
+
     // Change password
     builder
       .addCase(changePassword.pending, (state) => {
@@ -186,6 +300,23 @@ const userSlice = createSlice({
         state.isLoadingPassword = false;
         state.passwordError =
           action.error.message || "Failed to change password";
+      });
+
+    // Delete user
+    builder
+      .addCase(deleteUser.pending, (state) => {
+        state.isDeleting = true;
+        state.deleteError = null;
+        state.successMessage = "";
+      })
+      .addCase(deleteUser.fulfilled, (state, action) => {
+        state.isDeleting = false;
+        state.successMessage =
+          action.payload.message || "User deleted successfully!";
+      })
+      .addCase(deleteUser.rejected, (state, action) => {
+        state.isDeleting = false;
+        state.deleteError = action.payload;
       });
   },
 });

@@ -253,6 +253,54 @@ export const deleteFacility = createAsyncThunk(
   }
 );
 
+export const downloadFacilitiesCSV = createAsyncThunk(
+  "facility/downloadCSV",
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${BASE_URL}/api/assign-facility/get-my-csv`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json, text/csv", // CHANGED: Accept both JSON and CSV
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        return rejectWithValue(errorData.message || "Failed to download CSV");
+      }
+
+      // Get response as text first
+      const responseText = await response.text();
+
+      // Check if it's the "No data found" JSON response
+      try {
+        const jsonData = JSON.parse(responseText);
+        if (
+          jsonData.success === true &&
+          jsonData.message &&
+          jsonData.message.includes("No data found")
+        ) {
+          return rejectWithValue(jsonData.message);
+        }
+      } catch {
+        // Not JSON, must be CSV - proceed with download
+      }
+
+      // Convert text back to blob for CSV download
+      const blob = new Blob([responseText], { type: "text/csv" });
+      return blob;
+    } catch (err) {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
 const facilitySlice = createSlice({
   name: "facility",
   initialState: {
@@ -264,6 +312,8 @@ const facilitySlice = createSlice({
     isUpdating: false,
     isDeleting: false,
     isAssigningAssessment: false,
+    isDownloadingCSV: false,
+    downloadCSVError: null,
     myFacilities: {
       data: [], // Facility data array
       current_page: 1,
@@ -457,6 +507,31 @@ const facilitySlice = createSlice({
       .addCase(deleteFacility.rejected, (state, action) => {
         state.isDeleting = false;
         state.deleteError = action.payload;
+      });
+
+    // Download Facilities CSV
+    builder
+      .addCase(downloadFacilitiesCSV.pending, (state) => {
+        state.isDownloadingCSV = true;
+        state.downloadCSVError = null;
+      })
+      .addCase(downloadFacilitiesCSV.fulfilled, (state, action) => {
+        state.isDownloadingCSV = false;
+        // Trigger file download
+        const url = window.URL.createObjectURL(action.payload);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `facilities-${
+          new Date().toISOString().split("T")[0]
+        }.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      })
+      .addCase(downloadFacilitiesCSV.rejected, (state, action) => {
+        state.isDownloadingCSV = false;
+        state.downloadCSVError = action.payload;
       });
   },
 });

@@ -247,8 +247,6 @@ const FacilityDataTable = () => {
 
   const options = {
     selectableRows: "none",
-    rowsPerPage: 10,
-    rowsPerPageOptions: [5, 10, 15, 20],
     responsive: "standard",
     elevation: 0,
     print: false,
@@ -257,16 +255,8 @@ const FacilityDataTable = () => {
     filter: false,
     search: true,
     searchPlaceholder: "Search facilities...",
-    pagination: true,
+    pagination: false, // REMOVED PAGINATION
     tableBodyHeight: "auto",
-    count: myFacilities.total || 0,
-    page: (myFacilities.current_page || 1) - 1,
-    onChangePage: (page) => {
-      dispatch(getMyFacilities(page + 1));
-    },
-    onChangeRowsPerPage: (rowsPerPage) => {
-      console.log("Rows per page changed:", rowsPerPage);
-    },
   };
 
   const dropdownOptions = [

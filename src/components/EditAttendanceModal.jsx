@@ -1,236 +1,229 @@
 import React, { useState, useEffect } from "react";
-import { Icon } from "@iconify/react";
+import { useDispatch } from "react-redux";
+import { updateAttendance } from "../redux/slices/attendanceSlice";
 
-const EditAttendanceModal = ({
-  attendanceData,
-  isEditMode = false,
-  onClose,
-}) => {
+const EditAttendanceModal = ({ attendanceData, isEditMode, onClose, onSuccess }) => {
+  const dispatch = useDispatch();
   const [formData, setFormData] = useState({
-    employeeName: "",
-    employeeID: "",
-    facility: "",
-    month: "",
-    status: "",
-    hoursWorked: "",
-    checkInTime: "",
-    checkOutTime: "",
-    notes: "",
+    id: "",
+    title: "",
+    description: "",
+    start_time: "",
+    end_time: "",
+    user_id: "",
+    assigned_assessment_id: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Pre-fill form when in edit mode
-  useEffect(() => {
-    if (isEditMode && attendanceData) {
-      setFormData({
-        employeeName: attendanceData.employeeName || "",
-        employeeID: attendanceData.id || "",
-        facility: attendanceData.facility || "",
-        month: attendanceData.month || "",
-        status: attendanceData.status || "",
-        hoursWorked: attendanceData.hoursWorked || "",
-        checkInTime: attendanceData.checkInTime || "09:00",
-        checkOutTime: attendanceData.checkOutTime || "17:00",
-        notes: attendanceData.notes || "",
-      });
-    } else {
-      // Reset form for create mode
-      setFormData({
-        employeeName: "",
-        employeeID: "",
-        facility: "",
-        month: "",
-        status: "",
-        hoursWorked: "",
-        checkInTime: "09:00",
-        checkOutTime: "17:00",
-        notes: "",
-      });
-    }
-  }, [isEditMode, attendanceData]);
-
-  const handleChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleSubmit = () => {
-    if (isEditMode) {
-      alert(
-        `Attendance record for ${formData.employeeName} updated successfully!`
-      );
-    } else {
-      alert(
-        `Attendance record for ${formData.employeeName} added successfully!`
-      );
-    }
-
-    if (onClose) onClose();
-  };
-
-  // Generate months for dropdown (last 12 months)
-  const getMonthOptions = () => {
-    const months = [];
-    const today = new Date();
-
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const monthName = date.toLocaleString("default", { month: "long" });
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return "";
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "";
+      
       const year = date.getFullYear();
-      months.push(`${monthName} ${year}`);
-    }
-
-    return months;
-  };
-
-  const calculateHours = () => {
-    if (formData.checkInTime && formData.checkOutTime) {
-      const [inHour, inMin] = formData.checkInTime.split(":").map(Number);
-      const [outHour, outMin] = formData.checkOutTime.split(":").map(Number);
-
-      let totalHours = outHour - inHour;
-      let totalMinutes = outMin - inMin;
-
-      if (totalMinutes < 0) {
-        totalHours -= 1;
-        totalMinutes += 60;
-      }
-
-      // Convert to decimal (e.g., 8.5 hours)
-      const decimalHours = totalHours + totalMinutes / 60;
-
-      // Update hours worked
-      handleChange("hoursWorked", decimalHours.toFixed(1));
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch (error) {
+      return "";
     }
   };
 
-  // Auto-calculate hours when check-in/out times change
+  const formatDateForAPI = (dateTimeLocalString) => {
+    if (!dateTimeLocalString) return "";
+    
+    try {
+      const [datePart, timePart] = dateTimeLocalString.split('T');
+      return `${datePart} ${timePart}:00`;
+    } catch (error) {
+      return "";
+    }
+  };
+
   useEffect(() => {
-    if (formData.checkInTime && formData.checkOutTime) {
-      calculateHours();
+    if (attendanceData && isEditMode) {
+      setFormData({
+        id: attendanceData.id || "",
+        title: attendanceData.title || "",
+        description: attendanceData.description || "",
+        start_time: formatDateForInput(attendanceData.originalData?.start_time),
+        end_time: formatDateForInput(attendanceData.originalData?.end_time),
+        user_id: attendanceData.originalData?.user_id || "",
+        assigned_assessment_id: attendanceData.originalData?.assigned_assessment_id || "",
+      });
     }
-  }, [formData.checkInTime, formData.checkOutTime]);
+  }, [attendanceData, isEditMode]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    const apiData = {
+      id: formData.id,
+      title: formData.title,
+      description: formData.description,
+      start_time: formatDateForAPI(formData.start_time),
+      end_time: formatDateForAPI(formData.end_time),
+      user_id: formData.user_id,
+      assigned_assessment_id: formData.assigned_assessment_id,
+    };
+
+    dispatch(updateAttendance(apiData)).then((result) => {
+      setIsSubmitting(false);
+      
+      if (result.payload?.success) {
+        // Call onSuccess callback if provided
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          // Fallback to old behavior
+          onClose();
+        }
+      }
+    }).catch((error) => {
+      setIsSubmitting(false);
+    });
+  };
 
   return (
-    <div className="announcementModal">
-      <div className="row">
-        <div className="col-md-12 mt-10 position-relative">
-          <h4 style={{ marginBottom: "20px", color: "#8B2885" }}>
-            {isEditMode ? "Edit Attendance Record" : "Add Attendance Record"}
-          </h4>
-
-          <div className="form-group">
-            <label>Employee Name</label>
-            <input
-              type="text"
-              className="form-control mb-10"
-              placeholder="Enter employee name"
-              value={formData.employeeName}
-              onChange={(e) => handleChange("employeeName", e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Employee ID</label>
-            <input
-              type="text"
-              className="form-control mb-10"
-              placeholder="Employee ID"
-              value={formData.employeeID}
-              onChange={(e) => handleChange("employeeID", e.target.value)}
-              readOnly={isEditMode}
-            />
-          </div>
-
-          <div className="row">
-            <div className="col-md-6">
-              <div className="form-group">
-                <label>Facility</label>
-                <select
-                  value={formData.facility}
-                  onChange={(e) => handleChange("facility", e.target.value)}
-                  className="form-control mb-10">
-                  <option value="">Select Facility</option>
-                  <option value="KFC">KFC</option>
-                  <option value="Starbucks">Starbucks</option>
-                  <option value="Burger King">Burger King</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="col-md-6">
-              <div className="form-group">
-                <label>Month</label>
-                <select
-                  value={formData.month}
-                  onChange={(e) => handleChange("month", e.target.value)}
-                  className="form-control mb-10">
-                  <option value="">Select Month</option>
-                  {getMonthOptions().map((month, index) => (
-                    <option key={index} value={month}>
-                      {month}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="col-md-6">
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => handleChange("status", e.target.value)}
-                  className="form-control mb-10">
-                  <option value="">Select Status</option>
-                  <option value="On Site">On Site</option>
-                  <option value="Leave">Leave</option>
-                  <option value="Sick Leave">Sick Leave</option>
-                  <option value="Vacation">Vacation</option>
-                  <option value="Absent">Absent</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="col-md-6">
-              <div className="form-group">
-                <label>Hours Worked</label>
-                <input
-                  type="text"
-                  className="form-control mb-10"
-                  placeholder="Hours worked"
-                  value={formData.hoursWorked}
-                  onChange={(e) => handleChange("hoursWorked", e.target.value)}
-                  readOnly // Auto-calculated from times
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="d-flex gap-10 mt-20">
-            <button
-              className="btn announceButton flex-grow-1"
-              onClick={handleSubmit}
-              style={{ backgroundColor: "#8B2885", borderColor: "#8B2885" }}>
-              <Icon
-                icon={isEditMode ? "line-md:edit" : "line-md:plus"}
-                width="20"
-                height="20"
-                style={{ marginRight: "8px" }}
-              />
-              {isEditMode ? "Update Attendance" : "Add Attendance"}
-            </button>
-
-            <button className="btn btn-secondary flex-grow-1" onClick={onClose}>
-              Cancel
-            </button>
-          </div>
-        </div>
+    <form onSubmit={handleSubmit}>
+      <div style={{ marginBottom: "16px" }}>
+        <label style={{ display: "block", marginBottom: "6px", fontWeight: "500" }}>
+          Title
+        </label>
+        <input
+          type="text"
+          name="title"
+          value={formData.title}
+          onChange={handleInputChange}
+          style={{
+            width: "100%",
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid #ddd",
+            fontSize: "14px",
+          }}
+          required
+        />
       </div>
-    </div>
+
+      <div style={{ marginBottom: "16px" }}>
+        <label style={{ display: "block", marginBottom: "6px", fontWeight: "500" }}>
+          Description
+        </label>
+        <textarea
+          name="description"
+          value={formData.description}
+          onChange={handleInputChange}
+          style={{
+            width: "100%",
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid #ddd",
+            fontSize: "14px",
+            minHeight: "80px",
+            resize: "vertical",
+          }}
+        />
+      </div>
+
+      <div style={{ marginBottom: "16px" }}>
+        <label style={{ display: "block", marginBottom: "6px", fontWeight: "500" }}>
+          Start Time
+        </label>
+        <input
+          type="datetime-local"
+          name="start_time"
+          value={formData.start_time}
+          onChange={handleInputChange}
+          style={{
+            width: "100%",
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid #ddd",
+            fontSize: "14px",
+          }}
+          required
+        />
+      </div>
+
+      <div style={{ marginBottom: "24px" }}>
+        <label style={{ display: "block", marginBottom: "6px", fontWeight: "500" }}>
+          End Time
+        </label>
+        <input
+          type="datetime-local"
+          name="end_time"
+          value={formData.end_time}
+          onChange={handleInputChange}
+          style={{
+            width: "100%",
+            padding: "10px",
+            borderRadius: "6px",
+            border: "1px solid #ddd",
+            fontSize: "14px",
+          }}
+          required
+        />
+      </div>
+
+      <input type="hidden" name="user_id" value={formData.user_id} />
+      <input type="hidden" name="assigned_assessment_id" value={formData.assigned_assessment_id} />
+
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isSubmitting}
+          style={{
+            padding: "10px 20px",
+            border: "1px solid #ddd",
+            borderRadius: "6px",
+            background: "white",
+            cursor: isSubmitting ? "not-allowed" : "pointer",
+            color: "#666",
+            opacity: isSubmitting ? 0.6 : 1,
+          }}>
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          style={{
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "6px",
+            background: "#8B2885",
+            cursor: isSubmitting ? "not-allowed" : "pointer",
+            color: "white",
+            fontWeight: "500",
+            opacity: isSubmitting ? 0.6 : 1,
+          }}>
+          {isSubmitting ? (
+            <>
+              <div
+                className="spinner-border spinner-border-sm me-2"
+                role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              Updating...
+            </>
+          ) : (
+            "Update Attendance"
+          )}
+        </button>
+      </div>
+    </form>
   );
 };
 
