@@ -2,13 +2,21 @@ import { Icon } from "@iconify/react/dist/iconify.js";
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import ReactApexChart from "react-apexcharts";
-import { getSubmittedForms, getFacilityScores } from "../redux/slices/dashboardSlice";
+import {
+  getSubmittedForms,
+  getFacilityScores,
+} from "../redux/slices/dashboardSlice";
 
 const SalesStatisticOne = () => {
   const dispatch = useDispatch();
-  const { submittedForms, facilityScores, isFormsLoading, isFacilityScoresLoading } = useSelector((state) => state.dashboard);
-  
-  const [activeTab, setActiveTab] = useState("tab1");
+  const {
+    submittedForms,
+    facilityScores,
+    isFormsLoading,
+    isFacilityScoresLoading,
+  } = useSelector((state) => state.dashboard);
+
+  const [activeTab, setActiveTab] = useState("tab2");
 
   // Fetch data on component mount
   useEffect(() => {
@@ -22,35 +30,46 @@ const SalesStatisticOne = () => {
   // Format facility scores for chart
   const getFacilitySeries = () => {
     if (!facilityScores || facilityScores.length === 0) {
-      return [{
-        name: "Facility Score",
-        data: [0, 0, 0, 0, 0]
-      }];
+      return [
+        {
+          name: "Facility Score",
+          data: [0, 0, 0, 0, 0],
+        },
+      ];
     }
 
     // Take top 5 facilities or all if less than 5
     const topFacilities = [...facilityScores]
-      .sort((a, b) => Math.abs(parseInt(b.total_score)) - Math.abs(parseInt(a.total_score)))
+      .sort(
+        (a, b) =>
+          Math.abs(parseInt(b.total_score)) - Math.abs(parseInt(a.total_score))
+      )
       .slice(0, 5);
 
-    return [{
-      name: "Facility Score",
-      data: topFacilities.map(facility => parseInt(facility.total_score) || 0)
-    }];
+    return [
+      {
+        name: "Facility Score",
+        data: topFacilities.map(
+          (facility) => parseInt(facility.total_score) || 0
+        ),
+      },
+    ];
   };
 
   // Format submitted forms for chart
   const getFormsSeries = () => {
     if (!submittedForms || submittedForms.length === 0) {
-      return [{
-        name: "Forms Submitted",
-        data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      }];
+      return [
+        {
+          name: "Forms Submitted",
+          data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        },
+      ];
     }
 
     // Create a map of months to totals
     const monthData = {};
-    submittedForms.forEach(item => {
+    submittedForms.forEach((item) => {
       monthData[item.month] = item.total;
     });
 
@@ -58,20 +77,24 @@ const SalesStatisticOne = () => {
     const months = [];
     const data = [];
     const now = new Date();
-    
+
     for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const monthName = date.toLocaleString('default', { month: 'short' });
-      
+      const monthKey = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
+      const monthName = date.toLocaleString("default", { month: "short" });
+
       months.push(monthName);
       data.push(monthData[monthKey] || 0);
     }
 
-    return [{
-      name: "Forms Submitted",
-      data: data
-    }];
+    return [
+      {
+        name: "Forms Submitted",
+        data: data,
+      },
+    ];
   };
 
   // Get categories based on active tab
@@ -82,22 +105,26 @@ const SalesStatisticOne = () => {
       const now = new Date();
       for (let i = 11; i >= 0; i--) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        months.push(date.toLocaleString('default', { month: 'short' }));
+        months.push(date.toLocaleString("default", { month: "short" }));
       }
       return months;
     } else {
       if (!facilityScores || facilityScores.length === 0) {
         return ["No Data"];
       }
-      
+
       // Get top 5 facility names
       const topFacilities = [...facilityScores]
-        .sort((a, b) => Math.abs(parseInt(b.total_score)) - Math.abs(parseInt(a.total_score)))
+        .sort(
+          (a, b) =>
+            Math.abs(parseInt(b.total_score)) -
+            Math.abs(parseInt(a.total_score))
+        )
         .slice(0, 5);
-      
-      return topFacilities.map(facility => 
-        facility.facility_name.length > 10 
-          ? facility.facility_name.substring(0, 10) + '...' 
+
+      return topFacilities.map((facility) =>
+        facility.facility_name.length > 10
+          ? facility.facility_name.substring(0, 10) + "..."
           : facility.facility_name
       );
     }
@@ -157,7 +184,7 @@ const SalesStatisticOne = () => {
       },
       colors: ["#FF0000"],
     },
-    
+
     xaxis: {
       categories: getCategories(),
       tooltip: {
@@ -179,28 +206,39 @@ const SalesStatisticOne = () => {
       custom: function ({ series, seriesIndex, dataPointIndex, w }) {
         const label = w.config.xaxis.categories[dataPointIndex];
         const value = series[seriesIndex][dataPointIndex];
-        
+
         let title = label;
         let valueText = "";
-        
+
         if (activeTab === "tab1") {
           // Forms Submitted tab
           const originalLabel = getCategories()[dataPointIndex];
-          valueText = `${value} Form${value !== 1 ? 's' : ''} Submitted`;
-          
+          valueText = `${value} Form${value !== 1 ? "s" : ""} Submitted`;
+
           // Get full month-year for forms tooltip
           const now = new Date();
           const monthsAgo = 11 - dataPointIndex;
-          const date = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
-          const monthYear = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+          const date = new Date(
+            now.getFullYear(),
+            now.getMonth() - monthsAgo,
+            1
+          );
+          const monthYear = date.toLocaleString("default", {
+            month: "long",
+            year: "numeric",
+          });
           title = monthYear;
         } else {
           // Facility Score tab
           if (facilityScores && facilityScores.length > 0) {
             const topFacilities = [...facilityScores]
-              .sort((a, b) => Math.abs(parseInt(b.total_score)) - Math.abs(parseInt(a.total_score)))
+              .sort(
+                (a, b) =>
+                  Math.abs(parseInt(b.total_score)) -
+                  Math.abs(parseInt(a.total_score))
+              )
               .slice(0, 5);
-            
+
             if (topFacilities[dataPointIndex]) {
               const facility = topFacilities[dataPointIndex];
               title = facility.facility_name;
@@ -232,26 +270,36 @@ const SalesStatisticOne = () => {
     },
 
     yaxis: {
-      min: activeTab === "tab1" ? 0 : (() => {
-        // For facility scores, set min based on data
-        if (!facilityScores || facilityScores.length === 0) return -10;
-        const scores = facilityScores.map(f => parseInt(f.total_score) || 0);
-        const minScore = Math.min(...scores);
-        return Math.min(minScore - 5, -10);
-      })(),
-      max: activeTab === "tab1" ? (() => {
-        // For forms, set max based on data
-        if (!submittedForms || submittedForms.length === 0) return 100;
-        const totals = submittedForms.map(f => f.total || 0);
-        const maxTotal = Math.max(...totals);
-        return Math.max(maxTotal + 10, 50);
-      })() : (() => {
-        // For facility scores
-        if (!facilityScores || facilityScores.length === 0) return 10;
-        const scores = facilityScores.map(f => parseInt(f.total_score) || 0);
-        const maxScore = Math.max(...scores);
-        return Math.max(maxScore + 5, 10);
-      })(),
+      min:
+        activeTab === "tab1"
+          ? 0
+          : (() => {
+              // For facility scores, set min based on data
+              if (!facilityScores || facilityScores.length === 0) return -10;
+              const scores = facilityScores.map(
+                (f) => parseInt(f.total_score) || 0
+              );
+              const minScore = Math.min(...scores);
+              return Math.min(minScore - 5, -10);
+            })(),
+      max:
+        activeTab === "tab1"
+          ? (() => {
+              // For forms, set max based on data
+              if (!submittedForms || submittedForms.length === 0) return 100;
+              const totals = submittedForms.map((f) => f.total || 0);
+              const maxTotal = Math.max(...totals);
+              return Math.max(maxTotal + 10, 50);
+            })()
+          : (() => {
+              // For facility scores
+              if (!facilityScores || facilityScores.length === 0) return 10;
+              const scores = facilityScores.map(
+                (f) => parseInt(f.total_score) || 0
+              );
+              const maxScore = Math.max(...scores);
+              return Math.max(maxScore + 5, 10);
+            })(),
       labels: {
         formatter: (value) => Math.round(value),
         style: {
@@ -284,7 +332,8 @@ const SalesStatisticOne = () => {
           </ul>
 
           {/* Loading states */}
-          {(activeTab === "tab1" && isFormsLoading) || (activeTab === "tab2" && isFacilityScoresLoading) ? (
+          {(activeTab === "tab1" && isFormsLoading) ||
+          (activeTab === "tab2" && isFacilityScoresLoading) ? (
             <div className="text-center py-5">
               <div className="spinner-border text-primary" role="status">
                 <span className="visually-hidden">Loading...</span>
@@ -299,7 +348,9 @@ const SalesStatisticOne = () => {
                   <div className="d-flex flex-wrap align-items-center justify-content-start mb-3 mt-20">
                     <h6 className="text-lg mb-0 mt-0">Forms Submitted</h6>
                     <ul className="salesList">
-                      <li className="text-sm fw-semibold">X-axis: Last 12 Months</li>
+                      <li className="text-sm fw-semibold">
+                        X-axis: Last 12 Months
+                      </li>
                       <li className="text-sm fw-semibold">
                         Y-axis: Number of Forms Submitted
                       </li>
@@ -320,8 +371,12 @@ const SalesStatisticOne = () => {
                   <div className="d-flex flex-wrap align-items-center justify-content-start mb-3 mt-20">
                     <h6 className="text-lg mb-0 mt-0">Facility Score</h6>
                     <ul className="salesList">
-                      <li className="text-sm fw-semibold">X-axis: Top 5 Facilities</li>
-                      <li className="text-sm fw-semibold">Y-axis: Score (Total: Forms Submitted)</li>
+                      <li className="text-sm fw-semibold">
+                        X-axis: Top 5 Facilities
+                      </li>
+                      <li className="text-sm fw-semibold">
+                        Y-axis: Score (Total: Forms Submitted)
+                      </li>
                     </ul>
                   </div>
 

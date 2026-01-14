@@ -75,7 +75,7 @@ export default function CreateNewModal() {
         <Link
           onClick={handleShowAssignFacilityModal}
           className="btn modalButton w-100">
-          Assign Facility
+          Assign Facility Form
         </Link>
         <DynamicModal
           show={showaAssignFacilityModal}

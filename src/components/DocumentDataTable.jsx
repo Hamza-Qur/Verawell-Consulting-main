@@ -94,46 +94,6 @@ const DocumentDataTable = () => {
     }
   };
 
-  // Function to attach PDF to email (simplified version)
-  const handleAttachToEmail = async (assessment) => {
-    try {
-      const assessmentId =
-        assessment.assessmentId || assessment.originalData?.assessment_id;
-
-      if (!assessmentId) {
-        showToast("Cannot attach to email: Missing assessment ID", "error");
-        return;
-      }
-
-      // First download the PDF using the same method
-      handleDownload(assessment);
-
-      // Then open email client with instructions
-      setTimeout(() => {
-        const subject = encodeURIComponent(
-          `Assessment Document: ${assessment.documentName || "Document"}`
-        );
-        const body = encodeURIComponent(
-          `Please find attached the assessment document.\n\n` +
-            `Document: ${assessment.documentName || "Assessment Document"}\n` +
-            `Assessment ID: ${assessmentId}\n\n` +
-            `The PDF file "assessment-${assessmentId}.pdf" should be in your downloads folder. ` +
-            `Please attach it to this email.`
-        );
-
-        window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
-        showToast(
-          "Email client opened. Please attach the downloaded PDF file.",
-          "info"
-        );
-      }, 1500); // Give time for download to start
-    } catch (error) {
-      console.error("Error preparing email attachment:", error);
-      showToast("Error preparing email attachment", "error");
-    }
-    setDropdownOpen(null);
-  };
-
   const handleDropdownToggle = (index, e) => {
     e.stopPropagation();
 
@@ -245,7 +205,8 @@ const DocumentDataTable = () => {
       }
 
       // Use title/name if it exists, otherwise use the combined name
-      const finalDocumentName = assessment.title || assessment.name || documentName;
+      const finalDocumentName =
+        assessment.title || assessment.name || documentName;
 
       return {
         id: assessment.id,
@@ -547,38 +508,6 @@ const DocumentDataTable = () => {
                   <span>Download PDF</span>
                 </>
               )}
-            </div>
-            <div
-              style={{
-                padding: "10px 16px",
-                cursor: isDownloadingPDF ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                fontSize: "14px",
-                color: isDownloadingPDF ? "#999" : "#333",
-                borderTop: "1px solid #F0F0F0",
-                transition: "background-color 0.2s",
-                opacity: isDownloadingPDF ? 0.6 : 1,
-              }}
-              onMouseEnter={(e) =>
-                !isDownloadingPDF &&
-                (e.currentTarget.style.backgroundColor = "#F5F5F5")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = "transparent")
-              }
-              onClick={() =>
-                !isDownloadingPDF &&
-                handleAttachToEmail(documentData[dropdownOpen])
-              }>
-              <Icon
-                icon="mdi:email-outline"
-                width="18"
-                height="18"
-                color={isDownloadingPDF ? "#999" : "#666"}
-              />
-              <span>Attach to Email</span>
             </div>
             <div
               style={{
