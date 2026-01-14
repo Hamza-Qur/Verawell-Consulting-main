@@ -12,17 +12,11 @@ import { adminUpdateUserProfile, deleteUser } from "../redux/slices/userSlice";
 const EmployeeDashboardData = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
-  // Get users from Redux store
-  const { 
-    users, 
-    isLoading, 
-    error 
-  } = useSelector((state) => state.dashboard);
 
-  const { isDeleting, isAdminUpdating } = useSelector(
-    (state) => state.user
-  );
+  // Get users from Redux store
+  const { users, isLoading, error } = useSelector((state) => state.dashboard);
+
+  const { isDeleting, isAdminUpdating } = useSelector((state) => state.user);
 
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
@@ -56,7 +50,10 @@ const EmployeeDashboardData = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (deleteConfirmRef.current && !deleteConfirmRef.current.contains(event.target)) {
+      if (
+        deleteConfirmRef.current &&
+        !deleteConfirmRef.current.contains(event.target)
+      ) {
         setDeleteConfirmOpen(null);
       }
     };
@@ -79,7 +76,7 @@ const EmployeeDashboardData = () => {
 
   const handleEditClick = (userId, index, e) => {
     e.stopPropagation();
-    const user = users.find(u => u.id === userId);
+    const user = users.find((u) => u.id === userId);
     if (user) {
       setEditUserId(userId);
       setEditFormData({
@@ -94,7 +91,11 @@ const EmployeeDashboardData = () => {
             : `https://verawell.koderspedia.net${user.profile_picture}`
         );
       } else {
-        setProfileImagePreview(`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "User")}&background=random&color=fff&size=200`);
+        setProfileImagePreview(
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            user.name || "User"
+          )}&background=random&color=fff&size=200`
+        );
       }
       setProfileImage(null);
       setSelectedEmployee(user);
@@ -112,9 +113,9 @@ const EmployeeDashboardData = () => {
 
   const handleEditInputChange = (e) => {
     const { name, value } = e.target;
-    setEditFormData(prev => ({
+    setEditFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -130,7 +131,7 @@ const EmployeeDashboardData = () => {
 
   const handleRemoveImage = () => {
     setProfileImage(null);
-    const user = users.find(u => u.id === editUserId);
+    const user = users.find((u) => u.id === editUserId);
     if (user) {
       // Reset to original profile picture or default avatar
       if (user.profile_picture) {
@@ -140,7 +141,11 @@ const EmployeeDashboardData = () => {
             : `https://verawell.koderspedia.net${user.profile_picture}`
         );
       } else {
-        setProfileImagePreview(`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || "User")}&background=random&color=fff&size=200`);
+        setProfileImagePreview(
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            user.name || "User"
+          )}&background=random&color=fff&size=200`
+        );
       }
     }
   };
@@ -149,13 +154,15 @@ const EmployeeDashboardData = () => {
     if (editUserId) {
       const updateData = {
         ...editFormData,
-        ...(profileImage && { profile_picture: profileImage })
+        ...(profileImage && { profile_picture: profileImage }),
       };
 
-      dispatch(adminUpdateUserProfile({ 
-        userId: editUserId, 
-        profileData: updateData 
-      }))
+      dispatch(
+        adminUpdateUserProfile({
+          userId: editUserId,
+          profileData: updateData,
+        })
+      )
         .then((action) => {
           if (action.payload?.success) {
             // Refresh the user list
@@ -214,14 +221,14 @@ const EmployeeDashboardData = () => {
   // Transform API data to match table structure
   const transformUserData = (apiData) => {
     // Sort by created_at (most recent first) and take first 5
-    const sortedData = [...apiData].sort((a, b) => 
-      new Date(b.created_at) - new Date(a.created_at)
-    ).slice(0, 5);
+    const sortedData = [...apiData]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 5);
 
     return sortedData.map((user) => ({
       id: user.id || "N/A",
       employeeName: user.name || "N/A",
-      employeeID: user.id ||  "N/A",
+      employeeID: user.id || "N/A",
       facility: user.facility_name || "No Facility",
       hoursWorked: user.total_hours_worked || "0",
       formsSubmitted: user.total_assessments || "0",
@@ -244,14 +251,16 @@ const EmployeeDashboardData = () => {
           return (
             <div>
               <div style={{ fontWeight: "500", color: "#1A1A1A" }}>{value}</div>
-              <div style={{ fontSize: "12px", color: "#666" }}>{rowData.role}</div>
+              <div style={{ fontSize: "12px", color: "#666" }}>
+                {rowData.role}
+              </div>
             </div>
           );
         },
       },
     },
-    { 
-      name: "employeeID", 
+    {
+      name: "employeeID",
       label: "Employee ID",
       options: {
         customBodyRender: (value) => (
@@ -259,17 +268,17 @@ const EmployeeDashboardData = () => {
         ),
       },
     },
-    { 
-      name: "facility", 
-      label: "Facility" 
+    {
+      name: "facility",
+      label: "Facility",
     },
-    { 
-      name: "hoursWorked", 
-      label: "Hours Worked" 
+    {
+      name: "hoursWorked",
+      label: "Hours Worked",
     },
-    { 
-      name: "formsSubmitted", 
-      label: "Forms Submitted" 
+    {
+      name: "formsSubmitted",
+      label: "Forms Submitted",
     },
     {
       name: "action",
@@ -309,6 +318,9 @@ const EmployeeDashboardData = () => {
     viewColumns: false,
     filter: false,
     search: true,
+    pagination: false, // Add this line to disable pagination
+    rowsPerPageOptions: [], // Remove rowsPerPageOptions
+    rowsPerPage: employeeData.length,
   };
 
   return (
@@ -342,7 +354,8 @@ const EmployeeDashboardData = () => {
         <div>
           <h2 className="fs-2 mt-40">Users</h2>
           {employeeData.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
+            <div
+              style={{ textAlign: "center", padding: "40px", color: "#666" }}>
               <Icon icon="mdi:account-group" width="48" height="48" />
               <p style={{ marginTop: "10px" }}>No employee data found.</p>
             </div>
@@ -358,207 +371,246 @@ const EmployeeDashboardData = () => {
       )}
 
       {/* Custom Edit Modal (replaces DynamicModal) */}
-      {showEditModal && selectedEmployee && createPortal(
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 10000,
-          }}>
+      {showEditModal &&
+        selectedEmployee &&
+        createPortal(
           <div
-            ref={editModalRef}
             style={{
-              backgroundColor: "white",
-              padding: "24px",
-              borderRadius: "12px",
-              minWidth: "400px",
-              maxWidth: "500px",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
-            }}>
-            <h3 style={{ marginTop: 0, color: "#333", fontSize: "20px", marginBottom: "24px" }}>
-              Edit User
-            </h3>
-
-            {/* Profile Picture Section */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "24px" }}>
-              <div style={{ position: "relative", marginBottom: "16px" }}>
-                <img
-                  src={profileImagePreview}
-                  alt="Profile"
-                  style={{
-                    width: "120px",
-                    height: "120px",
-                    borderRadius: "50%",
-                    objectFit: "cover",
-                    border: "3px solid #8B2885",
-                  }}
-                />
-                {profileImage && (
-                  <button
-                    onClick={handleRemoveImage}
-                    style={{
-                      position: "absolute",
-                      top: "-8px",
-                      right: "-8px",
-                      background: "#D32F2F",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "50%",
-                      width: "28px",
-                      height: "28px",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Icon icon="mdi:close" width={16} />
-                  </button>
-                )}
-              </div>
-              
-              <button
-                type="button"
-                onClick={handleTriggerFileInput}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#f5f5f5",
-                  color: "#333",
-                  border: "1px solid #ddd",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-              >
-                <Icon icon="mdi:image-edit" width={16} />
-                {profileImage ? "Change Image" : "Upload Image"}
-              </button>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                style={{ display: "none" }}
-              />
-              
-              <p style={{ fontSize: "12px", color: "#666", marginTop: "8px", textAlign: "center" }}>
-                Supported formats: JPG, PNG, GIF. Max size: 5MB
-              </p>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div>
-                <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "#555" }}>
-                  Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={editFormData.name}
-                  onChange={handleEditInputChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    border: "1px solid #ddd",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                  }}
-                  required
-                />
-              </div>
-
-              <div>
-                <label style={{ display: "block", marginBottom: "8px", fontWeight: 500, color: "#555" }}>
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  name="phone_number"
-                  value={editFormData.phone_number}
-                  onChange={handleEditInputChange}
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    border: "1px solid #ddd",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0,0,0,0.5)",
               display: "flex",
-              justifyContent: "flex-end",
-              gap: "12px",
-              marginTop: "24px",
-              borderTop: "1px solid #eee",
-              paddingTop: "24px",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10000,
             }}>
-              <button
-                onClick={handleCancelEdit}
-                disabled={isAdminUpdating}
+            <div
+              ref={editModalRef}
+              style={{
+                backgroundColor: "white",
+                padding: "24px",
+                borderRadius: "12px",
+                minWidth: "400px",
+                maxWidth: "500px",
+                maxHeight: "90vh",
+                overflowY: "auto",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+              }}>
+              <h3
                 style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#f5f5f5",
+                  marginTop: 0,
                   color: "#333",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  minWidth: "80px",
+                  fontSize: "20px",
+                  marginBottom: "24px",
                 }}>
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveEdit}
-                disabled={isAdminUpdating}
+                Edit User
+              </h3>
+
+              {/* Profile Picture Section */}
+              <div
                 style={{
-                  padding: "10px 20px",
-                  backgroundColor: "#8B2885",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  minWidth: "80px",
                   display: "flex",
+                  flexDirection: "column",
                   alignItems: "center",
-                  gap: "8px",
+                  marginBottom: "24px",
                 }}>
-                {isAdminUpdating ? (
-                  <>
-                    <Icon icon="mdi:loading" style={{ animation: "spin 1s linear infinite" }} />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Icon icon="mdi:content-save" />
-                    Save Changes
-                  </>
-                )}
-              </button>
+                <div style={{ position: "relative", marginBottom: "16px" }}>
+                  <img
+                    src={profileImagePreview}
+                    alt="Profile"
+                    style={{
+                      width: "120px",
+                      height: "120px",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "3px solid #8B2885",
+                    }}
+                  />
+                  {profileImage && (
+                    <button
+                      onClick={handleRemoveImage}
+                      style={{
+                        position: "absolute",
+                        top: "-8px",
+                        right: "-8px",
+                        background: "#D32F2F",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: "28px",
+                        height: "28px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}>
+                      <Icon icon="mdi:close" width={16} />
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleTriggerFileInput}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: "#f5f5f5",
+                    color: "#333",
+                    border: "1px solid #ddd",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}>
+                  <Icon icon="mdi:image-edit" width={16} />
+                  {profileImage ? "Change Image" : "Upload Image"}
+                </button>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  style={{ display: "none" }}
+                />
+
+                <p
+                  style={{
+                    fontSize: "12px",
+                    color: "#666",
+                    marginTop: "8px",
+                    textAlign: "center",
+                  }}>
+                  Supported formats: JPG, PNG, GIF. Max size: 5MB
+                </p>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px",
+                }}>
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: 500,
+                      color: "#555",
+                    }}>
+                    Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={editFormData.name}
+                    onChange={handleEditInputChange}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      border: "1px solid #ddd",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                    }}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: 500,
+                      color: "#555",
+                    }}>
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone_number"
+                    value={editFormData.phone_number}
+                    onChange={handleEditInputChange}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      border: "1px solid #ddd",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "12px",
+                  marginTop: "24px",
+                  borderTop: "1px solid #eee",
+                  paddingTop: "24px",
+                }}>
+                <button
+                  onClick={handleCancelEdit}
+                  disabled={isAdminUpdating}
+                  style={{
+                    padding: "10px 20px",
+                    backgroundColor: "#f5f5f5",
+                    color: "#333",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    minWidth: "80px",
+                  }}>
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={isAdminUpdating}
+                  style={{
+                    padding: "10px 20px",
+                    backgroundColor: "#8B2885",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    minWidth: "80px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}>
+                  {isAdminUpdating ? (
+                    <>
+                      <Icon
+                        icon="mdi:loading"
+                        style={{ animation: "spin 1s linear infinite" }}
+                      />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Icon icon="mdi:content-save" />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmOpen !== null &&
@@ -589,17 +641,24 @@ const EmployeeDashboardData = () => {
               <h3 style={{ marginTop: 0, color: "#333", fontSize: "20px" }}>
                 Confirm Delete
               </h3>
-              
-              <p style={{ color: "#666", marginBottom: "24px", lineHeight: "1.5" }}>
-                Are you sure you want to delete this user? This action cannot be undone.
+
+              <p
+                style={{
+                  color: "#666",
+                  marginBottom: "24px",
+                  lineHeight: "1.5",
+                }}>
+                Are you sure you want to delete this user? This action cannot be
+                undone.
               </p>
 
-              <div style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "12px",
-                marginTop: "24px",
-              }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "12px",
+                  marginTop: "24px",
+                }}>
                 <button
                   onClick={handleCancelDelete}
                   disabled={isDeleting}
@@ -635,7 +694,10 @@ const EmployeeDashboardData = () => {
                   }}>
                   {isDeleting ? (
                     <>
-                      <Icon icon="mdi:loading" style={{ animation: "spin 1s linear infinite" }} />
+                      <Icon
+                        icon="mdi:loading"
+                        style={{ animation: "spin 1s linear infinite" }}
+                      />
                       Deleting...
                     </>
                   ) : (
@@ -673,7 +735,9 @@ const EmployeeDashboardData = () => {
                 gap: 10,
                 alignItems: "center",
               }}
-              onClick={(e) => handleEditClick(employeeData[dropdownOpen]?.id, dropdownOpen, e)}>
+              onClick={(e) =>
+                handleEditClick(employeeData[dropdownOpen]?.id, dropdownOpen, e)
+              }>
               <Icon icon="line-md:edit" width={18} />
               Edit
             </div>
@@ -687,7 +751,13 @@ const EmployeeDashboardData = () => {
                 color: "#D32F2F",
                 borderTop: "1px solid #F0F0F0",
               }}
-              onClick={(e) => handleDeleteClick(employeeData[dropdownOpen]?.id, dropdownOpen, e)}>
+              onClick={(e) =>
+                handleDeleteClick(
+                  employeeData[dropdownOpen]?.id,
+                  dropdownOpen,
+                  e
+                )
+              }>
               <Icon icon="material-symbols:delete-outline" width={18} />
               Delete
             </div>
@@ -698,8 +768,12 @@ const EmployeeDashboardData = () => {
       {/* Add CSS for spinner animation */}
       <style jsx>{`
         @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
         }
       `}</style>
     </>

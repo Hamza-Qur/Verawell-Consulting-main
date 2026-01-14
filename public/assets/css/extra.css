@@ -1138,7 +1138,7 @@ button.MuiIconButton-sizeMedium[aria-label="Search"] svg {
 
 .firstHeadBtn {
   color: #8b2885;
-  font-weight: 600;
+  font-weight: 500;
   transition: all 0.4s;
 }
 .firstHeadBtn:hover {

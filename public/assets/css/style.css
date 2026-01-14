@@ -6698,14 +6698,14 @@ h2,
 h3 {
   color: var(--text-primary-light);
   font-weight: 700;
-  font-family: "Gilroy";
+  font-family: "Gilroy", sans-serif;
 }
 h4,
 h5,
 h6 {
   color: var(--text-primary-light);
   font-weight: 500;
-  font-family: "Gilroy";
+  font-family: "Gilroy", sans-serif;
 }
 
 h1,
