@@ -3,23 +3,78 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import MUIDataTable from "mui-datatables";
 import { createPortal } from "react-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { getAssignedAssessments } from "../redux/slices/formSlice";
+import { addTask } from "../redux/slices/attendanceSlice";
+import Toast from "../components/Toast"; // Import the Toast component
 
 const FacilityDetailDashboardData = ({ rows }) => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
   const [selectedFacility, setSelectedFacility] = useState("All");
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [selectedForm, setSelectedForm] = useState(null);
+
+  // Toast states
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
+
   const buttonRefs = useRef([]);
 
-  // Facility filter tabs
-  const facilities = [
-    "All",
-    "KFC Facility",
-    "Starbucks Facility",
-    "Burger King Facility",
-  ];
+  // Get assigned assessments from Redux store
+  const {
+    assignedAssessments,
+    isAssignedAssessmentsLoading,
+    assignedAssessmentsError,
+  } = useSelector((state) => state.form);
+
+  // Get add task state from Redux
+  const { isAddingTask, addTaskError, successMessage } = useSelector(
+    (state) => state.attendance
+  );
+
+  // Fetch assigned assessments on component mount
+  useEffect(() => {
+    dispatch(getAssignedAssessments(1));
+  }, [dispatch]);
+
+  // Show toast when add task succeeds or fails
+  useEffect(() => {
+    if (successMessage) {
+      showToast(successMessage, "success");
+    }
+    if (addTaskError) {
+      showToast(addTaskError, "error");
+    }
+  }, [successMessage, addTaskError]);
+
+  // Get unique facilities from API data for filter tabs
+  const getUniqueFacilities = () => {
+    if (!assignedAssessments.data || assignedAssessments.data.length === 0) {
+      return ["All"];
+    }
+
+    const facilities = ["All"];
+
+    // Use actual facility_name from API
+    assignedAssessments.data.forEach((assessment) => {
+      const facilityName = assessment.facility_name || "Unknown Facility";
+      if (facilityName && !facilities.includes(facilityName)) {
+        facilities.push(facilityName);
+      }
+    });
+
+    // Return unique facilities (limit to first 4 for UI)
+    return [...new Set(facilities)].slice(0, 4);
+  };
+
+  const facilities = getUniqueFacilities();
 
   const handleFacilityFilter = (facility) => {
     setSelectedFacility(facility);
@@ -40,19 +95,21 @@ const FacilityDetailDashboardData = ({ rows }) => {
   };
 
   const handleEdit = (row) => {
-    alert(`Edit Employee: ${row.facilityName} successfully`);
+    showToast(`Edit Employee: ${row.formName} successfully`, "success");
     setDropdownOpen(null);
   };
 
   const handleDelete = (row) => {
-    alert(`Deleted Employee: ${row.employeeName} successfully`);
+    showToast(`Deleted Employee: ${row.formName} successfully`, "success");
     setDropdownOpen(null);
   };
 
   const handleClick = (index, e) => {
     handleDropdownToggle(index, e);
-    const facility = employeeData[index].facility;
-    navigate(`/facility-detail-page/${encodeURIComponent(facility)}`);
+    const assessment = filteredData[index];
+    navigate(
+      `/facility-detail-page/${encodeURIComponent(assessment.category_name)}`
+    );
   };
 
   const handleAddTask = (form) => {
@@ -61,11 +118,24 @@ const FacilityDetailDashboardData = ({ rows }) => {
   };
 
   const handleSaveTask = (taskData) => {
-    // Here you would save the task to your backend
-    console.log("Saving task:", taskData);
-    alert(`Task "${taskData.title}" added successfully to Timelogs!`);
-    setShowAddTaskModal(false);
-    setSelectedForm(null);
+    // Format the task data for API
+    const apiTaskData = {
+      title: taskData.title,
+      description: taskData.description || "",
+      start_time: taskData.startDateTime.split("T")[0], // YYYY-MM-DD format
+      end_time: taskData.endDateTime.split("T")[0], // YYYY-MM-DD format
+      assigned_assessment_id: taskData.assigned_assessment_id || 1, // Default or from selected form
+    };
+
+    // Dispatch the addTask action
+    dispatch(addTask(apiTaskData)).then((action) => {
+      if (action.payload?.success) {
+        // Toast will be shown via useEffect when successMessage updates
+        setShowAddTaskModal(false);
+        setSelectedForm(null);
+      }
+      // Error toast will be shown via useEffect when addTaskError updates
+    });
   };
 
   // Close dropdown when clicking outside
@@ -77,143 +147,148 @@ const FacilityDetailDashboardData = ({ rows }) => {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  // Updated employeeData with facility field
-  const employeeData = [
-    {
-      formName: "Kitchen Sanitation",
-      time: "09:12:33",
-      date: "25 November, 2025",
-      hoursWorked: "3",
-      formStatus: false,
-      facility: "KFC", // Added facility field
-    },
-    {
-      formName: "Meal Observation",
-      time: "07:45:38",
-      date: "25 November, 2025",
-      hoursWorked: "5",
-      formStatus: true,
-      facility: "Starbucks", // Added facility field
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "08:45:00",
-      date: "17 December, 2025",
-      hoursWorked: "6",
-      formStatus: true,
-      facility: "Burger King", // Added facility field
-    },
-    {
-      formName: "Meal Observation",
-      time: "11:15:00",
-      date: "17 December, 2025",
-      hoursWorked: "1",
-      formStatus: false,
-      facility: "KFC", // Added facility field
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "07:50:00",
-      date: "17 December, 2025",
-      hoursWorked: "8",
-      formStatus: true,
-      facility: "Starbucks", // Added facility field
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "09:12:33",
-      date: "25 November, 2025",
-      hoursWorked: "3",
-      formStatus: false,
-      facility: "Burger King", // Added facility field
-    },
-    {
-      formName: "Meal Observation",
-      time: "07:45:38",
-      date: "25 November, 2025",
-      hoursWorked: "5",
-      formStatus: true,
-      facility: "KFC", // Added facility field
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "08:45:00",
-      date: "17 December, 2025",
-      hoursWorked: "6",
-      formStatus: true,
-      facility: "Starbucks", // Added facility field
-    },
-    {
-      formName: "Meal Observation",
-      time: "11:15:00",
-      date: "17 December, 2025",
-      hoursWorked: "1",
-      formStatus: false,
-      facility: "Burger King", // Added facility field
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "07:50:00",
-      date: "17 December, 2025",
-      hoursWorked: "8",
-      formStatus: true,
-      facility: "KFC", // Added facility field
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "09:12:33",
-      date: "25 November, 2025",
-      hoursWorked: "3",
-      formStatus: false,
-      facility: "Starbucks", // Added facility field
-    },
-    {
-      formName: "Meal Observation",
-      time: "07:45:38",
-      date: "25 November, 2025",
-      hoursWorked: "5",
-      formStatus: true,
-      facility: "Burger King", // Added facility field
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "08:45:00",
-      date: "17 December, 2025",
-      hoursWorked: "6",
-      formStatus: true,
-      facility: "KFC", // Added facility field
-    },
-    {
-      formName: "Meal Observation",
-      time: "11:15:00",
-      date: "17 December, 2025",
-      hoursWorked: "1",
-      formStatus: false,
-      facility: "Starbucks", // Added facility field
-    },
-    {
-      formName: "Kitchen Sanitation",
-      time: "07:50:00",
-      date: "17 December, 2025",
-      hoursWorked: "8",
-      formStatus: true,
-      facility: "Burger King", // Added facility field
-    },
-  ];
+  // Toast helper function
+  const showToast = (message, type = "info") => {
+    setToast({
+      show: true,
+      message,
+      type,
+    });
+  };
+
+  const closeToast = () => {
+    setToast({ ...toast, show: false });
+  };
+
+  // Helper function to determine form status and task button state
+  const getFormStatusInfo = (assessment) => {
+    const submittedAssessmentId = assessment.submitted_assessment_id;
+    const startTime = assessment.start_time;
+    const endTime = assessment.end_time;
+
+    // Logic based on your requirements:
+    // 1. All null = form not submitted (in process)
+    // 2. submitted_assessment_id exists, but times are null = form submitted, can add task
+    // 3. submitted_assessment_id exists, and times exist = task already added
+
+    if (submittedAssessmentId === null) {
+      // Form not submitted - in process
+      return {
+        isCompleted: false,
+        canShowTaskButton: false,
+        taskButtonText: "Form In-Process",
+        taskButtonDisabled: true,
+        taskButtonStyle: {
+          background: "#cccccc",
+          cursor: "not-allowed",
+          opacity: 0.6,
+        },
+        fillFormText: "Fill Form",
+        fillFormIcon: "material-symbols:edit-document",
+      };
+    } else if (startTime === null && endTime === null) {
+      // Form submitted, but times not set - can add task
+      return {
+        isCompleted: true,
+        canShowTaskButton: true,
+        taskButtonText: "Add Task",
+        taskButtonDisabled: false,
+        taskButtonStyle: {
+          background: "#2196F3",
+          cursor: "pointer",
+        },
+        fillFormText: "View Form",
+        fillFormIcon: "ic:baseline-remove-red-eye",
+      };
+    } else {
+      // Form submitted and times are set - task already added
+      return {
+        isCompleted: true,
+        canShowTaskButton: true,
+        taskButtonText: "Task Already Added",
+        taskButtonDisabled: true,
+        taskButtonStyle: {
+          background: "#28a745",
+          cursor: "not-allowed",
+          opacity: 0.8,
+        },
+        fillFormText: "View Form",
+        fillFormIcon: "ic:baseline-remove-red-eye",
+      };
+    }
+  };
+
+  // Transform API data to match the UI format
+  const transformAssessmentData = () => {
+    if (!assignedAssessments.data || assignedAssessments.data.length === 0) {
+      return [];
+    }
+
+    return assignedAssessments.data.map((assessment) => {
+      const formStatusInfo = getFormStatusInfo(assessment);
+
+      // Parse dates if available
+      const startTime = assessment.start_time
+        ? new Date(assessment.start_time)
+        : new Date();
+      const endTime = assessment.end_time
+        ? new Date(assessment.end_time)
+        : new Date();
+
+      // Format time (HH:MM:SS)
+      const timeStr = assessment.start_time
+        ? startTime.toTimeString().split(" ")[0]
+        : "N/A";
+
+      // Format date (e.g., "25 November, 2025")
+      const dateStr = assessment.start_time
+        ? startTime.toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })
+        : "N/A";
+
+      // Calculate hours worked (difference between end and start time in hours)
+      let hoursWorked = "N/A";
+      if (assessment.start_time && assessment.end_time) {
+        const diffMs = endTime - startTime;
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        hoursWorked = diffHours.toString();
+      }
+
+      // Use category_name for form name
+      const formName = assessment.category_name || "Assessment";
+
+      // Use facility_name from API
+      const facility = assessment.facility_name || "Unknown Facility";
+
+      return {
+        id: assessment.id,
+        formName: formName,
+        time: timeStr,
+        date: dateStr,
+        hoursWorked: hoursWorked,
+        formStatus: formStatusInfo.isCompleted,
+        facility: facility,
+        canShowTaskButton: formStatusInfo.canShowTaskButton,
+        taskButtonText: formStatusInfo.taskButtonText,
+        taskButtonDisabled: formStatusInfo.taskButtonDisabled,
+        taskButtonStyle: formStatusInfo.taskButtonStyle,
+        fillFormText: formStatusInfo.fillFormText,
+        fillFormIcon: formStatusInfo.fillFormIcon,
+        // Original API data for reference (including assigned_assessment_id)
+        originalData: assessment,
+      };
+    });
+  };
 
   // Filter data based on selected facility
+  const transformedData = transformAssessmentData();
   const filteredData =
     selectedFacility === "All"
-      ? employeeData
-      : employeeData.filter((item) => {
-          if (selectedFacility === "KFC Facility")
-            return item.facility === "KFC";
-          if (selectedFacility === "Starbucks Facility")
-            return item.facility === "Starbucks";
-          if (selectedFacility === "Burger King Facility")
-            return item.facility === "Burger King";
-          return true;
-        });
+      ? transformedData
+      : transformedData.filter((item) => item.facility === selectedFacility);
 
   const employeeColumns = [
     { name: "formName", label: "Form Name" },
@@ -222,7 +297,13 @@ const FacilityDetailDashboardData = ({ rows }) => {
       label: "Time",
       options: {
         customBodyRender: (value) => (
-          <span style={{ color: "#29BF5A", fontWeight: 500 }}>{value}</span>
+          <span
+            style={{
+              color: value === "N/A" ? "#999999" : "#29BF5A",
+              fontWeight: value === "N/A" ? 400 : 500,
+            }}>
+            {value}
+          </span>
         ),
       },
     },
@@ -231,11 +312,31 @@ const FacilityDetailDashboardData = ({ rows }) => {
       label: "Date",
       options: {
         customBodyRender: (value) => (
-          <span style={{ color: "#8B2885", fontWeight: 500 }}>{value}</span>
+          <span
+            style={{
+              color: value === "N/A" ? "#999999" : "#8B2885",
+              fontWeight: value === "N/A" ? 400 : 500,
+            }}>
+            {value}
+          </span>
         ),
       },
     },
-    { name: "hoursWorked", label: "Hours Worked" },
+    {
+      name: "hoursWorked",
+      label: "Hours Worked",
+      options: {
+        customBodyRender: (value) => (
+          <span
+            style={{
+              color: value === "N/A" ? "#999999" : "#000000",
+              fontWeight: value === "N/A" ? 400 : 500,
+            }}>
+            {value === "N/A" ? "N/A" : `${value} hours`}
+          </span>
+        ),
+      },
+    },
     {
       name: "formStatus",
       label: "Form Status",
@@ -266,31 +367,69 @@ const FacilityDetailDashboardData = ({ rows }) => {
         sort: false,
         customBodyRenderLite: (dataIndex) => {
           const row = filteredData[dataIndex];
-          const isCompleted = row.formStatus;
 
+          // Update the handleActionClick function in FacilityDetailDashboardData.jsx
           const handleActionClick = () => {
-            // Navigate based on form type
-            if (row.formName === "Kitchen Sanitation") {
-              navigate(
-                isCompleted ? "/kitchen-view-form" : "/kitchen-fill-form",
-                {
-                  state: { form: row },
-                }
-              );
-            } else if (row.formName === "Meal Observation") {
-              navigate(isCompleted ? "/meal-view-form" : "/meal-fill-form", {
-                state: { form: row },
+            const row = filteredData[dataIndex];
+            const isCompleted = row.formStatus;
+
+            // Get the correct ID based on form status
+            let assessmentId;
+
+            if (isCompleted) {
+              // For completed forms, use submitted_assessment_id
+              assessmentId = row.originalData?.submitted_assessment_id;
+            } else {
+              // For incomplete forms, use assigned_assessment_id (which is the id field)
+              assessmentId = row.originalData?.id;
+            }
+
+            // Validate we have an ID
+            if (!assessmentId) {
+              showToast("Cannot navigate: No assessment ID found", "error");
+              return;
+            }
+
+            // Get category_id from the original data
+            const categoryId = row.originalData?.category_id;
+
+            // Get category name for form title
+            const categoryName =
+              row.originalData?.category_name || "Assessment";
+
+            // Navigate to the appropriate route
+            if (isCompleted) {
+              // For completed forms: /view-form/{assessment_id}
+              navigate(`/view-form/${assessmentId}`, {
+                state: {
+                  form: row,
+                  assessmentId: assessmentId,
+                  category_id: categoryId,
+                  category_name: categoryName,
+                  isCompleted: true,
+                },
               });
             } else {
-              // fallback, just in case
-              navigate(
-                isCompleted ? "/client-view-form" : "/client-fill-form",
-                {
-                  state: { form: row },
-                }
-              );
+              // For incomplete forms: /fill-form/{assigned_assessment_id}
+              navigate(`/fill-form/${assessmentId}`, {
+                state: {
+                  form: row,
+                  assessmentId: assessmentId,
+                  category_id: categoryId,
+                  category_name: categoryName,
+                  isCompleted: false,
+                },
+              });
             }
           };
+
+          // Determine tooltip message
+          let tooltipMessage = "Add task to timelogs";
+          if (row.taskButtonText === "Task Already Added") {
+            tooltipMessage = "Task has already been added to timelogs";
+          } else if (row.taskButtonText === "Form In-Process") {
+            tooltipMessage = "Cannot add task for forms in process";
+          }
 
           return (
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -307,38 +446,43 @@ const FacilityDetailDashboardData = ({ rows }) => {
                   alignItems: "center",
                   gap: "6px",
                 }}>
-                <Icon
-                  icon={
-                    isCompleted
-                      ? "ic:baseline-remove-red-eye"
-                      : "material-symbols:edit-document"
+                <Icon icon={row.fillFormIcon} width="17" height="20" />
+                {row.fillFormText}
+              </button>
+
+              {/* Show task button based on form status */}
+              {row.canShowTaskButton && (
+                <button
+                  onClick={() =>
+                    row.taskButtonDisabled ? null : handleAddTask(row)
                   }
-                  width="17"
-                  height="20"
-                />
-                {isCompleted ? "View Form" : "Fill Form"}
-              </button>
-              
-              <button
-                onClick={() => handleAddTask(row)}
-                style={{
-                  background: "#2196F3",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "5px 12px",
-                  color: "white",
-                  borderRadius: "7px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}>
-                <Icon
-                  icon="mdi:plus-circle-outline"
-                  width="17"
-                  height="20"
-                />
-                Add Task
-              </button>
+                  style={{
+                    border: "none",
+                    cursor: row.taskButtonDisabled ? "not-allowed" : "pointer",
+                    padding: "5px 12px",
+                    color: "white",
+                    borderRadius: "7px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    ...row.taskButtonStyle,
+                  }}
+                  disabled={row.taskButtonDisabled}
+                  title={tooltipMessage}>
+                  <Icon
+                    icon={
+                      row.taskButtonText === "Task Already Added"
+                        ? "mdi:check-circle-outline"
+                        : row.taskButtonText === "Add Task"
+                        ? "mdi:plus-circle-outline"
+                        : "mdi:clock-outline"
+                    }
+                    width="17"
+                    height="20"
+                  />
+                  {row.taskButtonText}
+                </button>
+              )}
             </div>
           );
         },
@@ -357,16 +501,30 @@ const FacilityDetailDashboardData = ({ rows }) => {
     viewColumns: false,
     filter: true,
     search: true,
+    textLabels: {
+      body: {
+        noMatch: isAssignedAssessmentsLoading ? (
+          <div>Loading assessments...</div>
+        ) : assignedAssessmentsError ? (
+          <div>Error: {assignedAssessmentsError}</div>
+        ) : (
+          "No assessments found"
+        ),
+      },
+    },
   };
 
   // Add Task Modal Component
-  const AddTaskModal = ({ form, onClose, onSave }) => {
+  const AddTaskModal = ({ form, onClose, onSave, isAdding }) => {
     const [taskData, setTaskData] = useState({
       title: form ? `${form.formName} - ${form.facility}` : "",
-      facility: form?.facility || "KFC",
       description: "",
       startDateTime: new Date().toISOString().slice(0, 16),
-      endDateTime: new Date(new Date().getTime() + 60 * 60 * 1000).toISOString().slice(0, 16),
+      endDateTime: new Date(new Date().getTime() + 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 16),
+      // Get assigned_assessment_id from the form's original data
+      assigned_assessment_id: form?.originalData?.id || 1,
     });
 
     const handleSubmit = (e) => {
@@ -436,7 +594,9 @@ const FacilityDetailDashboardData = ({ rows }) => {
               <input
                 type="text"
                 value={taskData.title}
-                onChange={(e) => setTaskData({ ...taskData, title: e.target.value })}
+                onChange={(e) =>
+                  setTaskData({ ...taskData, title: e.target.value })
+                }
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -445,6 +605,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
                   fontSize: "14px",
                 }}
                 required
+                disabled={isAdding}
               />
             </div>
 
@@ -457,21 +618,30 @@ const FacilityDetailDashboardData = ({ rows }) => {
                 }}>
                 Facility
               </label>
-              <select
-                value={taskData.facility}
-                onChange={(e) => setTaskData({ ...taskData, facility: e.target.value })}
+              <input
+                type="text"
+                value={form?.facility || "Unknown Facility"}
                 style={{
                   width: "100%",
                   padding: "10px",
                   borderRadius: "6px",
                   border: "1px solid #ddd",
                   fontSize: "14px",
+                  backgroundColor: "#f5f5f5",
+                  cursor: "not-allowed",
+                }}
+                disabled
+                readOnly
+              />
+              <small
+                style={{
+                  color: "#666",
+                  fontSize: "12px",
+                  marginTop: "4px",
+                  display: "block",
                 }}>
-                <option value="KFC">KFC</option>
-                <option value="Starbucks">Starbucks</option>
-                <option value="Burger King">Burger King</option>
-                <option value="McDonald">McDonald</option>
-              </select>
+                Facility is automatically set from the selected form
+              </small>
             </div>
 
             <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
@@ -482,12 +652,20 @@ const FacilityDetailDashboardData = ({ rows }) => {
                     marginBottom: "6px",
                     fontWeight: "500",
                   }}>
-                  Start Date & Time
+                  Start Date
                 </label>
                 <input
-                  type="datetime-local"
-                  value={taskData.startDateTime}
-                  onChange={(e) => setTaskData({ ...taskData, startDateTime: e.target.value })}
+                  type="date"
+                  value={taskData.startDateTime.split("T")[0]}
+                  onChange={(e) =>
+                    setTaskData({
+                      ...taskData,
+                      startDateTime:
+                        e.target.value +
+                        "T" +
+                        (taskData.startDateTime.split("T")[1] || "00:00"),
+                    })
+                  }
                   style={{
                     width: "100%",
                     padding: "10px",
@@ -496,6 +674,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
                     fontSize: "14px",
                   }}
                   required
+                  disabled={isAdding}
                 />
               </div>
               <div style={{ flex: 1 }}>
@@ -505,12 +684,20 @@ const FacilityDetailDashboardData = ({ rows }) => {
                     marginBottom: "6px",
                     fontWeight: "500",
                   }}>
-                  End Date & Time
+                  End Date
                 </label>
                 <input
-                  type="datetime-local"
-                  value={taskData.endDateTime}
-                  onChange={(e) => setTaskData({ ...taskData, endDateTime: e.target.value })}
+                  type="date"
+                  value={taskData.endDateTime.split("T")[0]}
+                  onChange={(e) =>
+                    setTaskData({
+                      ...taskData,
+                      endDateTime:
+                        e.target.value +
+                        "T" +
+                        (taskData.endDateTime.split("T")[1] || "00:00"),
+                    })
+                  }
                   style={{
                     width: "100%",
                     padding: "10px",
@@ -519,6 +706,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
                     fontSize: "14px",
                   }}
                   required
+                  disabled={isAdding}
                 />
               </div>
             </div>
@@ -534,7 +722,9 @@ const FacilityDetailDashboardData = ({ rows }) => {
               </label>
               <textarea
                 value={taskData.description}
-                onChange={(e) => setTaskData({ ...taskData, description: e.target.value })}
+                onChange={(e) =>
+                  setTaskData({ ...taskData, description: e.target.value })
+                }
                 style={{
                   width: "100%",
                   padding: "10px",
@@ -545,6 +735,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
                   resize: "vertical",
                 }}
                 placeholder="Add task details..."
+                disabled={isAdding}
               />
             </div>
 
@@ -564,7 +755,8 @@ const FacilityDetailDashboardData = ({ rows }) => {
                   background: "white",
                   cursor: "pointer",
                   color: "#666",
-                }}>
+                }}
+                disabled={isAdding}>
                 Cancel
               </button>
               <button
@@ -577,8 +769,20 @@ const FacilityDetailDashboardData = ({ rows }) => {
                   cursor: "pointer",
                   color: "white",
                   fontWeight: "500",
-                }}>
-                Add to Timelogs
+                  opacity: isAdding ? 0.7 : 1,
+                }}
+                disabled={isAdding}>
+                {isAdding ? (
+                  <>
+                    <span
+                      className="spinner-border spinner-border-sm me-2"
+                      role="status"
+                      aria-hidden="true"></span>
+                    Adding...
+                  </>
+                ) : (
+                  "Add to Timelogs"
+                )}
               </button>
             </div>
           </form>
@@ -588,8 +792,120 @@ const FacilityDetailDashboardData = ({ rows }) => {
     );
   };
 
+  // Show loading state
+  if (isAssignedAssessmentsLoading) {
+    return (
+      <>
+        <div style={{ marginBottom: "20px" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}>
+            {["All", "Loading..."].map((facility) => (
+              <button
+                key={facility}
+                style={{
+                  padding: "8px 25px",
+                  borderRadius: "0px",
+                  borderBottom: "3px solid transparent",
+                  backgroundColor: "transparent",
+                  color: "#000",
+                  fontWeight: "500",
+                  fontSize: "16px",
+                  cursor: "default",
+                  minWidth: "auto",
+                  textAlign: "center",
+                }}>
+                {facility}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div
+          className="d-flex justify-content-center align-items-center"
+          style={{ minHeight: "200px" }}>
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading assessments...</span>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Show error state
+  if (assignedAssessmentsError) {
+    return (
+      <>
+        <div style={{ marginBottom: "20px" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+              justifyContent: "center",
+            }}>
+            {["All"].map((facility) => (
+              <button
+                key={facility}
+                onClick={() => handleFacilityFilter(facility)}
+                style={{
+                  padding: "8px 25px",
+                  borderRadius: "0px",
+                  borderBottom: "3px solid",
+                  borderColor:
+                    selectedFacility === facility ? "#8B2885" : "transparent",
+                  backgroundColor: "transparent",
+                  color: selectedFacility === facility ? "#8B2885" : "#000",
+                  fontWeight: "500",
+                  fontSize: "16px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  minWidth: "auto",
+                  textAlign: "center",
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedFacility !== facility) {
+                    e.currentTarget.style.borderColor = "#8B2885";
+                    e.currentTarget.style.color = "#8B2885";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedFacility !== facility) {
+                    e.currentTarget.style.borderColor = "transparent";
+                    e.currentTarget.style.color = "#000";
+                  }
+                }}>
+                {facility}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="alert alert-danger" role="alert">
+          Error loading assessments: {assignedAssessmentsError}
+          <button
+            className="btn btn-sm btn-outline-danger ms-3"
+            onClick={() => dispatch(getAssignedAssessments(1))}>
+            Retry
+          </button>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
+      {/* Toast Notification */}
+      <Toast
+        show={toast.show}
+        message={toast.message}
+        type={toast.type}
+        onClose={closeToast}
+        duration={3000}
+      />
+
       {/* Facility Filter Tabs */}
       <div
         style={{
@@ -641,14 +957,22 @@ const FacilityDetailDashboardData = ({ rows }) => {
           ))}
         </div>
       </div>
-      <div>
-        <MUIDataTable
-          data={filteredData}
-          columns={employeeColumns}
-          options={options}
-          className="overflow-hidden packageTable"
-        />
-      </div>
+
+      {filteredData.length === 0 ? (
+        <div className="alert alert-info" role="alert">
+          No assessments found
+          {selectedFacility !== "All" ? ` for ${selectedFacility}` : ""}.
+        </div>
+      ) : (
+        <div>
+          <MUIDataTable
+            data={filteredData}
+            columns={employeeColumns}
+            options={options}
+            className="overflow-hidden packageTable"
+          />
+        </div>
+      )}
 
       {/* Portal dropdown to body */}
       {dropdownOpen !== null &&
@@ -709,6 +1033,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
             setSelectedForm(null);
           }}
           onSave={handleSaveTask}
+          isAdding={isAddingTask}
         />
       )}
     </>

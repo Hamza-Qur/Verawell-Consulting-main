@@ -1,7 +1,14 @@
 import { Icon } from "@iconify/react";
 import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import MasterLayout from "../otherImages/MasterLayout";
 import DynamicModal from "../components/DynamicModal";
+import Toast from "../components/Toast"; // Import your Toast component
+import {
+  getMyTasks,
+  updateTask,
+  deleteAttendance,
+} from "../redux/slices/attendanceSlice";
 
 const DAYS = [
   "Monday",
@@ -12,240 +19,39 @@ const DAYS = [
   "Saturday",
   "Sunday",
 ];
-const TIME_SLOTS = [
-  { label: "00:00 - 06:00", start: 0, end: 6 },
-  { label: "06:00 - 12:00", start: 6, end: 12 },
-  { label: "12:00 - 18:00", start: 12, end: 18 },
-  { label: "18:00 - 24:00", start: 18, end: 24 },
-];
 
 const Timelogs = () => {
-  const [tasks, setTasks] = useState([
-    // ... your tasks array remains the same
-    {
-      id: 101,
-      facility: "KFC",
-      title: "Old Stock Audit",
-      startTime: "08:00",
-      endTime: "10:00",
-      day: "Tuesday",
-      date: "2025-12-09",
-      description: "Completed last week.",
-    },
-    {
-      id: 1,
-      facility: "Nobu",
-      title: "Current Training",
-      startTime: "14:00",
-      endTime: "16:00",
-      day: "Monday",
-      date: "2025-12-15",
-      description: "Weekly staff sync.",
-    },
-    {
-      id: 2,
-      facility: "KFC",
-      title: "Inventory",
-      startTime: "09:00",
-      endTime: "11:00",
-      day: "Thursday",
-      date: "2025-12-18",
-      description: "Morning count.",
-    },
-    {
-      id: 201,
-      facility: "Burger King",
-      title: "Xmas Prep",
-      startTime: "10:00",
-      endTime: "13:00",
-      day: "Monday",
-      date: "2025-12-22",
-      description: "Planning for holiday rush.",
-    },
-    {
-      id: 3,
-      facility: "White Castle",
-      title: "Safety Inspection",
-      startTime: "08:30",
-      endTime: "10:30",
-      day: "Tuesday",
-      date: "2025-12-23",
-      description: "Monthly safety compliance check.",
-    },
-    {
-      id: 4,
-      facility: "Cluckin' Bell",
-      title: "Equipment Maintenance",
-      startTime: "11:00",
-      endTime: "14:00",
-      day: "Wednesday",
-      date: "2025-12-24",
-      description: "Deep cleaning of kitchen equipment.",
-    },
-    {
-      id: 5,
-      facility: "KFC",
-      title: "Staff Meeting",
-      startTime: "15:00",
-      endTime: "16:30",
-      day: "Thursday",
-      date: "2025-12-25",
-      description: "Holiday schedule discussion.",
-    },
-    {
-      id: 6,
-      facility: "Nobu",
-      title: "Vendor Delivery",
-      startTime: "09:00",
-      endTime: "11:00",
-      day: "Friday",
-      date: "2025-12-26",
-      description: "Weekly seafood delivery and inspection.",
-    },
-    {
-      id: 7,
-      facility: "Burger King",
-      title: "Quality Check",
-      startTime: "13:00",
-      endTime: "15:00",
-      day: "Saturday",
-      date: "2025-12-27",
-      description: "Food quality and freshness audit.",
-    },
-    {
-      id: 8,
-      facility: "White Castle",
-      title: "End-of-Year Inventory",
-      startTime: "08:00",
-      endTime: "12:00",
-      day: "Sunday",
-      date: "2025-12-28",
-      description: "Year-end stock taking.",
-    },
-    {
-      id: 9,
-      facility: "KFC",
-      title: "New Year Preparation",
-      startTime: "10:00",
-      endTime: "13:00",
-      day: "Monday",
-      date: "2025-12-29",
-      description: "Planning for New Year's Eve rush.",
-    },
-    {
-      id: 10,
-      facility: "Nobu",
-      title: "Menu Tasting",
-      startTime: "14:00",
-      endTime: "16:00",
-      day: "Tuesday",
-      date: "2025-12-30",
-      description: "Testing new menu items for January.",
-    },
-    {
-      id: 11,
-      facility: "Burger King",
-      title: "Year-End Cleanup",
-      startTime: "07:00",
-      endTime: "11:00",
-      day: "Wednesday",
-      date: "2025-12-31",
-      description: "Deep cleaning before New Year.",
-    },
-    {
-      id: 12,
-      facility: "Cluckin' Bell",
-      title: "Staff Training",
-      startTime: "09:30",
-      endTime: "12:30",
-      day: "Thursday",
-      date: "2026-01-01",
-      description: "New year safety protocols training.",
-    },
-    {
-      id: 13,
-      facility: "White Castle",
-      title: "Supplier Meeting",
-      startTime: "11:00",
-      endTime: "13:00",
-      day: "Friday",
-      date: "2026-01-02",
-      description: "Discussing 2026 supply contracts.",
-    },
-    {
-      id: 14,
-      facility: "KFC",
-      title: "Health Inspection",
-      startTime: "08:00",
-      endTime: "10:00",
-      day: "Saturday",
-      date: "2026-01-03",
-      description: "Random health department inspection.",
-    },
-    {
-      id: 15,
-      facility: "Nobu",
-      title: "Wine Pairing Session",
-      startTime: "16:00",
-      endTime: "18:00",
-      day: "Sunday",
-      date: "2026-01-04",
-      description: "Training staff on new wine selections.",
-    },
-    {
-      id: 16,
-      facility: "Burger King",
-      title: "Equipment Upgrade",
-      startTime: "07:00",
-      endTime: "15:00",
-      day: "Monday",
-      date: "2026-01-05",
-      description: "Installing new fryer systems.",
-    },
-    {
-      id: 17,
-      facility: "Cluckin' Bell",
-      title: "Customer Feedback Review",
-      startTime: "10:00",
-      endTime: "12:00",
-      day: "Tuesday",
-      date: "2026-01-06",
-      description: "Analyzing December customer surveys.",
-    },
-    {
-      id: 18,
-      facility: "White Castle",
-      title: "Marketing Strategy",
-      startTime: "13:00",
-      endTime: "15:30",
-      day: "Wednesday",
-      date: "2026-01-07",
-      description: "Q1 2026 marketing campaign planning.",
-    },
-    {
-      id: 19,
-      facility: "KFC",
-      title: "Inventory Replenishment",
-      startTime: "09:00",
-      endTime: "11:00",
-      day: "Thursday",
-      date: "2026-01-08",
-      description: "Restocking after holiday season.",
-    },
-    {
-      id: 20,
-      facility: "Nobu",
-      title: "Chef Special Training",
-      startTime: "14:00",
-      endTime: "17:00",
-      day: "Friday",
-      date: "2026-01-09",
-      description: "Masterclass on new cooking techniques.",
-    },
-  ]);
+  const dispatch = useDispatch();
 
+  // Get my tasks from Redux store
+  const { myTasks, isMyTasksLoading, myTasksError } = useSelector(
+    (state) => state.attendance
+  );
+
+  const [tasks, setTasks] = useState([]);
   const [activeModal, setActiveModal] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+
+  // Toast state
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
+
+  // Show toast function
+  const showToast = (message, type = "info") => {
+    setToast({
+      show: true,
+      message,
+      type,
+    });
+  };
+
+  // Hide toast function
+  const hideToast = () => {
+    setToast({ ...toast, show: false });
+  };
 
   // Initialize with current week's Monday
   const getCurrentWeekMonday = () => {
@@ -261,6 +67,52 @@ const Timelogs = () => {
   };
 
   const [baseDate, setBaseDate] = useState(getCurrentWeekMonday());
+
+  // Fetch tasks on component mount
+  useEffect(() => {
+    dispatch(getMyTasks());
+  }, [dispatch]);
+
+  // Transform API data to match the UI format when data loads
+  useEffect(() => {
+    if (myTasks && myTasks.length > 0) {
+      const transformedTasks = myTasks.map((task) => {
+        const startDate = new Date(task.start_time);
+        const endDate = new Date(task.end_time);
+
+        // Get day index (0 = Monday, 6 = Sunday)
+        const dayIndex = (startDate.getDay() + 6) % 7;
+
+        // Format date as YYYY-MM-DD
+        const dateStr = startDate.toISOString().split("T")[0];
+
+        return {
+          id: task.id,
+          title: task.title,
+          description: task.description || "",
+          day: DAYS[dayIndex],
+          date: dateStr,
+          startDate: startDate,
+          endDate: endDate,
+          // Display date strings
+          startDateStr: startDate.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          }),
+          endDateStr: endDate.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          }),
+        };
+      });
+      setTasks(transformedTasks);
+    } else {
+      // Clear tasks if API returns empty
+      setTasks([]);
+    }
+  }, [myTasks]);
 
   // Helper function to get start of any week for a given date
   const getMondayOfWeek = (date) => {
@@ -292,51 +144,48 @@ const Timelogs = () => {
     return baseDate.getTime() === currentMonday.getTime();
   };
 
-  // REMOVED: isPastTime function (24-hour restriction removed)
-
   const saveTask = (taskData) => {
-    // Parse datetime values from combined fields
-    const startDateTime = new Date(taskData.startDateTime);
-    const endDateTime = new Date(taskData.endDateTime);
+    // Format dates for API (YYYY-MM-DD)
+    const startDate = taskData.startDateTime.split("T")[0];
+    const endDate = taskData.endDateTime.split("T")[0];
 
-    // Extract date and time separately
-    const startDate = startDateTime.toISOString().split("T")[0];
-    const startTime = startDateTime.toTimeString().slice(0, 5);
-    const endDate = endDateTime.toISOString().split("T")[0];
-    const endTime = endDateTime.toTimeString().slice(0, 5);
-
-    // Get day name from date
-    const dayIndex = (startDateTime.getDay() + 6) % 7; // Convert JS day (0=Sunday) to Monday=0
-    const day = DAYS[dayIndex];
-
-    // Validate end is after start
-    if (endDateTime <= startDateTime) {
-      alert("Error: End date/time must be later than start date/time.");
-      return;
-    }
-
-    const taskWithDate = {
-      ...taskData,
-      date: startDate,
-      startTime: startTime,
-      endTime: endTime,
-      day: day,
+    // Update existing task
+    const updateData = {
+      id: selectedTask.id,
+      title: taskData.title,
+      description: taskData.description || "",
+      start_time: startDate,
+      end_time: endDate,
     };
 
-    // Remove combined datetime fields
-    delete taskWithDate.startDateTime;
-    delete taskWithDate.endDateTime;
+    dispatch(updateTask(updateData)).then((action) => {
+      if (action.payload?.success) {
+        showToast("Task updated successfully!", "success");
+        // Refresh tasks after update
+        dispatch(getMyTasks());
+        closeModals();
+      } else {
+        showToast(action.payload?.message || "Failed to update task", "error");
+      }
+    });
+  };
 
-    if (activeModal === "edit") {
-      setTasks(
-        tasks.map((t) =>
-          t.id === selectedTask.id ? { ...taskWithDate, id: t.id } : t
-        )
-      );
-    } else {
-      setTasks([...tasks, { id: Date.now(), ...taskWithDate }]);
+  const handleDeleteTask = (taskId) => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      dispatch(deleteAttendance(taskId)).then((action) => {
+        if (action.payload?.success) {
+          showToast("Task deleted successfully!", "success");
+          // Refresh tasks after delete
+          dispatch(getMyTasks());
+          closeModals();
+        } else {
+          showToast(
+            action.payload?.message || "Failed to delete task",
+            "error"
+          );
+        }
+      });
     }
-    closeModals();
   };
 
   const handleNav = (dir) => {
@@ -364,6 +213,79 @@ const Timelogs = () => {
     }
   };
 
+  // Group tasks by day for display
+  const getTasksForDay = (date) => {
+    const dateStr = date.toISOString().split("T")[0];
+    return tasks.filter((task) => task.date === dateStr);
+  };
+
+  // Loading state
+  if (isMyTasksLoading) {
+    return (
+      <MasterLayout>
+        <div
+          style={{
+            padding: "30px",
+            backgroundColor: "#f9f9f9",
+            minHeight: "100vh",
+          }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "30px",
+            }}>
+            <h2 style={{ fontSize: "24px", fontWeight: "700", margin: 0 }}>
+              Timelogs - Form Completion Tracking
+            </h2>
+          </div>
+          <div
+            className="d-flex justify-content-center align-items-center"
+            style={{ minHeight: "400px" }}>
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading tasks...</span>
+            </div>
+          </div>
+        </div>
+      </MasterLayout>
+    );
+  }
+
+  // Error state
+  if (myTasksError) {
+    return (
+      <MasterLayout>
+        <div
+          style={{
+            padding: "30px",
+            backgroundColor: "#f9f9f9",
+            minHeight: "100vh",
+          }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "30px",
+            }}>
+            <h2 style={{ fontSize: "24px", fontWeight: "700", margin: 0 }}>
+              Timelogs - Form Completion Tracking
+            </h2>
+          </div>
+          <div className="alert alert-danger" role="alert">
+            Error loading tasks: {myTasksError}
+            <button
+              className="btn btn-sm btn-outline-danger ms-3"
+              onClick={() => dispatch(getMyTasks())}>
+              Retry
+            </button>
+          </div>
+        </div>
+      </MasterLayout>
+    );
+  }
+
   return (
     <MasterLayout>
       <div
@@ -371,7 +293,17 @@ const Timelogs = () => {
           padding: "30px",
           backgroundColor: "#f9f9f9",
           minHeight: "100vh",
+          position: "relative",
         }}>
+        {/* Toast Notification */}
+        <Toast
+          show={toast.show}
+          message={toast.message}
+          type={toast.type}
+          onClose={hideToast}
+          duration={3000}
+        />
+
         <div
           style={{
             display: "flex",
@@ -382,22 +314,6 @@ const Timelogs = () => {
           <h2 style={{ fontSize: "24px", fontWeight: "700", margin: 0 }}>
             Timelogs - Form Completion Tracking
           </h2>
-          <button
-            className="dsgnbtn"
-            onClick={() => {
-              setSelectedTask(null);
-              setActiveModal("add");
-            }}
-            style={{
-              color: "white",
-              border: "none",
-              padding: "12px 28px",
-              borderRadius: "12px",
-              cursor: "pointer",
-              fontWeight: "600",
-            }}>
-            Add Task
-          </button>
         </div>
 
         {/* Navigation */}
@@ -460,7 +376,7 @@ const Timelogs = () => {
           </div>
         </div>
 
-        {/* Grid */}
+        {/* Grid - List view without time slots */}
         <div
           style={{
             background: "white",
@@ -502,76 +418,86 @@ const Timelogs = () => {
             })}
           </div>
 
-          {TIME_SLOTS.map((slot) => (
-            <div
-              key={slot.label}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(7, 1fr)",
-                minHeight: "140px",
-                borderBottom: "1px solid #eee",
-              }}>
-              {weekDates.map((date, i) => {
-                const dateStr = date.toISOString().split("T")[0];
-                const isToday =
-                  new Date().toDateString() === date.toDateString();
-                return (
-                  <div
-                    key={i}
-                    style={{
-                      borderRight: "1px solid #eee",
-                      padding: "10px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "6px",
-                      overflow: "hidden",
-                      background: isToday ? "#F9FBFF" : "white",
-                    }}>
-                    {tasks
-                      .filter(
-                        (t) =>
-                          t.date === dateStr &&
-                          parseInt(t.startTime) >= slot.start &&
-                          parseInt(t.startTime) < slot.end
-                      )
-                      .map((task) => (
+          {/* Tasks list for each day */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7, 1fr)",
+              minHeight: "300px",
+            }}>
+            {weekDates.map((date, i) => {
+              const dateStr = date.toISOString().split("T")[0];
+              const isToday = new Date().toDateString() === date.toDateString();
+              const dayTasks = getTasksForDay(date);
+
+              return (
+                <div
+                  key={i}
+                  style={{
+                    borderRight: "1px solid #eee",
+                    borderBottom: "1px solid #eee",
+                    padding: "15px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                    overflowY: "auto",
+                    background: isToday ? "#F9FBFF" : "white",
+                    minHeight: "300px",
+                  }}>
+                  {dayTasks.length === 0 ? (
+                    <div
+                      style={{
+                        color: "#999",
+                        fontSize: "14px",
+                        textAlign: "center",
+                        marginTop: "20px",
+                      }}>
+                      No tasks
+                    </div>
+                  ) : (
+                    dayTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        onClick={() => {
+                          setSelectedTask(task);
+                          setActiveModal("view");
+                        }}
+                        style={{
+                          background: "#F2F7FF",
+                          border: "1px solid #E1E9F5",
+                          borderRadius: "12px",
+                          padding: "12px",
+                          fontSize: "13px",
+                          cursor: "pointer",
+                          width: "100%",
+                          boxSizing: "border-box",
+                          overflow: "hidden",
+                          wordBreak: "break-word",
+                        }}>
                         <div
-                          key={task.id}
-                          onClick={() => {
-                            setSelectedTask(task);
-                            setActiveModal("view");
-                          }}
                           style={{
-                            background: "#F2F7FF",
-                            border: "1px solid #E1E9F5",
-                            borderRadius: "12px",
-                            padding: "8px",
-                            fontSize: "11px",
-                            cursor: "pointer",
-                            width: "100%",
-                            boxSizing: "border-box",
-                            overflow: "hidden",
-                            whiteSpace: "nowrap",
-                            textOverflow: "ellipsis",
-                            display: "block",
+                            color: "#8B2885",
+                            fontWeight: "700",
+                            marginBottom: "4px",
                           }}>
-                          <span style={{ color: "#8B2885", fontWeight: "700" }}>
-                            {task.facility}:
-                          </span>{" "}
                           {task.title}
                         </div>
-                      ))}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+                        <div style={{ fontSize: "11px", color: "#666" }}>
+                          {task.startDateStr} - {task.endDateStr}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <DynamicModal
-          show={activeModal === "add" || activeModal === "edit"}
+          show={activeModal === "edit"}
           handleClose={closeModals}
-          title={activeModal === "edit" ? "Edit Task" : "Add Task"}
+          title="Edit Task"
           modalWidth="480px"
           content={<TaskForm initialData={selectedTask} onSave={saveTask} />}
         />
@@ -585,7 +511,7 @@ const Timelogs = () => {
             <TaskView
               task={selectedTask}
               onEdit={() => setActiveModal("edit")}
-              onDelete={(id) => setTasks(tasks.filter((t) => t.id !== id))}
+              onDelete={handleDeleteTask}
               close={closeModals}
             />
           }
@@ -601,27 +527,21 @@ const TaskForm = ({ initialData, onSave }) => {
   // Helper to prepare initial data with datetime values
   const prepareInitialData = () => {
     if (initialData) {
-      // For editing: combine existing date and time
+      // Use the actual dates from the task data
       return {
-        facility: initialData.facility || "KFC",
         title: initialData.title || "",
         description: initialData.description || "",
-        startDateTime: `${initialData.date}T${initialData.startTime}`,
-        endDateTime: `${initialData.date}T${initialData.endTime}`,
-      };
-    } else {
-      // For new task: use current time and 1 hour later
-      const now = new Date();
-      const later = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour later
-
-      return {
-        facility: "KFC",
-        title: "",
-        description: "",
-        startDateTime: now.toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
-        endDateTime: later.toISOString().slice(0, 16),
+        startDateTime: initialData.startDate.toISOString().slice(0, 16),
+        endDateTime: initialData.endDate.toISOString().slice(0, 16),
       };
     }
+
+    return {
+      title: "",
+      description: "",
+      startDateTime: "",
+      endDateTime: "",
+    };
   };
 
   const [formData, setFormData] = useState(prepareInitialData());
@@ -640,49 +560,46 @@ const TaskForm = ({ initialData, onSave }) => {
 
   return (
     <div>
-      <div>
-        <label>Facility</label>
-        <select
-          value={formData.facility}
-          style={inputStyle}
-          onChange={(e) =>
-            setFormData({ ...formData, facility: e.target.value })
-          }>
-          <option>KFC</option>
-          <option>Nobu</option>
-          <option>Burger King</option>
-          <option>White Castle</option>
-          <option>Cluckin' Bell</option>
-        </select>
-      </div>
-
       <label>Title</label>
       <input
         value={formData.title}
         style={inputStyle}
         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+        placeholder="Enter task title"
       />
 
       <div style={{ display: "flex", gap: "10px" }}>
         <div style={{ flex: 1 }}>
-          <label>Start Date & Time</label>
+          <label>Start Date</label>
           <input
-            type="datetime-local"
-            value={formData.startDateTime}
+            type="date"
+            value={formData.startDateTime.split("T")[0]}
             style={inputStyle}
             onChange={(e) =>
-              setFormData({ ...formData, startDateTime: e.target.value })
+              setFormData({
+                ...formData,
+                startDateTime:
+                  e.target.value +
+                  "T" +
+                  (formData.startDateTime.split("T")[1] || "00:00"),
+              })
             }
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label>End Date & Time</label>
+          <label>End Date</label>
           <input
-            type="datetime-local"
-            value={formData.endDateTime}
+            type="date"
+            value={formData.endDateTime.split("T")[0]}
             style={inputStyle}
             onChange={(e) =>
-              setFormData({ ...formData, endDateTime: e.target.value })
+              setFormData({
+                ...formData,
+                endDateTime:
+                  e.target.value +
+                  "T" +
+                  (formData.endDateTime.split("T")[1] || "00:00"),
+              })
             }
           />
         </div>
@@ -695,6 +612,7 @@ const TaskForm = ({ initialData, onSave }) => {
         onChange={(e) =>
           setFormData({ ...formData, description: e.target.value })
         }
+        placeholder="Enter task description"
       />
 
       <button
@@ -715,80 +633,86 @@ const TaskForm = ({ initialData, onSave }) => {
   );
 };
 
-const TaskView = ({ task, onEdit, onDelete, close }) => (
-  <div>
-    <div
-      style={{
-        background: "#F7F8FA",
-        padding: "20px",
-        borderRadius: "16px",
-        marginBottom: "20px",
-        wordBreak: "break-word",
-        overflowWrap: "break-word",
-      }}>
-      <h3
-        style={{
-          margin: "0 0 10px 0",
-          wordBreak: "break-word",
-          overflowWrap: "break-word",
-        }}>
-        {task?.title}
-      </h3>
-      <p
-        style={{
-          fontSize: "14px",
-          color: "#666",
-          wordBreak: "break-word",
-          overflowWrap: "break-word",
-        }}>
-        {task?.facility} • {task?.date} ({task?.startTime}-{task?.endTime})
-      </p>
-      <p
-        style={{
-          marginTop: "15px",
-          whiteSpace: "pre-wrap",
-          overflowWrap: "break-word",
-          wordBreak: "break-word",
-          maxWidth: "100%",
-        }}>
-        {task?.description}
-      </p>
-    </div>
+const TaskView = ({ task, onEdit, onDelete, close }) => {
+  if (!task) return null;
 
-    <div style={{ display: "flex", gap: "10px" }}>
-      <button
-        onClick={() => {
-          if (window.confirm("Delete?")) {
+  return (
+    <div>
+      <div
+        style={{
+          background: "#F7F8FA",
+          padding: "20px",
+          borderRadius: "16px",
+          marginBottom: "20px",
+          wordBreak: "break-word",
+          overflowWrap: "break-word",
+        }}>
+        <h3
+          style={{
+            margin: "0 0 10px 0",
+            wordBreak: "break-word",
+            overflowWrap: "break-word",
+          }}>
+          {task.title}
+        </h3>
+        <p
+          style={{
+            fontSize: "14px",
+            color: "#666",
+            wordBreak: "break-word",
+            overflowWrap: "break-word",
+            marginBottom: "15px",
+          }}>
+          {task.startDateStr} - {task.endDateStr}
+        </p>
+        <p
+          style={{
+            marginTop: "15px",
+            whiteSpace: "pre-wrap",
+            overflowWrap: "break-word",
+            wordBreak: "break-word",
+            maxWidth: "100%",
+            fontSize: "14px",
+            lineHeight: "1.5",
+          }}>
+          {task.description || "No description provided."}
+        </p>
+      </div>
+
+      <div style={{ display: "flex", gap: "10px" }}>
+        <button
+          onClick={() => {
             onDelete(task.id);
-            close();
-          }
-        }}
-        style={{
-          flex: 1,
-          padding: "12px",
-          border: "1px solid #ff0000ff",
-          borderRadius: "12px",
-          color: "#ff0000ff",
-          background: "white",
-          cursor: "pointer",
-        }}>
-        Delete
-      </button>
-      <button
-        className="dsgnbtn"
-        onClick={onEdit}
-        style={{
-          flex: 2,
-          padding: "12px",
-          borderRadius: "12px",
-          color: "white",
-          border: "none",
-          cursor: "pointer",
-        }}>
-        Edit Task
-      </button>
+          }}
+          style={{
+            flex: 1,
+            padding: "12px",
+            border: "1px solid #ff0000ff",
+            borderRadius: "12px",
+            color: "#ff0000ff",
+            background: "white",
+            cursor: "pointer",
+            fontWeight: "600",
+          }}>
+          Delete
+        </button>
+        <button
+          className="dsgnbtn"
+          onClick={onEdit}
+          style={{
+            flex: 2,
+            padding: "12px",
+            borderRadius: "12px",
+            color: "white",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "600",
+          }}>
+          Edit Task
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default Timelogs;

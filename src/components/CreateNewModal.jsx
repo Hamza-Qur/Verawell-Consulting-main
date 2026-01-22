@@ -80,7 +80,7 @@ export default function CreateNewModal() {
         <DynamicModal
           show={showaAssignFacilityModal}
           handleClose={handleCloseAssignFacilityModal}
-          title="Assign Facility"
+          title="Assign Facility Form"
           content={<AssignFacilityModal />}
         />
         <Link

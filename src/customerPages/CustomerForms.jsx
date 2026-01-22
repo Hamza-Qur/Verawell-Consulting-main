@@ -1,7 +1,7 @@
 import { Icon } from "@iconify/react/dist/iconify.js";
 import MasterLayout from "../otherImages/MasterLayout";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import CustomerDetailDashboardData from "./CustomerDetailDashboardData";
+import FacilityDetailDashboardData from "../components/FacilityDetailDashboardData";
 
 const CustomerForms = () => {
   const { state } = useLocation();
@@ -34,7 +34,7 @@ const CustomerForms = () => {
         </span>
         Forms
       </h2>
-      <CustomerDetailDashboardData rows={10} />
+      <FacilityDetailDashboardData rows={10} />
     </MasterLayout>
   );
 };

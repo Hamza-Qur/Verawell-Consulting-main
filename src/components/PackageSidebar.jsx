@@ -1,7 +1,7 @@
 // components/ClientPackageDrawer.jsx
 import React from 'react';
 import { Offcanvas, Form, Button, Image } from 'react-bootstrap';
-import DefaultAvatar from '../otherImages/default.png';
+import DefaultAvatar from '../otherImages/UserPic.png';
 
 const PackageSidebar = ({ show, onClose, data }) => {
   

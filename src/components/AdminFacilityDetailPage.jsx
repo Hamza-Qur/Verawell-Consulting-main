@@ -204,14 +204,6 @@ const AdminFacilityDetailPage = () => {
     }
   };
 
-  const handleViewForms = () => {
-    if (facility?.id) {
-      navigate(`/forms/${facility.id}`, {
-        state: { facilityName: facility.facility_name },
-      });
-    }
-  };
-
   // Get already assigned user IDs to filter them out from dropdown
   const assignedUserIds = assignedUsers.data?.map((user) => user.user_id) || [];
 
@@ -457,23 +449,6 @@ const AdminFacilityDetailPage = () => {
               </p>
             </div>
             <div style={{ display: "flex", gap: "12px" }}>
-              <button
-                onClick={handleViewForms}
-                style={{
-                  background: "#8B2885",
-                  border: "none",
-                  color: "white",
-                  padding: "10px 20px",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  fontSize: "14px",
-                }}>
-                <Icon icon="mdi:file-document-outline" width="18" height="18" />
-                View Forms
-              </button>
               <button
                 onClick={handleEditToggle}
                 disabled={isUpdating}

@@ -3,6 +3,7 @@ import MasterLayout from "../otherImages/MasterLayout";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import FacilityDetailDashboardData from "../components/FacilityDetailDashboardData";
 import UnitCountFacility from "../components/UnitCountFacility";
+import FacilityDataTable from "../components/FacilityDataTable";
 
 const FacilityForms = () => {
   const { state } = useLocation();
@@ -35,7 +36,7 @@ const FacilityForms = () => {
         </span>
         Forms
       </h2>
-      <FacilityDetailDashboardData rows={10} />
+      <FacilityDetailDashboardData />
     </MasterLayout>
   );
 };

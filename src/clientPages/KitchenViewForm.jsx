@@ -1,265 +1,126 @@
 import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams, useNavigate } from "react-router-dom";
 import MasterLayout from "../otherImages/MasterLayout";
-import { useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react/dist/iconify.js";
-
-const sectionsData = [
-  {
-    id: "floors",
-    label: "Floors Clean and free of build up",
-    status: "satisfactory",
-    comment: "Floors were clean during inspection.",
-  },
-  {
-    id: "walkins",
-    label: "Walk-ins Clean",
-    status: "improvement",
-    comment: "Minor spills noticed near the back wall.",
-  },
-  {
-    id: "logs",
-    label: "Refrigerator Logs complete",
-    status: "satisfactory",
-    comment: "Logs properly filled and up to date.",
-  },
-  {
-    id: "thermometers",
-    label: "Thermometers inside refrigerator units",
-    status: "satisfactory",
-    comment: "Thermometers present and functional.",
-  },
-  {
-    id: "refrigerator",
-    label:
-      "Refrigerator/Freezer units at appropriate temps Walk-in/Fridge (35-40 degrees) Freezer (0 -10 degrees) No signs of thaw/freezer burn",
-    status: "improvement",
-    comment: "One freezer was slightly above recommended temperature.",
-  },
-  {
-    id: "thawing",
-    label: "Proper Thawing methods used with thaw dates labeled",
-    status: "satisfactory",
-    comment: "All thaw dates labeled correctly.",
-  },
-  {
-    id: "food",
-    label: "Food off Floor",
-    status: "satisfactory",
-    comment: "All food items stored properly above the floor.",
-  },
-  {
-    id: "walls",
-    label: "Walls Clean",
-    status: "improvement",
-    comment: "Some marks noticed near prep area.",
-  },
-  {
-    id: "surfaces",
-    label: "Work Surfaces Clean",
-    status: "satisfactory",
-    comment: "Surfaces wiped down and sanitized.",
-  },
-  {
-    id: "sanitizer",
-    label: "Sanitizer Buckets out and in use with clean towels",
-    status: "satisfactory",
-    comment: "Sanitizer buckets present and clean.",
-  },
-  {
-    id: "equipment",
-    label: "Major Equipment clean: Oven, Stovetop, Grill top, Steamer",
-    status: "improvement",
-    comment: "Oven needs deep cleaning.",
-  },
-  {
-    id: "minor",
-    label:
-      "Minor Equipment Clean: Toaster, Blender, Food Processor, Mixer, Plate warmer",
-    status: "satisfactory",
-    comment: "All minor equipment clean and ready to use.",
-  },
-  {
-    id: "area",
-    label: "Dishwashing area clean. Machine free of build-up",
-    status: "satisfactory",
-    comment: "Dishwashing area clear and machine clean.",
-  },
-  {
-    id: "dishes",
-    label: "Dishes clean and dry, no wet nesting",
-    status: "improvement",
-    comment: "Some dishes still wet, needs attention.",
-  },
-  {
-    id: "utensils",
-    label: "Pots, Pans, and Utensils clean & Dry",
-    status: "satisfactory",
-    comment: "All utensils properly cleaned.",
-  },
-  {
-    id: "tested",
-    label: "Dish Machine tested and Log filled",
-    status: "satisfactory",
-    comment: "Dish machine log up to date.",
-  },
-  {
-    id: "verbalize",
-    label: "Staff can verbalize Dish machine use and testing",
-    status: "satisfactory",
-    comment: "Staff demonstrated knowledge of machine use.",
-  },
-  {
-    id: "log",
-    label: "Pot Sink Tested and log complete. PPM",
-    status: "improvement",
-    comment: "Pot sink test missing one entry.",
-  },
-  {
-    id: "testing",
-    label: "Staff can Verbalize Pot/pan sink testing",
-    status: "satisfactory",
-    comment: "Staff knowledgeable about pot sink testing.",
-  },
-  {
-    id: "clean",
-    label: "Coffee Urns Clean",
-    status: "satisfactory",
-    comment: "Coffee urns wiped and sanitized.",
-  },
-  {
-    id: "sticker",
-    label: "Hoots/Vents clean- sticker up to date",
-    status: "improvement",
-    comment: "One vent sticker missing date.",
-  },
-  {
-    id: "knives",
-    label: "Knives stored Properly",
-    status: "satisfactory",
-    comment: "Knives properly stored in holder.",
-  },
-  {
-    id: "opener",
-    label: "Can opener Clean",
-    status: "satisfactory",
-    comment: "Can opener cleaned and functional.",
-  },
-  {
-    id: "slicer",
-    label: "Slicer Clean",
-    status: "improvement",
-    comment: "Slicer needs deep cleaning.",
-  },
-  {
-    id: "storage",
-    label: "Storage room clean and organized",
-    status: "satisfactory",
-    comment: "Storage room organized and clear of clutter.",
-  },
-  {
-    id: "stock",
-    label: "Stock < 18” from ceiling",
-    status: "satisfactory",
-    comment: "Stock properly stored below ceiling limit.",
-  },
-  {
-    id: "scoops",
-    label: "No scoops in ingredient bins",
-    status: "satisfactory",
-    comment: "All scoops properly stored.",
-  },
-  {
-    id: "chemicals",
-    label: "Chemicals stored and labeled",
-    status: "improvement",
-    comment: "Some chemicals missing labels.",
-  },
-  {
-    id: "sds",
-    label: "SDS Posted and Complete",
-    status: "satisfactory",
-    comment: "SDS sheets posted and current.",
-  },
-  {
-    id: "labeled",
-    label: "All food labeled and dated",
-    status: "satisfactory",
-    comment: "All food items properly labeled.",
-  },
-  {
-    id: "washing",
-    label: "Hand washing sink stocked",
-    status: "satisfactory",
-    comment: "Hand washing sink fully stocked.",
-  },
-  {
-    id: "posted",
-    label: "Hand washing procedures posted",
-    status: "satisfactory",
-    comment: "Procedure posters displayed correctly.",
-  },
-  {
-    id: "hands",
-    label: "Staff observed washing hands between tasks",
-    status: "improvement",
-    comment: "Observed one staff skipping hand wash.",
-  },
-  {
-    id: "available",
-    label: "One motion Eyewash Station available and labeled",
-    status: "satisfactory",
-    comment: "Eyewash station functional and labeled.",
-  },
-  {
-    id: "cans",
-    label: "Garbage cans clean and covered",
-    status: "satisfactory",
-    comment: "All garbage cans clean and covered.",
-  },
-  {
-    id: "staff",
-    label: "PPE available and staff can verbalize when to use",
-    status: "satisfactory",
-    comment: "Staff demonstrated PPE knowledge.",
-  },
-  {
-    id: "all",
-    label: "All equipment working",
-    status: "satisfactory",
-    comment: "All equipment operational.",
-  },
-];
-
-const mockSubmissionData = {
-  submittedBy: "EMP-1001", // Mock employee ID
-  submittedByName: "John Smith", // Mock employee name
-  submissionDate: "2024-01-15", // Mock submission date
-  submissionTime: "14:30:45", // Mock submission time
-  facility: "KFC Facility", // Mock facility name
-  score: 68, // This will be calculated from sectionsData
-};
+import {
+  getAssessmentById,
+  clearCurrentAssessment,
+  updateAssessment,
+} from "../redux/slices/formSlice";
 
 const KitchenViewForm = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
-  const [sections, setSections] = useState(sectionsData);
-  const [userRole, setUserRole] = useState(null);
+  const dispatch = useDispatch();
 
-  // Use useEffect to read localStorage after component mounts
+  const {
+    currentAssessment,
+    isAssessmentLoading,
+    assessmentError,
+    isUpdatingAssessment,
+    updateAssessmentError,
+    updateAssessmentSuccess,
+  } = useSelector((state) => state.form);
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [sections, setSections] = useState([]);
+  const [originalSections, setOriginalSections] = useState([]);
+  const [userRole, setUserRole] = useState(null);
+  const [submissionData, setSubmissionData] = useState(null);
+  const [score, setScore] = useState(0);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      dispatch(getAssessmentById(id));
+    }
+
+    return () => {
+      dispatch(clearCurrentAssessment());
+    };
+  }, [dispatch, id]);
+
+  useEffect(() => {
+    if (currentAssessment) {
+      const transformedSections =
+        transformAssessmentToSections(currentAssessment);
+      setSections(transformedSections);
+      setOriginalSections(JSON.parse(JSON.stringify(transformedSections)));
+
+      const submissionInfo = {
+        submittedByName: currentAssessment.user?.name || "Unknown",
+        submissionDate: currentAssessment.created_at || "N/A",
+        facility: currentAssessment.facility?.name || "Unknown Facility",
+        totalQuestions: currentAssessment.total_questions || 0,
+        questionsAnswered: currentAssessment.total_questions_answered || 0,
+      };
+      setSubmissionData(submissionInfo);
+
+      const calculatedScore = calculateScore(transformedSections);
+      setScore(calculatedScore);
+    }
+  }, [currentAssessment]);
+
+  useEffect(() => {
+    const changed =
+      JSON.stringify(sections) !== JSON.stringify(originalSections);
+    setHasChanges(changed);
+  }, [sections, originalSections]);
+
+  const transformAssessmentToSections = (assessment) => {
+    const questions = assessment?.category?.questions || [];
+
+    return questions.map((q) => {
+      const answer = q.answer;
+
+      let status = "";
+      if (answer?.satisfactory === 1) status = "satisfactory";
+      if (answer?.need_improvement === 1) status = "improvement";
+
+      return {
+        id: q.question_id?.toString(),
+        question_id: q.question_id,
+        label: q.question,
+        status,
+        comment: answer?.comments || "",
+      };
+    });
+  };
+
   useEffect(() => {
     const role = localStorage.getItem("role");
-    setUserRole(role || "guest"); // default to guest if no role
-    console.log("User role:", role); // Debug log
+    setUserRole(role || "guest");
   }, []);
 
-  // Determine if user can edit based on role
-  const canEdit = userRole === "admin" || userRole === "team"; // Only admin and team can edit
-  const isCustomer = userRole === "customer"; // Customer can only view
+  const canEdit = userRole === "admin" || userRole === "team";
+  const isCustomer = userRole === "customer";
+
+  const calculateScore = (sectionsArray) => {
+    const pointsPerSection = 3;
+    const totalSections = sectionsArray.length;
+
+    if (totalSections === 0) return 0;
+
+    const maxScore = totalSections * pointsPerSection;
+
+    const rawScore = sectionsArray.reduce((acc, section) => {
+      if (section.status === "satisfactory") return acc + pointsPerSection;
+      if (section.status === "improvement") return acc - pointsPerSection;
+      return acc;
+    }, 0);
+
+    return Math.round((rawScore / maxScore) * 100);
+  };
 
   const handleStatusChange = (id, newStatus) => {
-    console.log("Can edit?", canEdit, "Role:", userRole); // Debug log
     if (!canEdit) {
       alert("Customers cannot edit forms. Please contact your administrator.");
+      return;
+    }
+
+    if (!isEditing) {
+      alert("Please click 'Edit Form' to make changes.");
       return;
     }
 
@@ -268,12 +129,22 @@ const KitchenViewForm = () => {
         section.id === id ? { ...section, status: newStatus } : section
       )
     );
+
+    const updatedSections = sections.map((section) =>
+      section.id === id ? { ...section, status: newStatus } : section
+    );
+    const newScore = calculateScore(updatedSections);
+    setScore(newScore);
   };
 
   const handleCommentChange = (id, newComment) => {
-    console.log("Can edit?", canEdit, "Role:", userRole); // Debug log
     if (!canEdit) {
       alert("Customers cannot edit forms. Please contact your administrator.");
+      return;
+    }
+
+    if (!isEditing) {
+      alert("Please click 'Edit Form' to make changes.");
       return;
     }
 
@@ -284,49 +155,267 @@ const KitchenViewForm = () => {
     );
   };
 
-  // Handle edit button click with protection
   const handleEditClick = () => {
     if (!canEdit) {
-      alert("Customers cannot edit forms. Please contact your administrator.");
+      alert("You do not have permission to edit this form.");
       return;
     }
-    setIsEditing(!isEditing);
+    setIsEditing(true);
   };
 
-  // --- Total Score Calculation ---
-  const calculateScore = () => {
-    const pointsPerSection = 3;
-    const totalSections = sections.length;
-    const maxScore = totalSections * pointsPerSection;
-
-    const rawScore = sections.reduce((acc, section) => {
-      if (section.status === "satisfactory") return acc + pointsPerSection;
-      if (section.status === "improvement") return acc - pointsPerSection;
-      return acc;
-    }, 0);
-
-    return Math.round((rawScore / maxScore) * 100);
+  const handleCancelClick = () => {
+    if (hasChanges) {
+      const confirmCancel = window.confirm(
+        "You have unsaved changes. Are you sure you want to cancel?"
+      );
+      if (!confirmCancel) return;
+    }
+    setSections(JSON.parse(JSON.stringify(originalSections)));
+    const originalScore = calculateScore(originalSections);
+    setScore(originalScore);
+    setIsEditing(false);
+    setHasChanges(false);
   };
 
-  const percentageScore = calculateScore();
+  const handleSaveClick = async () => {
+    if (!canEdit) {
+      alert("You do not have permission to save this form.");
+      return;
+    }
 
-  // Format submission date
-  const formattedDate = new Date(
-    mockSubmissionData.submissionDate
-  ).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+    if (!hasChanges) {
+      setIsEditing(false);
+      return;
+    }
 
-  // Determine color including negative scores
-  let scoreColor = "#28a745";
-  if (percentageScore < 0) scoreColor = "#dc3545";
-  else if (percentageScore < 40) scoreColor = "#dc3545";
-  else if (percentageScore < 70) scoreColor = "#fd7e14";
+    // Prepare data for API
+    const updateData = {
+      id: parseInt(id),
+      answers: sections.map((section) => ({
+        question_id: parseInt(section.question_id),
+        satisfactory: section.status === "satisfactory" ? 1 : 0,
+        need_improvement: section.status === "improvement" ? 1 : 0,
+        comments: section.comment || "",
+      })),
+    };
+
+    try {
+      const result = await dispatch(updateAssessment(updateData)).unwrap();
+
+      if (result.success) {
+        setOriginalSections(JSON.parse(JSON.stringify(sections)));
+        setIsEditing(false);
+        setHasChanges(false);
+
+        // Refresh assessment data
+        dispatch(getAssessmentById(id));
+
+        // Show success message
+        setTimeout(() => {
+          alert("Assessment updated successfully!");
+        }, 100);
+      }
+    } catch (error) {
+      console.error("Failed to update assessment:", error);
+      alert(`Failed to update assessment: ${error}`);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "N/A";
+
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  const getScoreColor = (scoreValue) => {
+    if (scoreValue < 0) return "#dc3545";
+    if (scoreValue < 40) return "#dc3545";
+    if (scoreValue < 70) return "#fd7e14";
+    return "#28a745";
+  };
+
+  const scoreColor = getScoreColor(score);
+
+  if (isAssessmentLoading) {
+    return (
+      <MasterLayout>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "50vh",
+            flexDirection: "column",
+            gap: "20px",
+          }}>
+          <Icon
+            icon="mdi:loading"
+            width="50"
+            height="50"
+            style={{ animation: "spin 1s linear infinite" }}
+          />
+          <h3>Loading assessment data...</h3>
+        </div>
+      </MasterLayout>
+    );
+  }
+
+  if (assessmentError) {
+    return (
+      <MasterLayout>
+        <div
+          style={{
+            padding: "40px",
+            textAlign: "center",
+            backgroundColor: "#f8d7da",
+            color: "#721c24",
+            borderRadius: "8px",
+            margin: "20px",
+          }}>
+          <Icon icon="mdi:alert-circle" width="50" height="50" />
+          <h3>Error Loading Assessment</h3>
+          <p>{assessmentError}</p>
+          <button
+            onClick={() => navigate("/facility-forms")}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#8B2885",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              marginTop: "20px",
+            }}>
+            Go Back
+          </button>
+        </div>
+      </MasterLayout>
+    );
+  }
+
+  if (!currentAssessment && !isAssessmentLoading) {
+    return (
+      <MasterLayout>
+        <div style={{ padding: "40px", textAlign: "center" }}>
+          <Icon icon="mdi:file-document-outline" width="50" height="50" />
+          <h3>No Assessment Found</h3>
+          <p>The requested assessment could not be found.</p>
+          <button
+            onClick={() => navigate("/facility-forms")}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#8B2885",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              marginTop: "20px",
+            }}>
+            Go Back
+          </button>
+        </div>
+      </MasterLayout>
+    );
+  }
 
   return (
     <MasterLayout>
+      {/* Update Status Notifications */}
+      {isUpdatingAssessment && (
+        <div
+          style={{
+            padding: "12px",
+            backgroundColor: "#d1ecf1",
+            border: "1px solid #bee5eb",
+            borderRadius: "6px",
+            marginBottom: "20px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            color: "#0c5460",
+          }}>
+          <Icon
+            icon="mdi:loading"
+            width="20"
+            height="20"
+            style={{ animation: "spin 1s linear infinite" }}
+          />
+          <span>Saving changes...</span>
+        </div>
+      )}
+
+      {updateAssessmentSuccess && (
+        <div
+          style={{
+            padding: "12px",
+            backgroundColor: "#d4edda",
+            border: "1px solid #c3e6cb",
+            borderRadius: "6px",
+            marginBottom: "20px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            color: "#155724",
+          }}>
+          <Icon
+            icon="mdi:check-circle"
+            width="20"
+            height="20"
+            color="#155724"
+          />
+          <span>{updateAssessmentSuccess}</span>
+        </div>
+      )}
+
+      {updateAssessmentError && (
+        <div
+          style={{
+            padding: "12px",
+            backgroundColor: "#f8d7da",
+            border: "1px solid #f5c6cb",
+            borderRadius: "6px",
+            marginBottom: "20px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            color: "#721c24",
+          }}>
+          <Icon
+            icon="mdi:alert-circle"
+            width="20"
+            height="20"
+            color="#721c24"
+          />
+          <span>{updateAssessmentError}</span>
+        </div>
+      )}
+
       <div
         style={{
           display: "flex",
@@ -342,7 +431,7 @@ const KitchenViewForm = () => {
             fontSize: "30px",
           }}>
           <span
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/facility-forms")}
             style={{
               cursor: "pointer",
               display: "inline-flex",
@@ -356,200 +445,355 @@ const KitchenViewForm = () => {
               color="#8B2885"
             />
           </span>
-          Kitchen Sanitation Assessment
+          {currentAssessment?.category?.name || "Kitchen Sanitation Assessment"}
         </h2>
 
-        {/* Add print button */}
-        <button
-          onClick={() => window.print()}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "#8B2885",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}>
-          <Icon icon="mdi:printer" width="20" height="20" />
-          Print Report
-        </button>
-      </div>
-
-      {/* ADD SUBMISSION INFO SECTION */}
-      <div
-        style={{
-          backgroundColor: "#f8f9fa",
-          border: "1px solid #e9ecef",
-          borderRadius: "8px",
-          padding: "20px",
-          marginBottom: "30px",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-        }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            flexWrap: "wrap",
-            gap: "20px",
-          }}>
-          {/* Left side - Submission details */}
-          <div>
-            <h3
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {!isEditing && canEdit && (
+            <button
+              onClick={handleEditClick}
               style={{
-                color: "#8B2885",
-                marginBottom: "15px",
+                padding: "8px 16px",
+                backgroundColor: "#28a745",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: "10px",
+                gap: "8px",
               }}>
-              <Icon icon="mdi:file-document-outline" width="24" height="24" />
-              Submission Details
-            </h3>
+              <Icon icon="mdi:pencil" width="20" height="20" />
+              Edit Form
+            </button>
+          )}
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: "15px",
-              }}>
-              <div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginBottom: "4px",
-                  }}>
-                  Submitted By
-                </div>
-                <div
-                  style={{
-                    fontSize: "16px",
-                    fontWeight: "bold",
-                    color: "#333",
-                  }}>
-                  {mockSubmissionData.submittedByName}
-                  <span
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: "normal",
-                      color: "#666",
-                      marginLeft: "8px",
-                    }}>
-                    ({mockSubmissionData.submittedBy})
-                  </span>
-                </div>
-              </div>
+          {isEditing && canEdit && (
+            <>
+              <button
+                onClick={handleCancelClick}
+                disabled={isUpdatingAssessment}
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor: "#6c757d",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: isUpdatingAssessment ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  opacity: isUpdatingAssessment ? 0.6 : 1,
+                }}>
+                <Icon icon="mdi:close" width="20" height="20" />
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveClick}
+                disabled={isUpdatingAssessment || !hasChanges}
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor: hasChanges ? "#007bff" : "#6c757d",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor:
+                    hasChanges && !isUpdatingAssessment
+                      ? "pointer"
+                      : "not-allowed",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  opacity: isUpdatingAssessment ? 0.6 : 1,
+                }}>
+                <Icon
+                  icon={
+                    isUpdatingAssessment ? "mdi:loading" : "mdi:content-save"
+                  }
+                  width="20"
+                  height="20"
+                  style={
+                    isUpdatingAssessment
+                      ? { animation: "spin 1s linear infinite" }
+                      : {}
+                  }
+                />
+                {isUpdatingAssessment ? "Saving..." : "Save Changes"}
+              </button>
+            </>
+          )}
 
-              <div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginBottom: "4px",
-                  }}>
-                  Facility
-                </div>
-                <div
-                  style={{
-                    fontSize: "16px",
-                    fontWeight: "bold",
-                    color: "#333",
-                  }}>
-                  {mockSubmissionData.facility}
-                </div>
-              </div>
-
-              <div>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginBottom: "4px",
-                  }}>
-                  Submission Date
-                </div>
-                <div
-                  style={{
-                    fontSize: "16px",
-                    fontWeight: "bold",
-                    color: "#333",
-                  }}>
-                  {formattedDate} at {mockSubmissionData.submissionTime}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right side - Score card */}
-          <div
+          <button
+            onClick={() => window.print()}
+            disabled={isEditing}
             style={{
-              backgroundColor: "white",
-              border: `2px solid ${scoreColor}`,
-              borderRadius: "8px",
-              padding: "20px",
-              minWidth: "200px",
-              textAlign: "center",
+              padding: "8px 16px",
+              backgroundColor: "#8B2885",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: isEditing ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              opacity: isEditing ? 0.6 : 1,
             }}>
-            <div
-              style={{ fontSize: "14px", color: "#666", marginBottom: "8px" }}>
-              Overall Score
-            </div>
-            <div
-              style={{
-                fontSize: "48px",
-                fontWeight: "bold",
-                color: scoreColor,
-                marginBottom: "8px",
-              }}>
-              {percentageScore}%
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "#666",
-                padding: "4px 12px",
-                backgroundColor:
-                  scoreColor === "#28a745"
-                    ? "#d4edda"
-                    : scoreColor === "#fd7e14"
-                    ? "#ffe5d0"
-                    : "#f8d7da",
-                borderRadius: "12px",
-                display: "inline-block",
-              }}>
-              {percentageScore >= 70
-                ? "Satisfactory"
-                : percentageScore >= 40
-                ? "Needs Improvement"
-                : "Unsatisfactory"}
-            </div>
-          </div>
+            <Icon icon="mdi:printer" width="20" height="20" />
+            Print Report
+          </button>
         </div>
+      </div>
 
-        {/* Add a summary line */}
+      {submissionData && (
         <div
           style={{
-            marginTop: "20px",
-            paddingTop: "15px",
-            borderTop: "1px solid #e9ecef",
-            fontSize: "14px",
-            color: "#666",
+            backgroundColor: "#f8f9fa",
+            border: "1px solid #e9ecef",
+            borderRadius: "8px",
+            padding: "20px",
+            marginBottom: "30px",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+          }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "20px",
+            }}>
+            <div style={{ flex: 1 }}>
+              <h3
+                style={{
+                  color: "#8B2885",
+                  marginBottom: "15px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}>
+                <Icon icon="mdi:file-document-outline" width="24" height="24" />
+                Submission Details
+              </h3>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: "15px",
+                }}>
+                <div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#666",
+                      marginBottom: "4px",
+                    }}>
+                    Submitted By
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      color: "#333",
+                    }}>
+                    {submissionData.submittedByName}
+                  </div>
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#666",
+                      marginBottom: "4px",
+                    }}>
+                    Facility
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      color: "#333",
+                    }}>
+                    {submissionData.facility}
+                  </div>
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#666",
+                      marginBottom: "4px",
+                    }}>
+                    Submission Date
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      color: "#333",
+                    }}>
+                    {formatDateTime(submissionData.submissionDate)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: "white",
+                border: `2px solid ${scoreColor}`,
+                borderRadius: "8px",
+                padding: "15px",
+                width: "160px",
+                textAlign: "center",
+                alignSelf: "center",
+              }}>
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#666",
+                  marginBottom: "6px",
+                }}>
+                Overall Score
+              </div>
+              <div
+                style={{
+                  fontSize: "36px",
+                  fontWeight: "bold",
+                  color: scoreColor,
+                  marginBottom: "6px",
+                }}>
+                {score}%
+              </div>
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "#666",
+                  padding: "3px 10px",
+                  backgroundColor:
+                    score >= 70
+                      ? "#d4edda"
+                      : score >= 40
+                      ? "#ffe5d0"
+                      : "#f8d7da",
+                  borderRadius: "10px",
+                  display: "inline-block",
+                }}>
+                {score >= 70
+                  ? "Satisfactory"
+                  : score >= 40
+                  ? "Needs Improvement"
+                  : "Unsatisfactory"}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: "15px",
+              paddingTop: "15px",
+              borderTop: "1px solid #e9ecef",
+              fontSize: "14px",
+              color: "#666",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+            }}>
+            <Icon icon="mdi:information-outline" width="18" height="18" />
+            This inspection was completed on{" "}
+            {formatDate(submissionData.submissionDate)} by{" "}
+            {submissionData.submittedByName}.
+          </div>
+
+          {currentAssessment?.documents &&
+            currentAssessment.documents.length > 0 && (
+              <div
+                style={{
+                  marginTop: "15px",
+                  paddingTop: "15px",
+                  borderTop: "1px solid #e9ecef",
+                }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    color: "#666",
+                    marginBottom: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}>
+                  <Icon icon="mdi:paperclip" width="16" height="16" />
+                  <span>Attached Documents:</span>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                  {currentAssessment.documents.map((doc, index) => (
+                    <a
+                      key={index}
+                      href={doc.path}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        padding: "6px 12px",
+                        backgroundColor: "#e9ecef",
+                        borderRadius: "6px",
+                        textDecoration: "none",
+                        color: "#8B2885",
+                        fontSize: "13px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}>
+                      <Icon
+                        icon="mdi:file-document-outline"
+                        width="14"
+                        height="14"
+                      />
+                      {doc.name}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+        </div>
+      )}
+
+      {/* Editing Mode Indicator */}
+      {isEditing && (
+        <div
+          style={{
+            marginBottom: "20px",
+            padding: "12px",
+            backgroundColor: "#cce5ff",
+            border: "1px solid #b8daff",
+            borderRadius: "6px",
             display: "flex",
             alignItems: "center",
             gap: "10px",
+            color: "#004085",
           }}>
-          <Icon icon="mdi:information-outline" width="18" height="18" />
-          This inspection was completed on {formattedDate} and submitted to the
-          system by {mockSubmissionData.submittedByName}.
+          <Icon icon="mdi:pencil" width="20" height="20" />
+          <strong>Editing Mode Active</strong>
+          <span style={{ marginLeft: "auto", fontSize: "14px" }}>
+            {hasChanges ? (
+              <span style={{ color: "#856404" }}>
+                <Icon
+                  icon="mdi:alert-circle"
+                  width="16"
+                  height="16"
+                  style={{ marginRight: "5px" }}
+                />
+                You have unsaved changes
+              </span>
+            ) : (
+              "No changes made yet"
+            )}
+          </span>
         </div>
-      </div>
+      )}
 
-      {/* Show role indicator */}
-      {userRole && isCustomer && (
+      {userRole && isCustomer && !isEditing && (
         <div
           style={{
             marginBottom: "20px",
@@ -581,126 +825,108 @@ const KitchenViewForm = () => {
           padding: "20px",
           borderRadius: "8px",
         }}>
-        {sections.map((section) => (
-          <div key={section.id} className="card my-16">
-            <h3>{section.label}</h3>
+        {sections.length > 0 ? (
+          sections.map((section) => (
+            <div key={section.id} className="card my-16">
+              <h3>{section.label}</h3>
 
-            <div className="card-content">
-              <div className="status-controls">
-                <div className="toggle-row">
-                  <span>Satisfactory</span>
-                  <input
-                    type="checkbox"
-                    className="toggle"
-                    checked={section.status === "satisfactory"}
-                    disabled={!isEditing || !canEdit} // Disable if not allowed to edit
-                    onChange={(e) => {
-                      e.preventDefault(); // Prevent default behavior
-                      handleStatusChange(section.id, "satisfactory");
-                    }}
-                    onClick={(e) => {
-                      if (!canEdit) {
+              <div className="card-content">
+                <div className="status-controls">
+                  <div className="toggle-row">
+                    <span>Satisfactory</span>
+                    <input
+                      type="checkbox"
+                      className="toggle"
+                      checked={section.status === "satisfactory"}
+                      disabled={!isEditing || !canEdit}
+                      onChange={(e) => {
                         e.preventDefault();
-                        alert("Customers cannot edit forms.");
-                      }
-                    }}
-                  />
+                        if (canEdit) {
+                          if (!isEditing) {
+                            alert("Please click 'Edit Form' to make changes.");
+                            return;
+                          }
+                          handleStatusChange(section.id, "satisfactory");
+                        } else {
+                          alert("Customers cannot edit forms.");
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="toggle-row">
+                    <span>Need Improvement</span>
+                    <input
+                      type="checkbox"
+                      className="toggle grey"
+                      checked={section.status === "improvement"}
+                      disabled={!isEditing || !canEdit}
+                      onChange={(e) => {
+                        e.preventDefault();
+                        if (canEdit) {
+                          if (!isEditing) {
+                            alert("Please click 'Edit Form' to make changes.");
+                            return;
+                          }
+                          handleStatusChange(section.id, "improvement");
+                        } else {
+                          alert("Customers cannot edit forms.");
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
 
-                <div className="toggle-row">
-                  <span>Need Improvement</span>
-                  <input
-                    type="checkbox"
-                    className="toggle grey"
-                    checked={section.status === "improvement"}
-                    disabled={!isEditing || !canEdit} // Disable if not allowed to edit
-                    onChange={(e) => {
-                      e.preventDefault(); // Prevent default behavior
-                      handleStatusChange(section.id, "improvement");
-                    }}
-                    onClick={(e) => {
-                      if (!canEdit) {
-                        e.preventDefault();
-                        alert("Customers cannot edit forms.");
-                      }
-                    }}
-                  />
-                </div>
+                <textarea
+                  className="comment-box"
+                  value={section.comment}
+                  disabled={!isEditing || !canEdit}
+                  onChange={(e) => {
+                    if (!canEdit) {
+                      alert("Customers cannot edit forms.");
+                      return;
+                    }
+                    if (!isEditing) {
+                      alert("Please click 'Edit Form' to make changes.");
+                      return;
+                    }
+                    handleCommentChange(section.id, e.target.value);
+                  }}
+                  onFocus={(e) => {
+                    if (!canEdit) {
+                      e.target.blur();
+                      alert("Customers cannot edit forms.");
+                    } else if (!isEditing) {
+                      e.target.blur();
+                      alert("Please click 'Edit Form' to make changes.");
+                    }
+                  }}
+                  placeholder={
+                    !isEditing
+                      ? "View only - Click 'Edit Form' to add comments"
+                      : "Add your comments here..."
+                  }
+                  style={{
+                    resize: "none",
+                    height: "90px",
+                    flex: 3,
+                    padding: "12px",
+                    borderRadius: "8px",
+                    border: "none",
+                    backgroundColor: isEditing && canEdit ? "#fff" : "#f1f1f1",
+                    color: "#555",
+                    cursor: isEditing && canEdit ? "text" : "not-allowed",
+                  }}
+                />
               </div>
-
-              <textarea
-                className="comment-box"
-                value={section.comment}
-                disabled={!isEditing || !canEdit} // Disable if not allowed to edit
-                onChange={(e) => {
-                  if (!canEdit) {
-                    e.preventDefault();
-                    alert("Customers cannot edit forms.");
-                    return;
-                  }
-                  handleCommentChange(section.id, e.target.value);
-                }}
-                onFocus={(e) => {
-                  if (!canEdit) {
-                    e.target.blur(); // Remove focus if not allowed
-                    alert("Customers cannot edit forms.");
-                  }
-                }}
-                style={{
-                  resize: "none",
-                  height: "90px",
-                  flex: 3,
-                  padding: "12px",
-                  borderRadius: "8px",
-                  border: "none",
-                  backgroundColor: isEditing && canEdit ? "#fff" : "#f1f1f1",
-                  color: "#555",
-                }}
-              />
             </div>
-          </div>
-        ))}
-
-        {/* --- EDIT BUTTON ---
-        {canEdit ? (
-          <div style={{ textAlign: "center", marginTop: "30px" }}>
-            <button
-              onClick={handleEditClick}
-              style={{
-                padding: "12px 30px",
-                backgroundColor: "#8B2885",
-                color: "#fff",
-                fontSize: "16px",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-              }}>
-              {isEditing ? "Save" : "Edit"}
-            </button>
-          </div>
+          ))
         ) : (
-          <div
-            style={{
-              textAlign: "center",
-              marginTop: "30px",
-              padding: "20px",
-              background: "#f9f9f9",
-              borderRadius: "8px",
-              color: "#666",
-            }}>
-            <Icon
-              icon="mdi:lock-outline"
-              width="24"
-              height="24"
-              style={{ marginBottom: "10px" }}
-            />
-            <p style={{ margin: 0 }}>
-              {userRole === "customer"
-                ? "This form is view-only for customers. Contact your admin for edits."
-                : "Please log in to edit this form."}
-            </p>
+          <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
+            <Icon icon="mdi:clipboard-text-outline" width="50" height="50" />
+            <p>No assessment questions found in this assessment.</p>
           </div>
-        )} */}
+        )}
       </div>
     </MasterLayout>
   );

@@ -843,8 +843,8 @@ table.dataTable td.dt-type-date {
 
 /* Range styling */
 .react-datepicker__day--in-selecting-range:not(
-    .react-datepicker__day--in-range
-  ) {
+  .react-datepicker__day--in-range
+) {
   background-color: #0d6efd80 !important;
   color: white !important;
 }
@@ -1242,9 +1242,10 @@ button.MuiIconButton-sizeMedium[aria-label="Search"] svg {
 }
 .chat-section .chat-avatar {
   width: 60px;
-  height: 60px;
+  height: 49px;
   border-radius: 50%;
   margin-right: 12px;
+  object-fit: cover;
 }
 .chat-section .chat-name-line {
   display: flex;
@@ -1312,6 +1313,7 @@ button.MuiIconButton-sizeMedium[aria-label="Search"] svg {
   width: 60px;
   height: 60px;
   border-radius: 50%;
+  object-fit: cover;
 }
 .chat-section .chat-topbar h3 {
   font-size: 20px !important;
@@ -1454,7 +1456,9 @@ button.MuiIconButton-sizeMedium[aria-label="Search"] svg {
   cursor: pointer;
   background-color: #fff;
   color: #8b2885;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
   width: 47%;
   text-align: center;
   margin-right: 10px !important;

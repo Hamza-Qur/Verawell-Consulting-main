@@ -1,100 +1,97 @@
+// src/components/DocumentDataTable.jsx
 import React, { useState, useEffect, useRef } from "react";
 import MUIDataTable from "mui-datatables";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  getAssessments,
+  deleteAssessment,
+  downloadAssessmentPDF,
+  clearDocumentState,
+} from "../redux/slices/documentSlice";
 import PDFIcon from "../otherImages/pdf-icon.svg";
-import SamplePDF from "../otherImages/file-sample.pdf";
+import Toast from "../components/Toast";
 
 const ClientDocumentsData = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const {
+    assessments,
+    isLoading,
+    isDeleting,
+    isDownloadingPDF,
+    error,
+    deleteError,
+    downloadPDFError,
+    successMessage,
+  } = useSelector((state) => state.document);
+
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
+  const [toast, setToast] = useState({ show: false, message: "", type: "" });
   const buttonRefs = useRef([]);
 
-  // Function to download PDF
-  const handleDownload = (rowData) => {
-    try {
-      // Create a link and trigger download
-      const link = document.createElement("a");
-      link.href = rowData.pdfContent;
-      link.download = `${rowData.documentName.replace(
-        /\s+/g,
-        "_"
-      )}_${rowData.uploadedBy.replace(/\s+/g, "_")}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error("Error downloading PDF:", error);
-      alert("Error downloading PDF. Please try again.");
+  // Fetch assessments on component mount
+  useEffect(() => {
+    dispatch(getAssessments(1));
+  }, [dispatch]);
+
+  // Show toast messages
+  useEffect(() => {
+    if (successMessage) {
+      showToast(successMessage, "success");
+      dispatch(clearDocumentState());
     }
-    setDropdownOpen(null);
+    if (error) {
+      showToast(error, "error");
+      dispatch(clearDocumentState());
+    }
+    if (deleteError) {
+      showToast(deleteError, "error");
+      dispatch(clearDocumentState());
+    }
+    if (downloadPDFError) {
+      showToast(downloadPDFError, "error");
+      dispatch(clearDocumentState());
+    }
+  }, [successMessage, error, deleteError, downloadPDFError, dispatch]);
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: "", type: "" });
+    }, 3000);
   };
 
-  // Function to attach PDF to email
-  const handleAttachToEmail = async (rowData) => {
+  // Function to download PDF using Redux thunk
+  const handleDownload = async (assessment) => {
     try {
-      const response = await fetch(rowData.pdfContent);
-      const pdfBlob = await response.blob();
+      // Get the assessment_id from the assessment data
+      const assessmentId =
+        assessment.assessmentId ||
+        assessment.originalData?.assessment_id ||
+        assessment.originalData?.id;
 
-      const pdfFile = new File(
-        [pdfBlob],
-        `${rowData.documentName.replace(
-          /\s+/g,
-          "_"
-        )}_${rowData.uploadedBy.replace(/\s+/g, "_")}.pdf`,
-        { type: "application/pdf" }
-      );
+      if (!assessmentId) {
+        showToast("Cannot download: Missing assessment ID", "error");
+        return;
+      }
 
-      const formData = new FormData();
-      formData.append("attachment", pdfFile);
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64data = reader.result.split(",")[1];
-
-        const subject = encodeURIComponent(
-          `${rowData.documentName} - ${rowData.uploadedBy}`
-        );
-        const body = encodeURIComponent(
-          `Please find attached the ${rowData.documentName} submitted by ${rowData.uploadedBy} on ${rowData.uploadDate} at ${rowData.uploadTime}.\n\n` +
-            `File: ${rowData.documentName.replace(
-              /\s+/g,
-              "_"
-            )}_${rowData.uploadedBy.replace(/\s+/g, "_")}.pdf`
-        );
-
-        const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
-
-        window.location.href = mailtoLink;
-
-        setTimeout(() => {
-          alert(
-            `PDF has been prepared for email.\n\n` +
-              `File: ${pdfFile.name}\n` +
-              `You can also download it first and attach manually.`
-          );
-        }, 500);
-      };
-      reader.readAsDataURL(pdfFile);
+      // Dispatch the download thunk
+      dispatch(downloadAssessmentPDF(assessmentId)).then((result) => {
+        if (result.payload?.success) {
+          showToast("PDF downloaded successfully", "success");
+        }
+      });
     } catch (error) {
-      console.error("Error preparing email attachment:", error);
-
-      const subject = encodeURIComponent(
-        `${rowData.documentName} - ${rowData.uploadedBy}`
-      );
-      const body = encodeURIComponent(
-        `Document: ${rowData.documentName}\n` +
-          `Employee: ${rowData.uploadedBy}\n` +
-          `Employee ID: ${rowData.id}\n` +
-          `Date: ${rowData.uploadDate}\n` +
-          `Time: ${rowData.uploadTime}\n\n` +
-          `Please download the document first from the system and attach it to your email.`
-      );
-      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      console.error("Error downloading PDF:", error);
+      showToast(`Error downloading PDF: ${error.message}`, "error");
+    } finally {
+      setDropdownOpen(null);
     }
-    setDropdownOpen(null);
   };
 
   const handleDropdownToggle = (index, e) => {
@@ -111,118 +108,129 @@ const ClientDocumentsData = () => {
     setDropdownOpen(dropdownOpen === index ? null : index);
   };
 
-  const handleDelete = (rowData) => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete ${rowData.documentName} for ${rowData.uploadedBy}?`
-      )
-    ) {
-      alert(`Deleted Document: ${rowData.documentName} successfully`);
-    }
-    setDropdownOpen(null);
-  };
-
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setDropdownOpen(null);
     };
+
     document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
   }, []);
 
-  const documentData = [
-    {
-      documentName: "KFC Kitchen Facility Form",
-      facilityName: "Homeplace Manor",
-      uploadDate: "25 October, 2025",
-      uploadTime: "08:30 AM",
-      pdfContent: SamplePDF,
-    },
-    {
-      documentName: "KFC Sanitation Checklist",
-      facilityName: "Homeplace Manor East Wing",
-      uploadDate: "05 October, 2025",
-      uploadTime: "09:00 AM",
-      pdfContent: SamplePDF,
-    },
-    {
-      documentName: "KFC Food Safety Audit",
-      facilityName: "Homeplace Manor West Wing",
-      uploadDate: "02 October, 2025",
-      uploadTime: "12:45 PM",
-      pdfContent: SamplePDF,
-    },
-    {
-      documentName: "KFC Daily Kitchen Log",
-      facilityName: "Homeplace Manor – Kitchen A",
-      uploadDate: "30 September, 2025",
-      uploadTime: "08:30 AM",
-      pdfContent: SamplePDF,
-    },
-    {
-      documentName: "KFC Equipment Inspection",
-      facilityName: "Homeplace Manor – Kitchen B",
-      uploadDate: "27 September, 2025",
-      uploadTime: "09:00 AM",
-      pdfContent: SamplePDF,
-    },
-    {
-      documentName: "KFC Hygiene Assessment",
-      facilityName: "Homeplace Manor South",
-      uploadDate: "22 September, 2025",
-      uploadTime: "12:45 PM",
-      pdfContent: SamplePDF,
-    },
-    {
-      documentName: "KFC Kitchen Facility Form",
-      facilityName: "Homeplace Manor North",
-      uploadDate: "15 September, 2025",
-      uploadTime: "12:45 PM",
-      pdfContent: SamplePDF,
-    },
-    {
-      documentName: "KFC Food Handling Review",
-      facilityName: "Homeplace Manor Annex",
-      uploadDate: "09 September, 2025",
-      uploadTime: "09:00 AM",
-      pdfContent: SamplePDF,
-    },
-    {
-      documentName: "KFC Sanitation Follow-Up",
-      facilityName: "Homeplace Manor – Service Wing",
-      uploadDate: "01 September, 2025",
-      uploadTime: "08:30 AM",
-      pdfContent: SamplePDF,
-    },
-    {
-      documentName: "KFC Safety Compliance Form",
-      facilityName: "Homeplace Manor Central",
-      uploadDate: "31 August, 2025",
-      uploadTime: "12:45 PM",
-      pdfContent: SamplePDF,
-    },
-    {
-      documentName: "KFC Kitchen Facility Form",
-      facilityName: "Homeplace Manor – Unit 3",
-      uploadDate: "29 August, 2025",
-      uploadTime: "09:00 AM",
-      pdfContent: SamplePDF,
-    },
-    {
-      documentName: "KFC Internal Inspection Report",
-      facilityName: "Homeplace Manor – Unit 5",
-      uploadDate: "16 August, 2025",
-      uploadTime: "08:30 AM",
-      pdfContent: SamplePDF,
-    },
-    {
-      documentName: "KFC Closing Shift Checklist",
-      facilityName: "Homeplace Manor – Main Building",
-      uploadDate: "14 August, 2025",
-      uploadTime: "12:45 PM",
-      pdfContent: SamplePDF,
-    },
-  ];
+  const handleDelete = (assessment) => {
+    // Get the assessment_id from the assessment
+    const assessmentId =
+      assessment.assessmentId ||
+      assessment.originalData?.assessment_id ||
+      assessment.originalData?.id;
+
+    if (!assessmentId) {
+      showToast("Cannot delete: Missing assessment ID", "error");
+      setDropdownOpen(null);
+      return;
+    }
+
+    if (
+      window.confirm(
+        `Are you sure you want to delete "${
+          assessment.documentName || "this document"
+        }"? This action cannot be undone.`
+      )
+    ) {
+      dispatch(deleteAssessment(assessmentId)).then((result) => {
+        if (result.payload?.success) {
+          showToast(
+            `Document "${assessment.documentName}" deleted successfully`,
+            "success"
+          );
+          // Refresh the assessments list
+          const currentPage = assessments.current_page || 1;
+          dispatch(getAssessments(currentPage));
+        }
+      });
+    }
+    setDropdownOpen(null);
+  };
+
+  // Format date function
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  // Format time function
+  const formatTime = (dateString) => {
+    if (!dateString) return "N/A";
+
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch (error) {
+      return "N/A";
+    }
+  };
+
+  // Transform API data to match table structure - USING assessment_id
+  const transformAssessmentData = (apiData) => {
+    if (!apiData || !Array.isArray(apiData)) return [];
+
+    return apiData.map((assessment) => {
+      // Create document name by combining facility_name and category_name
+      let documentName = "";
+      if (assessment.facility_name && assessment.category_name) {
+        documentName = `${assessment.facility_name} - ${assessment.category_name}`;
+      } else if (assessment.facility_name) {
+        documentName = `${assessment.facility_name} - Assessment`;
+      } else if (assessment.category_name) {
+        documentName = assessment.category_name;
+      } else {
+        documentName = "Unnamed Document";
+      }
+
+      // Use title/name if it exists, otherwise use the combined name
+      const finalDocumentName =
+        assessment.title || assessment.name || documentName;
+
+      return {
+        id: assessment.id,
+        assessmentId: assessment.assessment_id || assessment.id,
+        documentName: finalDocumentName,
+        uploadedBy:
+          assessment.user_name || assessment.user?.name || "Unknown User",
+        userId: assessment.user_id || assessment.user?.id || "N/A",
+        uploadDate: formatDate(assessment.created_at || assessment.upload_date),
+        uploadTime: formatTime(assessment.created_at || assessment.upload_date),
+        description: assessment.description || "",
+        pdf_url: assessment.pdf_url || assessment.file_url,
+        facility_name: assessment.facility_name || "Unknown Facility",
+        category_name: assessment.category_name || "Uncategorized",
+        originalData: assessment,
+      };
+    });
+  };
+
+  const documentData = isLoading
+    ? []
+    : assessments.data && Array.isArray(assessments.data)
+    ? transformAssessmentData(assessments.data)
+    : [];
 
   const columns = [
     {
@@ -241,8 +249,33 @@ const ClientDocumentsData = () => {
               <div>
                 <div style={{ fontWeight: "500" }}>{value}</div>
                 <div style={{ fontSize: "12px", color: "#666" }}>
-                  PDF Document
+                  {rowData?.description
+                    ? rowData.description.length > 50
+                      ? `${rowData.description.substring(0, 50)}...`
+                      : rowData.description
+                    : "PDF Document"}
                 </div>
+                {rowData?.assessmentId && (
+                  <div
+                    style={{
+                      fontSize: "10px",
+                      color: "#999",
+                      marginTop: "2px",
+                    }}>
+                    Assessment ID: {rowData.assessmentId}
+                  </div>
+                )}
+                {/* Optional: Show facility and category separately if needed */}
+                {/* <div
+                  style={{
+                    fontSize: "10px",
+                    color: "#666",
+                    marginTop: "2px",
+                  }}>
+                  {rowData?.facility_name && rowData?.category_name && (
+                    <span>{rowData.facility_name} • {rowData.category_name}</span>
+                  )}
+                </div> */}
               </div>
             </div>
           );
@@ -250,12 +283,18 @@ const ClientDocumentsData = () => {
       },
     },
     {
-      name: "facilityName",
-      label: "Facility Name",
+      name: "uploadedBy",
+      label: "Uploaded By",
+    },
+    {
+      name: "userId",
+      label: "User ID",
       options: {
         customBodyRender: (value) => {
           return (
-            <div style={{ color: "#666", fontWeight: "400" }}>{value}</div>
+            <div style={{ color: "#8B2885", fontWeight: "500" }}>
+              ID: {value}
+            </div>
           );
         },
       },
@@ -276,18 +315,28 @@ const ClientDocumentsData = () => {
         filter: false,
         customBodyRenderLite: (dataIndex) => {
           const rowData = documentData[dataIndex];
+
+          if (!rowData) return null;
+
           return (
             <div style={{ position: "relative" }}>
               <button
                 ref={(el) => (buttonRefs.current[dataIndex] = el)}
                 onClick={(e) => handleDropdownToggle(dataIndex, e)}
+                disabled={isDeleting || isDownloadingPDF}
                 style={{
                   background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "4px",
+                  border: "1px solid #E0E0E0",
+                  borderRadius: "4px",
+                  cursor:
+                    isDeleting || isDownloadingPDF ? "not-allowed" : "pointer",
+                  padding: "4px 8px",
+                  opacity: isDeleting || isDownloadingPDF ? 0.6 : 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}>
-                <Icon icon="mdi:dots-horizontal" width="25" height="25" />
+                <Icon icon="mdi:dots-horizontal" width="20" height="20" />
               </button>
             </div>
           );
@@ -298,8 +347,6 @@ const ClientDocumentsData = () => {
 
   const options = {
     selectableRows: "none",
-    rowsPerPage: 10,
-    rowsPerPageOptions: [5, 10, 15, 20],
     responsive: "standard",
     elevation: 0,
     print: false,
@@ -308,12 +355,86 @@ const ClientDocumentsData = () => {
     filter: false,
     search: true,
     searchPlaceholder: "Search documents...",
-    pagination: true,
+    pagination: false, // REMOVED PAGINATION
     tableBodyHeight: "auto",
+    setRowProps: (row, dataIndex) => ({
+      style: {
+        backgroundColor: dataIndex % 2 === 0 ? "#f9f9f9" : "white",
+      },
+    }),
   };
+
+  // Loading state
+  if (isLoading && !documentData.length) {
+    return (
+      <div style={{ textAlign: "center", padding: "40px" }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p style={{ marginTop: "10px" }}>Loading documents...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && !documentData.length) {
+    return (
+      <div style={{ textAlign: "center", padding: "40px", color: "#D32F2F" }}>
+        <Icon icon="material-symbols:error-outline" width="48" height="48" />
+        <p style={{ marginTop: "10px" }}>Error: {error}</p>
+        <button
+          onClick={() => dispatch(getAssessments(1))}
+          style={{
+            marginTop: "20px",
+            padding: "10px 20px",
+            backgroundColor: "#8B2885",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+          }}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // No data state
+  if (!documentData.length && !isLoading) {
+    return (
+      <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
+        <Icon
+          icon="material-symbols:description-outline"
+          width="48"
+          height="48"
+        />
+        <p style={{ marginTop: "10px" }}>No documents found.</p>
+        <button
+          onClick={() => dispatch(getAssessments(1))}
+          style={{
+            marginTop: "20px",
+            padding: "10px 20px",
+            backgroundColor: "#8B2885",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+          }}>
+          Refresh
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
+      <Toast
+        show={toast.show}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ show: false, message: "", type: "" })}
+      />
+
       <div className="basic-data-table">
         <MUIDataTable
           title=""
@@ -343,61 +464,56 @@ const ClientDocumentsData = () => {
             <div
               style={{
                 padding: "10px 16px",
-                cursor: "pointer",
+                cursor: isDownloadingPDF ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
                 fontSize: "14px",
-                color: "#333",
-                borderTop: "1px solid #F0F0F0",
+                color: isDownloadingPDF ? "#999" : "#333",
                 transition: "background-color 0.2s",
+                opacity: isDownloadingPDF ? 0.6 : 1,
               }}
               onMouseEnter={(e) =>
+                !isDownloadingPDF &&
                 (e.currentTarget.style.backgroundColor = "#F5F5F5")
               }
               onMouseLeave={(e) =>
                 (e.currentTarget.style.backgroundColor = "transparent")
               }
-              onClick={() => handleDownload(documentData[dropdownOpen])}>
-              <Icon
-                icon="mdi:download-outline"
-                width="18"
-                height="18"
-                color="#666"
-              />
-              <span>Download PDF</span>
+              onClick={() =>
+                !isDownloadingPDF && handleDownload(documentData[dropdownOpen])
+              }>
+              {isDownloadingPDF ? (
+                <>
+                  <div
+                    className="spinner-border spinner-border-sm"
+                    style={{
+                      width: "18px",
+                      height: "18px",
+                      borderColor: "#666",
+                    }}
+                    role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <span>Downloading...</span>
+                </>
+              ) : (
+                <>
+                  <Icon
+                    icon="mdi:download-outline"
+                    width="18"
+                    height="18"
+                    color="#666"
+                  />
+                  <span>Download PDF</span>
+                </>
+              )}
             </div>
             <div
               style={{
                 padding: "10px 16px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                fontSize: "14px",
-                color: "#333",
-                borderTop: "1px solid #F0F0F0",
-                transition: "background-color 0.2s",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = "#F5F5F5")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = "transparent")
-              }
-              onClick={() => handleAttachToEmail(documentData[dropdownOpen])}>
-              <Icon
-                icon="mdi:email-outline"
-                width="18"
-                height="18"
-                color="#666"
-              />
-              <span>Attach to Email</span>
-            </div>
-            <div
-              style={{
-                padding: "10px 16px",
-                cursor: "pointer",
+                cursor:
+                  isDeleting || isDownloadingPDF ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
@@ -405,21 +521,42 @@ const ClientDocumentsData = () => {
                 color: "#D32F2F",
                 borderTop: "1px solid #F0F0F0",
                 transition: "background-color 0.2s",
+                opacity: isDeleting || isDownloadingPDF ? 0.6 : 1,
               }}
               onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = "#F5F5F5")
+                !isDeleting &&
+                !isDownloadingPDF &&
+                (e.currentTarget.style.backgroundColor = "#FFE5E5")
               }
               onMouseLeave={(e) =>
                 (e.currentTarget.style.backgroundColor = "transparent")
               }
-              onClick={() => handleDelete(documentData[dropdownOpen])}>
-              <Icon
-                icon="material-symbols:delete-outline"
-                width="18"
-                height="18"
-                color="#D32F2F"
-              />
-              <span>Delete</span>
+              onClick={() =>
+                !isDeleting &&
+                !isDownloadingPDF &&
+                handleDelete(documentData[dropdownOpen])
+              }>
+              {isDeleting ? (
+                <>
+                  <div
+                    className="spinner-border spinner-border-sm me-2"
+                    style={{ borderColor: "#D32F2F" }}
+                    role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Icon
+                    icon="material-symbols:delete-outline"
+                    width="18"
+                    height="18"
+                    color="#D32F2F"
+                  />
+                  <span>Delete</span>
+                </>
+              )}
             </div>
           </div>,
           document.body

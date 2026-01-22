@@ -1,6 +1,6 @@
 import MUIDataTable from 'mui-datatables';
 import { Icon } from '@iconify/react';
-import DefaultAvatar from '../otherImages/default.png';
+import DefaultAvatar from '../otherImages/UserPic.png';
 import DP1 from '../otherImages/dp-1.png';
 import DP2 from '../otherImages/dp-2.png';
 import DP3 from '../otherImages/dp-3.png';

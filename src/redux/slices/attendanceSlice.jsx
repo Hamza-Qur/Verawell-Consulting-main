@@ -2,7 +2,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL } from "../services/endpoint";
 
-// Get attendance/tasks list
+// Get all attendance/tasks list (admin)
 export const getAttendance = createAsyncThunk(
   "attendance/getAttendance",
   async (_, { rejectWithValue }) => {
@@ -30,7 +30,105 @@ export const getAttendance = createAsyncThunk(
   }
 );
 
-// Update a task/attendance
+// Get my tasks (team member - specific to logged in user)
+export const getMyTasks = createAsyncThunk(
+  "attendance/getMyTasks",
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`${BASE_URL}/api/task/get-my`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return rejectWithValue(data.message || "Failed to fetch my tasks");
+      }
+
+      return data;
+    } catch (err) {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
+// Add a new task
+export const addTask = createAsyncThunk(
+  "attendance/addTask",
+  async (taskData, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      console.log("=== DEBUG ADD TASK ===");
+      console.log("Task data:", taskData);
+
+      const response = await fetch(`${BASE_URL}/api/task/store`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(taskData),
+      });
+
+      const data = await response.json();
+      console.log("Add task response:", data);
+
+      if (!response.ok || !data.success) {
+        return rejectWithValue(data.message || "Failed to add task");
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Add task error:", err);
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
+// Update a task
+export const updateTask = createAsyncThunk(
+  "attendance/updateTask",
+  async (taskData, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      console.log("=== DEBUG UPDATE TASK ===");
+      console.log("Task data:", taskData);
+
+      const response = await fetch(`${BASE_URL}/api/task/update`, {
+        method: "PATCH",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(taskData),
+      });
+
+      const data = await response.json();
+      console.log("Update task response:", data);
+
+      if (!response.ok || !data.success) {
+        return rejectWithValue(data.message || "Failed to update task");
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Update task error:", err);
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
+// Update attendance (legacy - kept for backward compatibility)
 export const updateAttendance = createAsyncThunk(
   "attendance/updateAttendance",
   async (attendanceData, { rejectWithValue }) => {
@@ -42,7 +140,7 @@ export const updateAttendance = createAsyncThunk(
       console.log("User ID from attendanceData:", attendanceData.user_id);
       console.log("Full payload:", attendanceData);
 
-      console.log("Sending update data:", attendanceData); // Add this log
+      console.log("Sending update data:", attendanceData);
 
       const response = await fetch(`${BASE_URL}/api/task/update`, {
         method: "PATCH",
@@ -55,7 +153,7 @@ export const updateAttendance = createAsyncThunk(
       });
 
       const data = await response.json();
-      console.log("Update response:", data); // Add this log
+      console.log("Update response:", data);
 
       if (!response.ok || !data.success) {
         return rejectWithValue(data.message || "Failed to update attendance");
@@ -63,7 +161,7 @@ export const updateAttendance = createAsyncThunk(
 
       return data;
     } catch (err) {
-      console.error("Update error:", err); // Add this log
+      console.error("Update error:", err);
       return rejectWithValue("Network error");
     }
   }
@@ -112,15 +210,12 @@ export const downloadAttendanceCSV = createAsyncThunk(
       });
 
       if (!response.ok) {
-        // Handle errors
         const errorData = await response.json();
         return rejectWithValue(errorData.message || "Failed to download CSV");
       }
 
-      // Get response as text first
       const responseText = await response.text();
 
-      // Check if it's the "No data found" JSON response
       try {
         const jsonData = JSON.parse(responseText);
         if (
@@ -134,7 +229,6 @@ export const downloadAttendanceCSV = createAsyncThunk(
         // Not JSON, must be CSV - proceed with download
       }
 
-      // Convert text back to blob for CSV download
       const blob = new Blob([responseText], { type: "text/csv" });
       return blob;
     } catch (err) {
@@ -146,21 +240,31 @@ export const downloadAttendanceCSV = createAsyncThunk(
 const attendanceSlice = createSlice({
   name: "attendance",
   initialState: {
-    attendanceList: [],
+    attendanceList: [], // All tasks (admin view)
+    myTasks: [], // My tasks (team member view)
     isLoading: false,
+    isMyTasksLoading: false,
+    isAddingTask: false,
     isUpdating: false,
+    isUpdatingTask: false,
     isDeleting: false,
     isDownloadingCSV: false,
     downloadCSVError: null,
     error: null,
+    myTasksError: null,
+    addTaskError: null,
     updateError: null,
+    updateTaskError: null,
     deleteError: null,
     successMessage: "",
   },
   reducers: {
     clearAttendanceState: (state) => {
       state.error = null;
+      state.myTasksError = null;
+      state.addTaskError = null;
       state.updateError = null;
+      state.updateTaskError = null;
       state.deleteError = null;
       state.downloadCSVError = null;
       state.successMessage = "";
@@ -169,9 +273,13 @@ const attendanceSlice = createSlice({
       state.attendanceList = [];
       state.error = null;
     },
+    clearMyTasks: (state) => {
+      state.myTasks = [];
+      state.myTasksError = null;
+    },
   },
   extraReducers: (builder) => {
-    // Get Attendance
+    // Get Attendance (all tasks - admin)
     builder
       .addCase(getAttendance.pending, (state) => {
         state.isLoading = true;
@@ -190,7 +298,71 @@ const attendanceSlice = createSlice({
         state.error = action.payload || "Failed to fetch attendance";
       });
 
-    // Update Attendance
+    // Get My Tasks (team member)
+    builder
+      .addCase(getMyTasks.pending, (state) => {
+        state.isMyTasksLoading = true;
+        state.myTasksError = null;
+      })
+      .addCase(getMyTasks.fulfilled, (state, action) => {
+        state.isMyTasksLoading = false;
+        if (action.payload.success) {
+          state.myTasks = action.payload.data || [];
+        } else {
+          state.myTasksError =
+            action.payload.message || "Failed to fetch my tasks";
+        }
+      })
+      .addCase(getMyTasks.rejected, (state, action) => {
+        state.isMyTasksLoading = false;
+        state.myTasksError = action.payload || "Failed to fetch my tasks";
+      });
+
+    // Add Task
+    builder
+      .addCase(addTask.pending, (state) => {
+        state.isAddingTask = true;
+        state.addTaskError = null;
+        state.successMessage = "";
+      })
+      .addCase(addTask.fulfilled, (state, action) => {
+        state.isAddingTask = false;
+        if (action.payload.success) {
+          state.successMessage = action.payload.message || "Task added successfully";
+        } else {
+          state.addTaskError = action.payload.message || "Failed to add task";
+          // Handle validation errors
+          if (action.payload.data && action.payload.data.error) {
+            state.addTaskError = JSON.stringify(action.payload.data.error);
+          }
+        }
+      })
+      .addCase(addTask.rejected, (state, action) => {
+        state.isAddingTask = false;
+        state.addTaskError = action.payload;
+      });
+
+    // Update Task
+    builder
+      .addCase(updateTask.pending, (state) => {
+        state.isUpdatingTask = true;
+        state.updateTaskError = null;
+        state.successMessage = "";
+      })
+      .addCase(updateTask.fulfilled, (state, action) => {
+        state.isUpdatingTask = false;
+        if (action.payload.success) {
+          state.successMessage = action.payload.message || "Task updated successfully";
+        } else {
+          state.updateTaskError = action.payload.message || "Failed to update task";
+        }
+      })
+      .addCase(updateTask.rejected, (state, action) => {
+        state.isUpdatingTask = false;
+        state.updateTaskError = action.payload;
+      });
+
+    // Update Attendance (legacy)
     builder
       .addCase(updateAttendance.pending, (state) => {
         state.isUpdating = true;
@@ -251,6 +423,9 @@ const attendanceSlice = createSlice({
   },
 });
 
-export const { clearAttendanceState, clearAttendanceList } =
-  attendanceSlice.actions;
+export const { 
+  clearAttendanceState, 
+  clearAttendanceList, 
+  clearMyTasks,
+} = attendanceSlice.actions;
 export default attendanceSlice.reducer;

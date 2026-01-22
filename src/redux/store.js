@@ -7,6 +7,7 @@ import documentReducer from "./slices/documentSlice";
 import formReducer from "./slices/formSlice";
 import attendanceReducer from "./slices/attendanceSlice";
 import notificationReducer from "./slices/notificationSlice";
+import chatReducer from "./slices/chatSlice";
 
 export const store = configureStore({
   reducer: {
@@ -18,5 +19,6 @@ export const store = configureStore({
     form: formReducer,
     attendance: attendanceReducer,
     notification: notificationReducer,
+    chat: chatReducer,
   },
 });

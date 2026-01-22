@@ -5,7 +5,7 @@ import DocumentDataTable from "../components/DocumentDataTable";
 import DefaultTopBar from "../components/DefaultTopBar";
 import { useDispatch, useSelector } from "react-redux";
 import { downloadAssessmentsCSV } from "../redux/slices/documentSlice";
-import Toast from "../components/Toast"; // If you have a Toast component
+import Toast from "../components/Toast";
 
 const ManageDocuments = () => {
   const dispatch = useDispatch();
