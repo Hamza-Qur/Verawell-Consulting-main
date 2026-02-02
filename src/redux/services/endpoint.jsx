@@ -1,1 +1,1 @@
-export const BASE_URL = "https://verawell.koderspedia.net";
+export const BASE_URL = process.env.REACT_APP_BASE_URL;

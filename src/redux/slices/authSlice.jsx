@@ -15,12 +15,12 @@ export const requestPasswordReset = createAsyncThunk(
           Accept: "application/json",
         },
         body: formData,
-      }
+      },
     );
 
     const data = await response.json();
     return data;
-  }
+  },
 );
 
 export const validateResetCode = createAsyncThunk(
@@ -38,12 +38,12 @@ export const validateResetCode = createAsyncThunk(
           Accept: "application/json",
         },
         body: formData,
-      }
+      },
     );
 
     const data = await response.json();
     return data;
-  }
+  },
 );
 
 export const resetPassword = createAsyncThunk(
@@ -65,7 +65,7 @@ export const resetPassword = createAsyncThunk(
 
     const data = await response.json();
     return data;
-  }
+  },
 );
 
 export const login = createAsyncThunk("auth/login", async (credentials) => {
@@ -82,6 +82,7 @@ export const login = createAsyncThunk("auth/login", async (credentials) => {
   });
 
   const data = await response.json();
+
   return data;
 });
 
@@ -131,7 +132,7 @@ export const logout = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 const authSlice = createSlice({
@@ -183,7 +184,7 @@ const authSlice = createSlice({
           localStorage.setItem("token", action.payload.data.token);
           localStorage.setItem(
             "user",
-            JSON.stringify(action.payload.data.user)
+            JSON.stringify(action.payload.data.user),
           );
           localStorage.setItem("role", action.payload.data.user.role);
         } else {

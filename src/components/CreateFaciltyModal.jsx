@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   createFacility,
@@ -8,7 +8,7 @@ import {
   getDashboardUsers,
   clearDashboardErrors,
 } from "../redux/slices/dashboardSlice";
-import Toast from "../components/Toast"; // <-- import the component
+import Toast from "../components/Toast";
 
 const CreateFacilityModal = () => {
   const dispatch = useDispatch();
@@ -18,14 +18,20 @@ const CreateFacilityModal = () => {
   const [location, setLocation] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
 
+  // Dropdown state
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef(null);
+  const inputRef = useRef(null);
+
   // Get dashboard users data
   const { users, isLoading: isLoadingUsers } = useSelector(
-    (state) => state.dashboard
+    (state) => state.dashboard,
   );
 
-  // Get facility creation state - This will now work!
+  // Get facility creation state
   const { isCreating, error, successMessage } = useSelector(
-    (state) => state.facility
+    (state) => state.facility,
   );
 
   // Toast state
@@ -35,6 +41,20 @@ const CreateFacilityModal = () => {
     type: "success",
   });
 
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return users;
+    }
+
+    const query = searchQuery.toLowerCase();
+    return users.filter(
+      (user) =>
+        user.name.toLowerCase().includes(query) ||
+        user.role?.toLowerCase().includes(query),
+    );
+  }, [users, searchQuery]);
+
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
   };
@@ -42,6 +62,25 @@ const CreateFacilityModal = () => {
   const hideToast = () => {
     setToast({ show: false, message: "", type: "success" });
   };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+        // Reset search query when closing dropdown
+        if (selectedUser) {
+          const user = users.find((u) => u.id === selectedUser);
+          setSearchQuery(user ? user.name : "");
+        } else {
+          setSearchQuery("");
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [selectedUser, users]);
 
   useEffect(() => {
     dispatch(getDashboardUsers());
@@ -54,6 +93,8 @@ const CreateFacilityModal = () => {
       setFacilityName("");
       setLocation("");
       setSelectedUser("");
+      setIsDropdownOpen(false);
+      setSearchQuery("");
       dispatch(clearFacilityState());
       dispatch(getDashboardUsers());
     }
@@ -63,6 +104,14 @@ const CreateFacilityModal = () => {
       dispatch(clearFacilityState());
     }
   }, [successMessage, error, dispatch]);
+
+  // Update search query when selected user changes (to show their name in input)
+  useEffect(() => {
+    if (selectedUser) {
+      const user = users.find((u) => u.id === selectedUser);
+      setSearchQuery(user ? user.name : "");
+    }
+  }, [selectedUser, users]);
 
   const handleSubmit = () => {
     if (!facilityName.trim()) {
@@ -80,8 +129,70 @@ const CreateFacilityModal = () => {
         name: facilityName,
         address: location,
         assign_to_user_id: selectedUser ? [selectedUser] : [],
-      })
+      }),
     );
+  };
+
+  const handleSelectUser = (userId) => {
+    setSelectedUser(userId);
+    setIsDropdownOpen(false);
+    // Don't clear search query - keep showing the selected user's name
+  };
+
+  const handleInputClick = () => {
+    if (!isCreating && !isLoadingUsers) {
+      setIsDropdownOpen(true);
+      // When opening dropdown, if we have a selected user, start with their name as search
+      if (selectedUser) {
+        const user = users.find((u) => u.id === selectedUser);
+        setSearchQuery(user ? user.name : "");
+      }
+      // Focus on input after a brief delay to ensure dropdown is rendered
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, 10);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    if (isDropdownOpen) {
+      // When dropdown is open, treat input as search
+      setSearchQuery(e.target.value);
+      // Clear selection if user starts typing
+      if (selectedUser) {
+        const user = users.find((u) => u.id === selectedUser);
+        if (!e.target.value.includes(user?.name || "")) {
+          setSelectedUser("");
+        }
+      }
+    }
+  };
+
+  const handleInputKeyDown = (e) => {
+    if (e.key === "Enter") {
+      if (isDropdownOpen) {
+        // If dropdown is open and Enter is pressed, try to select first matching user
+        if (filteredUsers.length > 0) {
+          handleSelectUser(filteredUsers[0].id);
+        }
+      } else {
+        // If dropdown is closed, open it
+        handleInputClick();
+      }
+    } else if (e.key === "Escape") {
+      setIsDropdownOpen(false);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedUser("");
+    setSearchQuery("");
+    if (isDropdownOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   return (
@@ -104,6 +215,7 @@ const CreateFacilityModal = () => {
             value={facilityName}
             onChange={(e) => setFacilityName(e.target.value)}
             disabled={isCreating}
+            placeholder="Enter facility name"
           />
         </div>
 
@@ -116,31 +228,81 @@ const CreateFacilityModal = () => {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             disabled={isCreating}
+            placeholder="Enter facility location"
           />
         </div>
 
-        {/* Assign User */}
-        <div className="form-group mb-30">
+        {/* Assign User - Right-side Dropdown */}
+        <div className="form-group mb-30 position-relative" ref={dropdownRef}>
           <label className="fw-bold mb-2">Assign User</label>
-          <select
-            className="form-control"
-            value={selectedUser}
-            onChange={(e) => setSelectedUser(e.target.value)}
-            disabled={isCreating || isLoadingUsers}>
-            <option value="">Select User</option>
-            {isLoadingUsers ? (
-              <option disabled>Loading users...</option>
-            ) : users.length > 0 ? (
-              users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name} - {user.role}
-                  {user.facility_name ? ` (${user.facility_name})` : ""}
-                </option>
-              ))
-            ) : (
-              <option disabled>No users found</option>
-            )}
-          </select>
+
+          {/* Input field that acts as both display and search */}
+          <div className="d-flex align-items-center position-relative">
+            <input
+              ref={inputRef}
+              type="text"
+              className="form-control"
+              value={searchQuery}
+              placeholder={
+                isDropdownOpen
+                  ? "Search users..."
+                  : "Click to search/select user"
+              }
+              onChange={handleInputChange}
+              onClick={handleInputClick}
+              onKeyDown={handleInputKeyDown}
+              disabled={isCreating || isLoadingUsers}
+              style={{ cursor: "pointer" }}
+            />
+          </div>
+
+          {/* Right-side dropdown */}
+          {isDropdownOpen && !isCreating && !isLoadingUsers && (
+            <div
+              className="position-absolute bg-white border rounded shadow-sm"
+              style={{
+                zIndex: 1060,
+                width: "100%",
+                maxHeight: "350px",
+                overflow: "hidden",
+              }}>
+              {/* Users List */}
+              <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                {filteredUsers.length === 0 ? (
+                  <div className="text-center py-3 small text-muted">
+                    {searchQuery
+                      ? "No users found"
+                      : "Start typing to search users"}
+                  </div>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="px-3 py-2 border-bottom"
+                      style={{
+                        cursor: "pointer",
+                        backgroundColor:
+                          selectedUser === user.id ? "#e7f1ff" : "transparent",
+                      }}
+                      onClick={() => handleSelectUser(user.id)}>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                          <div className="fw-medium">{user.name}</div>
+                          <div className="text-muted small">
+                            {user.role}
+                            {user.facility_name && ` • ${user.facility_name}`}
+                          </div>
+                        </div>
+                        {selectedUser === user.id && (
+                          <i className="fas fa-check text-primary"></i>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <button

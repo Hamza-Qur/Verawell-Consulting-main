@@ -15,7 +15,7 @@ const SocketProvider = ({ children }) => {
     if (isAuthenticated && user?.id) {
       console.log("🔧 Initializing WebSocket for user:", user.id);
 
-      const socketBaseUrl = "ws://verawell.koderspedia.online";
+      const socketBaseUrl = process.env.REACT_APP_SOCKET_BASE_URL;
 
       // Initialize WebSocket
       const socket = initChatSocket({
@@ -28,9 +28,9 @@ const SocketProvider = ({ children }) => {
         const connected = getSocketStatus();
         const state = getSocketReadyState();
         console.log(
-          connected 
-            ? "✅ WebSocket is connected" 
-            : `❌ WebSocket is ${state?.stateName || 'disconnected'}`
+          connected
+            ? "✅ WebSocket is connected"
+            : `❌ WebSocket is ${state?.stateName || "disconnected"}`,
         );
       };
 

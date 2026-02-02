@@ -26,11 +26,68 @@ export const getUserProfile = createAsyncThunk(
     const data = await response.json();
     console.log("Get profile response:", data);
 
-    // Cache the response
-    localStorage.setItem("userProfile", JSON.stringify(data));
+    const normalizedProfile = {
+      success: true,
+      data: data.data,
+    };
 
-    return data;
-  }
+    localStorage.setItem("userProfile", JSON.stringify(normalizedProfile));
+    return normalizedProfile;
+  },
+);
+
+// Get all users (raw data)
+export const getAllUsers = createAsyncThunk(
+  "user/getAllUsers",
+  async (
+    {
+      page = 1,
+      perPage = 10,
+      search = "",
+      facility_id = null, // ADDED: facility_id parameter
+    } = {},
+    { rejectWithValue },
+  ) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      // Build query parameters
+      const params = new URLSearchParams({
+        page: page.toString(),
+        per_page: perPage.toString(),
+      });
+
+      if (search) {
+        params.append("search", search);
+      }
+
+      // ADDED: facility_id parameter
+      if (facility_id) {
+        params.append("facility_id", facility_id.toString());
+      }
+
+      const response = await fetch(
+        `${BASE_URL}/api/user/get-users-raw?${params.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        return rejectWithValue(data.message || "Failed to fetch users");
+      }
+
+      return data;
+    } catch (err) {
+      return rejectWithValue("Network error");
+    }
+  },
 );
 
 export const updateUserProfile = createAsyncThunk(
@@ -58,7 +115,7 @@ export const updateUserProfile = createAsyncThunk(
       console.log(
         pair[0] +
           ": " +
-          (pair[1] instanceof File ? `File: ${pair[1].name}` : pair[1])
+          (pair[1] instanceof File ? `File: ${pair[1].name}` : pair[1]),
       );
     }
 
@@ -72,9 +129,16 @@ export const updateUserProfile = createAsyncThunk(
     });
 
     const data = await response.json();
-    if (data.success) localStorage.setItem("userProfile", JSON.stringify(data));
+    if (data.success && data.data?.user) {
+      const normalizedProfile = {
+        success: true,
+        data: data.data.user,
+      };
+
+      localStorage.setItem("userProfile", JSON.stringify(normalizedProfile));
+    }
     return data;
-  }
+  },
 );
 
 // Admin update user profile (for admin editing other users)
@@ -103,7 +167,7 @@ export const adminUpdateUserProfile = createAsyncThunk(
         console.log(
           pair[0] +
             ": " +
-            (pair[1] instanceof File ? `File: ${pair[1].name}` : pair[1])
+            (pair[1] instanceof File ? `File: ${pair[1].name}` : pair[1]),
         );
       }
 
@@ -126,10 +190,10 @@ export const adminUpdateUserProfile = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
-// Change password (unchanged)
+// Change password
 export const changePassword = createAsyncThunk(
   "user/changePassword",
   async (passwordData) => {
@@ -151,7 +215,7 @@ export const changePassword = createAsyncThunk(
     const data = await response.json();
     console.log("Change password response:", data);
     return data;
-  }
+  },
 );
 
 // Delete user
@@ -169,7 +233,7 @@ export const deleteUser = createAsyncThunk(
             Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -182,32 +246,63 @@ export const deleteUser = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 const userSlice = createSlice({
   name: "user",
   initialState: {
     profile: null,
+    usersList: {
+      data: [],
+      pagination: {
+        current_page: 1,
+        last_page: 1,
+        per_page: 10,
+        total: 0,
+        from: 0,
+        to: 0,
+      },
+      links: [],
+    },
     isLoading: false,
     isLoadingProfile: false,
+    isLoadingUsers: false,
     isLoadingPassword: false,
     isDeleting: false,
     isAdminUpdating: false,
     error: null,
+    usersError: null,
     passwordError: null,
     deleteError: null,
     adminUpdateError: null,
     adminUpdateSuccess: "",
+    successMessage: "",
   },
   reducers: {
     clearUserErrors: (state) => {
       state.error = null;
+      state.usersError = null;
       state.passwordError = null;
       state.deleteError = null;
       state.adminUpdateError = null;
       state.successMessage = "";
       state.adminUpdateSuccess = "";
+    },
+    clearUsersList: (state) => {
+      state.usersList = {
+        data: [],
+        pagination: {
+          current_page: 1,
+          last_page: 1,
+          per_page: 10,
+          total: 0,
+          from: 0,
+          to: 0,
+        },
+        links: [],
+      };
+      state.usersError = null;
     },
   },
   extraReducers: (builder) => {
@@ -218,12 +313,46 @@ const userSlice = createSlice({
       })
       .addCase(getUserProfile.fulfilled, (state, action) => {
         state.isLoadingProfile = false;
-        // Store the entire response
-        state.profile = action.payload;
+
+        state.profile = {
+          success: true,
+          data: action.payload?.data?.user ?? action.payload?.data ?? null,
+        };
       })
       .addCase(getUserProfile.rejected, (state, action) => {
         state.isLoadingProfile = false;
         state.error = action.error.message;
+      });
+
+    // Get all users
+    builder
+      .addCase(getAllUsers.pending, (state) => {
+        state.isLoadingUsers = true;
+        state.usersError = null;
+      })
+      .addCase(getAllUsers.fulfilled, (state, action) => {
+        state.isLoadingUsers = false;
+
+        if (action.payload.success) {
+          state.usersList = {
+            data: action.payload.data.data || [],
+            pagination: {
+              current_page: action.payload.data.current_page || 1,
+              last_page: action.payload.data.last_page || 1,
+              per_page: action.payload.data.per_page || 10,
+              total: action.payload.data.total || 0,
+              from: action.payload.data.from || 0,
+              to: action.payload.data.to || 0,
+            },
+            links: action.payload.data.links || [],
+          };
+        } else {
+          state.usersError = action.payload.message || "Failed to fetch users";
+        }
+      })
+      .addCase(getAllUsers.rejected, (state, action) => {
+        state.isLoadingUsers = false;
+        state.usersError = action.payload || "Failed to fetch users";
       });
 
     // Update user profile
@@ -321,5 +450,5 @@ const userSlice = createSlice({
   },
 });
 
-export const { clearUserErrors } = userSlice.actions;
+export const { clearUserErrors, clearUsersList } = userSlice.actions;
 export default userSlice.reducer;

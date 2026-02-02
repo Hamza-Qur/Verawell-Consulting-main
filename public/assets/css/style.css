@@ -61,6 +61,8 @@
     4.13 Overlay Css
     4.14 Position Css
 / ================================= Table Of Contents =================================== **/
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
 @font-face {
   font-family: "Gilroy";
   src: url("../fonts/Gilroy-Regular.ttf") format("truetype");
@@ -94,12 +96,12 @@
 }
 
 body {
-  font-family: "Gilroy";
+  font-family: "Inter", sans-serif;
   font-weight: 500;
 }
 
 span {
-  font-family: "Gilroy";
+  font-family: "Inter", sans-serif;
   font-weight: 500;
 }
 
@@ -378,8 +380,8 @@ span {
 /* === reset css start === */
 /* === reset css start === */
 *:where(
-    :not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *)
-  ) {
+  :not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *)
+) {
   all: unset;
   display: revert;
 }
@@ -419,7 +421,7 @@ html {
 body {
   background-color: var(--bg-color);
   color: var(--text-secondary-light);
-  font-family: "Gilroy";
+  font-family: "Inter", sans-serif;
   font-size: 1rem;
   padding: 0;
   margin: 0;
@@ -12676,6 +12678,7 @@ textarea:active {
 
 .input-group-text {
   color: var(--text-secondary-light);
+  height: 44px;
 }
 
 .form-control.is-invalid,

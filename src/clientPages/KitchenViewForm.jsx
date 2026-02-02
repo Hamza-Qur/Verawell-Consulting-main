@@ -8,6 +8,7 @@ import {
   clearCurrentAssessment,
   updateAssessment,
 } from "../redux/slices/formSlice";
+import Toast from "../components/Toast";
 
 const KitchenViewForm = () => {
   const { id } = useParams();
@@ -30,6 +31,11 @@ const KitchenViewForm = () => {
   const [submissionData, setSubmissionData] = useState(null);
   const [score, setScore] = useState(0);
   const [hasChanges, setHasChanges] = useState(false);
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
 
   useEffect(() => {
     if (id) {
@@ -113,25 +119,43 @@ const KitchenViewForm = () => {
     return Math.round((rawScore / maxScore) * 100);
   };
 
+  const showToast = (message, type = "info") => {
+    setToast({
+      show: true,
+      message,
+      type,
+    });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  };
+
+  const closeToast = () => {
+    setToast({ ...toast, show: false });
+  };
+
   const handleStatusChange = (id, newStatus) => {
     if (!canEdit) {
-      alert("Customers cannot edit forms. Please contact your administrator.");
+      showToast(
+        "Customers cannot edit forms. Please contact your administrator.",
+        "error",
+      );
       return;
     }
 
     if (!isEditing) {
-      alert("Please click 'Edit Form' to make changes.");
+      showToast("Please click 'Edit Form' to make changes.", "warning");
       return;
     }
 
     setSections((prev) =>
       prev.map((section) =>
-        section.id === id ? { ...section, status: newStatus } : section
-      )
+        section.id === id ? { ...section, status: newStatus } : section,
+      ),
     );
 
     const updatedSections = sections.map((section) =>
-      section.id === id ? { ...section, status: newStatus } : section
+      section.id === id ? { ...section, status: newStatus } : section,
     );
     const newScore = calculateScore(updatedSections);
     setScore(newScore);
@@ -139,25 +163,28 @@ const KitchenViewForm = () => {
 
   const handleCommentChange = (id, newComment) => {
     if (!canEdit) {
-      alert("Customers cannot edit forms. Please contact your administrator.");
+      showToast(
+        "Customers cannot edit forms. Please contact your administrator.",
+        "error",
+      );
       return;
     }
 
     if (!isEditing) {
-      alert("Please click 'Edit Form' to make changes.");
+      showToast("Please click 'Edit Form' to make changes.", "warning");
       return;
     }
 
     setSections((prev) =>
       prev.map((section) =>
-        section.id === id ? { ...section, comment: newComment } : section
-      )
+        section.id === id ? { ...section, comment: newComment } : section,
+      ),
     );
   };
 
   const handleEditClick = () => {
     if (!canEdit) {
-      alert("You do not have permission to edit this form.");
+      showToast("You do not have permission to edit this form.", "error");
       return;
     }
     setIsEditing(true);
@@ -165,26 +192,87 @@ const KitchenViewForm = () => {
 
   const handleCancelClick = () => {
     if (hasChanges) {
-      const confirmCancel = window.confirm(
-        "You have unsaved changes. Are you sure you want to cancel?"
-      );
-      if (!confirmCancel) return;
+      // Show custom confirm dialog instead of window.confirm
+      const confirmDialog = document.createElement("div");
+      confirmDialog.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      `;
+
+      const dialogContent = document.createElement("div");
+      dialogContent.style.cssText = `
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+      `;
+
+      dialogContent.innerHTML = `
+        <h3 style="margin-bottom: 15px; color: #333;">Unsaved Changes</h3>
+        <p style="margin-bottom: 20px; color: #666;">You have unsaved changes. Are you sure you want to cancel?</p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <button id="confirmCancelNo" style="padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            No, Keep Editing
+          </button>
+          <button id="confirmCancelYes" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Yes, Discard Changes
+          </button>
+        </div>
+      `;
+
+      confirmDialog.appendChild(dialogContent);
+      document.body.appendChild(confirmDialog);
+
+      const handleNoClick = () => {
+        document.body.removeChild(confirmDialog);
+      };
+
+      const handleYesClick = () => {
+        document.body.removeChild(confirmDialog);
+        setSections(JSON.parse(JSON.stringify(originalSections)));
+        const originalScore = calculateScore(originalSections);
+        setScore(originalScore);
+        setIsEditing(false);
+        setHasChanges(false);
+      };
+
+      dialogContent.querySelector("#confirmCancelNo").onclick = handleNoClick;
+      dialogContent.querySelector("#confirmCancelYes").onclick = handleYesClick;
+
+      // Close on click outside
+      confirmDialog.onclick = (e) => {
+        if (e.target === confirmDialog) {
+          document.body.removeChild(confirmDialog);
+        }
+      };
+    } else {
+      setSections(JSON.parse(JSON.stringify(originalSections)));
+      const originalScore = calculateScore(originalSections);
+      setScore(originalScore);
+      setIsEditing(false);
+      setHasChanges(false);
     }
-    setSections(JSON.parse(JSON.stringify(originalSections)));
-    const originalScore = calculateScore(originalSections);
-    setScore(originalScore);
-    setIsEditing(false);
-    setHasChanges(false);
   };
 
   const handleSaveClick = async () => {
     if (!canEdit) {
-      alert("You do not have permission to save this form.");
+      showToast("You do not have permission to save this form.", "error");
       return;
     }
 
     if (!hasChanges) {
       setIsEditing(false);
+      showToast("No changes to save.", "info");
       return;
     }
 
@@ -210,14 +298,12 @@ const KitchenViewForm = () => {
         // Refresh assessment data
         dispatch(getAssessmentById(id));
 
-        // Show success message
-        setTimeout(() => {
-          alert("Assessment updated successfully!");
-        }, 100);
+        // Show success toast
+        showToast("Assessment updated successfully!", "success");
       }
     } catch (error) {
       console.error("Failed to update assessment:", error);
-      alert(`Failed to update assessment: ${error}`);
+      showToast(`Failed to update assessment: ${error}`, "error");
     }
   };
 
@@ -289,6 +375,12 @@ const KitchenViewForm = () => {
   if (assessmentError) {
     return (
       <MasterLayout>
+        <Toast
+          show={toast.show}
+          message={toast.message}
+          type={toast.type}
+          onClose={closeToast}
+        />
         <div
           style={{
             padding: "40px",
@@ -322,6 +414,12 @@ const KitchenViewForm = () => {
   if (!currentAssessment && !isAssessmentLoading) {
     return (
       <MasterLayout>
+        <Toast
+          show={toast.show}
+          message={toast.message}
+          type={toast.type}
+          onClose={closeToast}
+        />
         <div style={{ padding: "40px", textAlign: "center" }}>
           <Icon icon="mdi:file-document-outline" width="50" height="50" />
           <h3>No Assessment Found</h3>
@@ -346,6 +444,14 @@ const KitchenViewForm = () => {
 
   return (
     <MasterLayout>
+      {/* Main Toast Component */}
+      <Toast
+        show={toast.show}
+        message={toast.message}
+        type={toast.type}
+        onClose={closeToast}
+      />
+
       {/* Update Status Notifications */}
       {isUpdatingAssessment && (
         <div
@@ -431,7 +537,11 @@ const KitchenViewForm = () => {
             fontSize: "30px",
           }}>
           <span
-            onClick={() => navigate("/facility-forms")}
+            onClick={() =>
+              navigate(
+                userRole === "customer" ? "/customer-forms" : "/facility-forms",
+              )
+            }
             style={{
               cursor: "pointer",
               display: "inline-flex",
@@ -454,7 +564,8 @@ const KitchenViewForm = () => {
               onClick={handleEditClick}
               style={{
                 padding: "8px 16px",
-                backgroundColor: "#28a745",
+                background:
+                  "linear-gradient(90deg,rgba(216, 81, 80, 1) 0%,rgba(87, 36, 103, 1) 100% )",
                 color: "white",
                 border: "none",
                 borderRadius: "4px",
@@ -493,7 +604,7 @@ const KitchenViewForm = () => {
                 disabled={isUpdatingAssessment || !hasChanges}
                 style={{
                   padding: "8px 16px",
-                  backgroundColor: hasChanges ? "#007bff" : "#6c757d",
+                  backgroundColor: hasChanges ? "#2a7e00" : "#6c757d",
                   color: "white",
                   border: "none",
                   borderRadius: "4px",
@@ -522,25 +633,6 @@ const KitchenViewForm = () => {
               </button>
             </>
           )}
-
-          <button
-            onClick={() => window.print()}
-            disabled={isEditing}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "#8B2885",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: isEditing ? "not-allowed" : "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              opacity: isEditing ? 0.6 : 1,
-            }}>
-            <Icon icon="mdi:printer" width="20" height="20" />
-            Print Report
-          </button>
         </div>
       </div>
 
@@ -676,16 +768,16 @@ const KitchenViewForm = () => {
                     score >= 70
                       ? "#d4edda"
                       : score >= 40
-                      ? "#ffe5d0"
-                      : "#f8d7da",
+                        ? "#ffe5d0"
+                        : "#f8d7da",
                   borderRadius: "10px",
                   display: "inline-block",
                 }}>
                 {score >= 70
                   ? "Satisfactory"
                   : score >= 40
-                  ? "Needs Improvement"
-                  : "Unsatisfactory"}
+                    ? "Needs Improvement"
+                    : "Unsatisfactory"}
               </div>
             </div>
           </div>
@@ -843,12 +935,15 @@ const KitchenViewForm = () => {
                         e.preventDefault();
                         if (canEdit) {
                           if (!isEditing) {
-                            alert("Please click 'Edit Form' to make changes.");
+                            showToast(
+                              "Please click 'Edit Form' to make changes.",
+                              "warning",
+                            );
                             return;
                           }
                           handleStatusChange(section.id, "satisfactory");
                         } else {
-                          alert("Customers cannot edit forms.");
+                          showToast("Customers cannot edit forms.", "error");
                         }
                       }}
                     />
@@ -865,12 +960,15 @@ const KitchenViewForm = () => {
                         e.preventDefault();
                         if (canEdit) {
                           if (!isEditing) {
-                            alert("Please click 'Edit Form' to make changes.");
+                            showToast(
+                              "Please click 'Edit Form' to make changes.",
+                              "warning",
+                            );
                             return;
                           }
                           handleStatusChange(section.id, "improvement");
                         } else {
-                          alert("Customers cannot edit forms.");
+                          showToast("Customers cannot edit forms.", "error");
                         }
                       }}
                     />
@@ -883,11 +981,14 @@ const KitchenViewForm = () => {
                   disabled={!isEditing || !canEdit}
                   onChange={(e) => {
                     if (!canEdit) {
-                      alert("Customers cannot edit forms.");
+                      showToast("Customers cannot edit forms.", "error");
                       return;
                     }
                     if (!isEditing) {
-                      alert("Please click 'Edit Form' to make changes.");
+                      showToast(
+                        "Please click 'Edit Form' to make changes.",
+                        "warning",
+                      );
                       return;
                     }
                     handleCommentChange(section.id, e.target.value);
@@ -895,16 +996,17 @@ const KitchenViewForm = () => {
                   onFocus={(e) => {
                     if (!canEdit) {
                       e.target.blur();
-                      alert("Customers cannot edit forms.");
+                      showToast("Customers cannot edit forms.", "error");
                     } else if (!isEditing) {
                       e.target.blur();
-                      alert("Please click 'Edit Form' to make changes.");
+                      showToast(
+                        "Please click 'Edit Form' to make changes.",
+                        "warning",
+                      );
                     }
                   }}
                   placeholder={
-                    !isEditing
-                      ? "View only - Click 'Edit Form' to add comments"
-                      : "Add your comments here..."
+                    !isEditing ? "No comments..." : "Add your comments here..."
                   }
                   style={{
                     resize: "none",

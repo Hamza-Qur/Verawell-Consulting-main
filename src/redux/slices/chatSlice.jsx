@@ -1,3 +1,4 @@
+// src/redux/slices/chatSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL } from "../services/endpoint";
 
@@ -14,16 +15,13 @@ export const getMyConversations = createAsyncThunk(
       });
 
       const data = await res.json();
-      console.log("Conversations API response:", data); // Add this for debugging
 
       if (!res.ok) {
-        console.error("Conversations API error:", data);
         return rejectWithValue(data.message || "Failed to fetch conversations");
       }
 
       return data.data || [];
     } catch (error) {
-      console.error("Conversations network error:", error);
       return rejectWithValue("Network error");
     }
   },
@@ -45,21 +43,14 @@ export const getConversationMessages = createAsyncThunk(
       );
 
       const data = await res.json();
-      console.log(
-        `Messages API response for conversation ${conversationId}:`,
-        data,
-      );
 
       if (!res.ok) {
-        console.error("Messages API error:", data);
         return rejectWithValue(data.message || "Failed to fetch messages");
       }
 
-      // Transform the data to match your expected structure
       const transformedMessages = (data.data || []).map((msg) => ({
         ...msg,
-        // Add any missing fields or rename fields if needed
-        file_content: msg.file_contents || [], // Rename file_contents to file_content
+        file_content: msg.file_contents || [],
         created_at: msg.created_at,
         updated_at: msg.updated_at,
       }));
@@ -69,7 +60,6 @@ export const getConversationMessages = createAsyncThunk(
         messages: transformedMessages,
       };
     } catch (error) {
-      console.error("Messages network error:", error);
       return rejectWithValue("Network error");
     }
   },
@@ -91,17 +81,24 @@ const chatSlice = createSlice({
     },
     addIncomingMessage(state, action) {
       const { conversationId, message } = action.payload;
+
       if (!state.messagesByConversation[conversationId]) {
         state.messagesByConversation[conversationId] = [];
       }
 
-      // Transform incoming message if needed
-      const transformedMessage = {
-        ...message,
-        file_content: message.file_contents || message.file_content || [],
-      };
+      // Check for duplicates
+      const isDuplicate = state.messagesByConversation[conversationId].some(
+        msg => msg.id === message.id
+      );
 
-      state.messagesByConversation[conversationId].unshift(transformedMessage); // Add to beginning
+      if (!isDuplicate) {
+        const transformedMessage = {
+          ...message,
+          file_content: message.file_contents || message.file_content || [],
+        };
+
+        state.messagesByConversation[conversationId].unshift(transformedMessage);
+      }
     },
     setSocketStatus(state, action) {
       state.socketConnected = action.payload;
@@ -110,16 +107,6 @@ const chatSlice = createSlice({
       state.conversations = [];
       state.messagesByConversation = {};
       state.activeConversationId = null;
-    },
-    // Add a reducer to update conversation's last message
-    updateConversationLastMessage(state, action) {
-      const { conversationId, message } = action.payload;
-      const conversation = state.conversations.find(
-        (c) => c.id === conversationId,
-      );
-      if (conversation) {
-        conversation.last_message = message;
-      }
     },
   },
   extraReducers: (builder) => {
@@ -135,7 +122,6 @@ const chatSlice = createSlice({
       .addCase(getMyConversations.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
-        console.error("getMyConversations rejected:", action.payload);
       });
 
     builder
@@ -150,7 +136,6 @@ const chatSlice = createSlice({
       .addCase(getConversationMessages.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
-        console.error("getConversationMessages rejected:", action.payload);
       });
   },
 });
@@ -160,7 +145,6 @@ export const {
   addIncomingMessage,
   setSocketStatus,
   clearChat,
-  updateConversationLastMessage,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

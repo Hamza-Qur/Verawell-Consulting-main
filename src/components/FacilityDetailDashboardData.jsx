@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { getAssignedAssessments } from "../redux/slices/formSlice";
 import { addTask } from "../redux/slices/attendanceSlice";
-import Toast from "../components/Toast"; // Import the Toast component
+import Toast from "../components/Toast";
 
 const FacilityDetailDashboardData = ({ rows }) => {
   const navigate = useNavigate();
@@ -17,15 +17,28 @@ const FacilityDetailDashboardData = ({ rows }) => {
   const [selectedFacility, setSelectedFacility] = useState("All");
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [selectedForm, setSelectedForm] = useState(null);
+  const [userRole, setUserRole] = useState(null);
 
-  // Toast states
+  // Toast states - track action types separately
   const [toast, setToast] = useState({
     show: false,
     message: "",
     type: "info",
   });
 
+  // Track if this is the initial load
+  const [initialLoad, setInitialLoad] = useState(true);
+
   const buttonRefs = useRef([]);
+
+  // Get user role on component mount
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+    setUserRole(role || "guest");
+  }, []);
+
+  // Check if user is customer
+  const isCustomer = userRole === "customer";
 
   // Get assigned assessments from Redux store
   const {
@@ -36,7 +49,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
 
   // Get add task state from Redux
   const { isAddingTask, addTaskError, successMessage } = useSelector(
-    (state) => state.attendance
+    (state) => state.attendance,
   );
 
   // Fetch assigned assessments on component mount
@@ -44,9 +57,17 @@ const FacilityDetailDashboardData = ({ rows }) => {
     dispatch(getAssignedAssessments(1));
   }, [dispatch]);
 
+  // Mark initial load as complete after data loads
+  useEffect(() => {
+    if (!isAssignedAssessmentsLoading && initialLoad) {
+      setInitialLoad(false);
+    }
+  }, [isAssignedAssessmentsLoading, initialLoad]);
+
   // Show toast when add task succeeds or fails
   useEffect(() => {
-    if (successMessage) {
+    // Only show toast for addTask actions, not for initial data loading
+    if (successMessage && successMessage.includes("Task")) {
       showToast(successMessage, "success");
     }
     if (addTaskError) {
@@ -54,7 +75,14 @@ const FacilityDetailDashboardData = ({ rows }) => {
     }
   }, [successMessage, addTaskError]);
 
-  // Get unique facilities from API data for filter tabs
+  // Clear success messages after showing (prevents showing on component re-render)
+  useEffect(() => {
+    return () => {
+      // You might want to clear the successMessage when component unmounts
+      // This depends on your Redux setup
+    };
+  }, []);
+
   const getUniqueFacilities = () => {
     if (!assignedAssessments.data || assignedAssessments.data.length === 0) {
       return ["All"];
@@ -62,7 +90,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
 
     const facilities = ["All"];
 
-    // Use actual facility_name from API
     assignedAssessments.data.forEach((assessment) => {
       const facilityName = assessment.facility_name || "Unknown Facility";
       if (facilityName && !facilities.includes(facilityName)) {
@@ -70,7 +97,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
       }
     });
 
-    // Return unique facilities (limit to first 4 for UI)
     return [...new Set(facilities)].slice(0, 4);
   };
 
@@ -108,7 +134,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
     handleDropdownToggle(index, e);
     const assessment = filteredData[index];
     navigate(
-      `/facility-detail-page/${encodeURIComponent(assessment.category_name)}`
+      `/facility-detail-page/${encodeURIComponent(assessment.category_name)}`,
     );
   };
 
@@ -118,27 +144,25 @@ const FacilityDetailDashboardData = ({ rows }) => {
   };
 
   const handleSaveTask = (taskData) => {
-    // Format the task data for API
     const apiTaskData = {
       title: taskData.title,
       description: taskData.description || "",
-      start_time: taskData.startDateTime.split("T")[0], // YYYY-MM-DD format
-      end_time: taskData.endDateTime.split("T")[0], // YYYY-MM-DD format
-      assigned_assessment_id: taskData.assigned_assessment_id || 1, // Default or from selected form
+      start_time: taskData.startDateTime.split("T")[0],
+      end_time: taskData.endDateTime.split("T")[0],
+      assigned_assessment_id: taskData.assigned_assessment_id || 1,
     };
 
-    // Dispatch the addTask action
     dispatch(addTask(apiTaskData)).then((action) => {
       if (action.payload?.success) {
-        // Toast will be shown via useEffect when successMessage updates
+        showToast("Task added to timelogs successfully!", "success");
         setShowAddTaskModal(false);
         setSelectedForm(null);
+      } else if (action.error) {
+        // Error will be shown via useEffect
       }
-      // Error toast will be shown via useEffect when addTaskError updates
     });
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       setDropdownOpen(null);
@@ -147,32 +171,39 @@ const FacilityDetailDashboardData = ({ rows }) => {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  // Toast helper function
+  // Toast helper function - with improved logic
   const showToast = (message, type = "info") => {
+    // Don't show generic "Operation successful" messages on initial load
+    if (
+      initialLoad &&
+      (message.includes("Operation successful") ||
+        message.includes("successfully"))
+    ) {
+      return;
+    }
+
     setToast({
       show: true,
       message,
       type,
     });
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, show: false }));
+    }, 3000);
   };
 
   const closeToast = () => {
     setToast({ ...toast, show: false });
   };
 
-  // Helper function to determine form status and task button state
   const getFormStatusInfo = (assessment) => {
     const submittedAssessmentId = assessment.submitted_assessment_id;
     const startTime = assessment.start_time;
     const endTime = assessment.end_time;
 
-    // Logic based on your requirements:
-    // 1. All null = form not submitted (in process)
-    // 2. submitted_assessment_id exists, but times are null = form submitted, can add task
-    // 3. submitted_assessment_id exists, and times exist = task already added
-
     if (submittedAssessmentId === null) {
-      // Form not submitted - in process
       return {
         isCompleted: false,
         canShowTaskButton: false,
@@ -187,24 +218,22 @@ const FacilityDetailDashboardData = ({ rows }) => {
         fillFormIcon: "material-symbols:edit-document",
       };
     } else if (startTime === null && endTime === null) {
-      // Form submitted, but times not set - can add task
       return {
         isCompleted: true,
-        canShowTaskButton: true,
+        canShowTaskButton: !isCustomer, // Hide for customers
         taskButtonText: "Add Task",
-        taskButtonDisabled: false,
+        taskButtonDisabled: isCustomer,
         taskButtonStyle: {
           background: "#2196F3",
-          cursor: "pointer",
+          cursor: isCustomer ? "not-allowed" : "pointer",
         },
         fillFormText: "View Form",
         fillFormIcon: "ic:baseline-remove-red-eye",
       };
     } else {
-      // Form submitted and times are set - task already added
       return {
         isCompleted: true,
-        canShowTaskButton: true,
+        canShowTaskButton: !isCustomer, // Hide for customers
         taskButtonText: "Task Already Added",
         taskButtonDisabled: true,
         taskButtonStyle: {
@@ -218,7 +247,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
     }
   };
 
-  // Transform API data to match the UI format
   const transformAssessmentData = () => {
     if (!assignedAssessments.data || assignedAssessments.data.length === 0) {
       return [];
@@ -227,7 +255,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
     return assignedAssessments.data.map((assessment) => {
       const formStatusInfo = getFormStatusInfo(assessment);
 
-      // Parse dates if available
       const startTime = assessment.start_time
         ? new Date(assessment.start_time)
         : new Date();
@@ -235,12 +262,10 @@ const FacilityDetailDashboardData = ({ rows }) => {
         ? new Date(assessment.end_time)
         : new Date();
 
-      // Format time (HH:MM:SS)
       const timeStr = assessment.start_time
         ? startTime.toTimeString().split(" ")[0]
         : "N/A";
 
-      // Format date (e.g., "25 November, 2025")
       const dateStr = assessment.start_time
         ? startTime.toLocaleDateString("en-US", {
             day: "numeric",
@@ -249,7 +274,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
           })
         : "N/A";
 
-      // Calculate hours worked (difference between end and start time in hours)
       let hoursWorked = "N/A";
       if (assessment.start_time && assessment.end_time) {
         const diffMs = endTime - startTime;
@@ -257,10 +281,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
         hoursWorked = diffHours.toString();
       }
 
-      // Use category_name for form name
       const formName = assessment.category_name || "Assessment";
-
-      // Use facility_name from API
       const facility = assessment.facility_name || "Unknown Facility";
 
       return {
@@ -277,13 +298,11 @@ const FacilityDetailDashboardData = ({ rows }) => {
         taskButtonStyle: formStatusInfo.taskButtonStyle,
         fillFormText: formStatusInfo.fillFormText,
         fillFormIcon: formStatusInfo.fillFormIcon,
-        // Original API data for reference (including assigned_assessment_id)
         originalData: assessment,
       };
     });
   };
 
-  // Filter data based on selected facility
   const transformedData = transformAssessmentData();
   const filteredData =
     selectedFacility === "All"
@@ -368,38 +387,28 @@ const FacilityDetailDashboardData = ({ rows }) => {
         customBodyRenderLite: (dataIndex) => {
           const row = filteredData[dataIndex];
 
-          // Update the handleActionClick function in FacilityDetailDashboardData.jsx
           const handleActionClick = () => {
             const row = filteredData[dataIndex];
             const isCompleted = row.formStatus;
 
-            // Get the correct ID based on form status
             let assessmentId;
 
             if (isCompleted) {
-              // For completed forms, use submitted_assessment_id
               assessmentId = row.originalData?.submitted_assessment_id;
             } else {
-              // For incomplete forms, use assigned_assessment_id (which is the id field)
               assessmentId = row.originalData?.id;
             }
 
-            // Validate we have an ID
             if (!assessmentId) {
               showToast("Cannot navigate: No assessment ID found", "error");
               return;
             }
 
-            // Get category_id from the original data
             const categoryId = row.originalData?.category_id;
-
-            // Get category name for form title
             const categoryName =
               row.originalData?.category_name || "Assessment";
 
-            // Navigate to the appropriate route
             if (isCompleted) {
-              // For completed forms: /view-form/{assessment_id}
               navigate(`/view-form/${assessmentId}`, {
                 state: {
                   form: row,
@@ -410,7 +419,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
                 },
               });
             } else {
-              // For incomplete forms: /fill-form/{assigned_assessment_id}
               navigate(`/fill-form/${assessmentId}`, {
                 state: {
                   form: row,
@@ -423,7 +431,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
             }
           };
 
-          // Determine tooltip message
           let tooltipMessage = "Add task to timelogs";
           if (row.taskButtonText === "Task Already Added") {
             tooltipMessage = "Task has already been added to timelogs";
@@ -450,8 +457,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
                 {row.fillFormText}
               </button>
 
-              {/* Show task button based on form status */}
-              {row.canShowTaskButton && (
+              {row.canShowTaskButton && !isCustomer && (
                 <button
                   onClick={() =>
                     row.taskButtonDisabled ? null : handleAddTask(row)
@@ -474,8 +480,8 @@ const FacilityDetailDashboardData = ({ rows }) => {
                       row.taskButtonText === "Task Already Added"
                         ? "mdi:check-circle-outline"
                         : row.taskButtonText === "Add Task"
-                        ? "mdi:plus-circle-outline"
-                        : "mdi:clock-outline"
+                          ? "mdi:plus-circle-outline"
+                          : "mdi:clock-outline"
                     }
                     width="17"
                     height="20"
@@ -514,7 +520,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
     },
   };
 
-  // Add Task Modal Component
   const AddTaskModal = ({ form, onClose, onSave, isAdding }) => {
     const [taskData, setTaskData] = useState({
       title: form ? `${form.formName} - ${form.facility}` : "",
@@ -523,7 +528,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
       endDateTime: new Date(new Date().getTime() + 60 * 60 * 1000)
         .toISOString()
         .slice(0, 16),
-      // Get assigned_assessment_id from the form's original data
       assigned_assessment_id: form?.originalData?.id || 1,
     });
 
@@ -765,7 +769,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
                   padding: "10px 20px",
                   border: "none",
                   borderRadius: "6px",
-                  background: "#8B2885",
+                  background: "linear-gradient(90deg,rgba(216, 81, 80, 1) 0%,rgba(87, 36, 103, 1) 100% )",
                   cursor: "pointer",
                   color: "white",
                   fontWeight: "500",
@@ -788,11 +792,10 @@ const FacilityDetailDashboardData = ({ rows }) => {
           </form>
         </div>
       </div>,
-      document.body
+      document.body,
     );
   };
 
-  // Show loading state
   if (isAssignedAssessmentsLoading) {
     return (
       <>
@@ -835,7 +838,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
     );
   }
 
-  // Show error state
   if (assignedAssessmentsError) {
     return (
       <>
@@ -897,7 +899,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
 
   return (
     <>
-      {/* Toast Notification */}
       <Toast
         show={toast.show}
         message={toast.message}
@@ -906,7 +907,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
         duration={3000}
       />
 
-      {/* Facility Filter Tabs */}
       <div
         style={{
           marginBottom: "20px",
@@ -974,7 +974,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
         </div>
       )}
 
-      {/* Portal dropdown to body */}
       {dropdownOpen !== null &&
         createPortal(
           <div
@@ -1021,10 +1020,9 @@ const FacilityDetailDashboardData = ({ rows }) => {
               Delete
             </div>
           </div>,
-          document.body
+          document.body,
         )}
 
-      {/* Add Task Modal */}
       {showAddTaskModal && (
         <AddTaskModal
           form={selectedForm}

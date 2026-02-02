@@ -1,212 +1,238 @@
-import React, { useState, useRef, useEffect } from "react";
+// src/components/ChatPage.js
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import MasterLayout from "../otherImages/MasterLayout";
 import UserPic from "../otherImages/UserPic.png";
+import DynamicModal from "../components/DynamicModal";
 
-// Import Redux actions and WebSocket functions
 import {
   getMyConversations,
   getConversationMessages,
   setActiveConversation,
-  addIncomingMessage,
 } from "../redux/slices/chatSlice";
 import {
   sendChatMessage,
   joinConversation,
   getSocketStatus,
-  getSocketReadyState,
-  getSocketInstance,
-  reconnectWebSocket,
 } from "../redux/services/chatSocket";
+import { getAllUsers } from "../redux/slices/userSlice";
+import { Icon } from "@iconify/react";
 
 const ChatPage = () => {
   const dispatch = useDispatch();
 
-  // Get state from Redux store
   const {
     conversations,
     messagesByConversation,
     activeConversationId,
-    socketConnected,
     isLoading,
-    error,
   } = useSelector((state) => state.chat);
 
+  const {
+    usersList: { data: users = [], pagination = {} },
+    isLoadingUsers,
+  } = useSelector((state) => state.user);
+
+  const { user: currentUser } = useSelector((state) => state.auth);
+
   const [newMessage, setNewMessage] = useState("");
-  const [activeTab, setActiveTab] = useState("Chat");
   const [searchQuery, setSearchQuery] = useState("");
   const [wsStatus, setWsStatus] = useState("DISCONNECTED");
+  const [showNewChat, setShowNewChat] = useState(false);
+  const [selectedUserForChat, setSelectedUserForChat] = useState(null);
+  const [initialMessage, setInitialMessage] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [allLoadedUsers, setAllLoadedUsers] = useState([]);
+
   const messagesEndRef = useRef(null);
-  const chatWindowRef = useRef(null);
 
-  // Get current user ID from auth state or localStorage
-  const { user } = useSelector((state) => state.auth);
-  const currentUserId = user?.id || parseInt(localStorage.getItem("userId") || "0");
+  const currentUserId =
+    currentUser?.id || parseInt(localStorage.getItem("userId") || "0");
 
-  // Get current active conversation
   const activeConversation = conversations.find(
     (conv) => conv.id === activeConversationId,
   );
 
-  // Get messages for active conversation and sort by date (newest first)
   const currentMessages = activeConversationId
-    ? [...(messagesByConversation[activeConversationId] || [])]
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    ? [...(messagesByConversation[activeConversationId] || [])].sort(
+        (a, b) => new Date(a.created_at) - new Date(b.created_at),
+      )
     : [];
 
-  // WebSocket connection monitoring
+  // Check WebSocket connection status
   useEffect(() => {
     const checkConnection = () => {
       const connected = getSocketStatus();
-      const state = getSocketReadyState();
-      const status = connected ? "CONNECTED" : state?.stateName || "DISCONNECTED";
-      setWsStatus(status);
+      setWsStatus(connected ? "CONNECTED" : "DISCONNECTED");
     };
-
-    // Check immediately
     checkConnection();
-    
-    // Check every 3 seconds
     const interval = setInterval(checkConnection, 3000);
-    
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch conversations on mount
+  // Load conversations
   useEffect(() => {
     dispatch(getMyConversations());
   }, [dispatch]);
 
-  // Handle conversation selection
+  // Load messages for active conversation
   useEffect(() => {
     if (activeConversationId) {
-      // Join WebSocket room
       joinConversation(activeConversationId);
-
-      // Fetch messages
       dispatch(getConversationMessages(activeConversationId));
     }
   }, [activeConversationId, dispatch]);
 
-  // Scroll to bottom when messages change or conversation changes
+  // Scroll to bottom
   useEffect(() => {
-    scrollToBottom();
-  }, [currentMessages, activeConversationId]);
-
-  // Scroll to bottom function
-  const scrollToBottom = () => {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
-  };
+  }, [currentMessages, activeConversationId]);
 
-  // Handle selecting a conversation
+  // Load users when modal opens
+  useEffect(() => {
+    if (showNewChat) {
+      setSelectedUserForChat(null);
+      setUserSearchQuery("");
+      setCurrentPage(1);
+
+      // Load page 1
+      dispatch(getAllUsers({ page: 1, perPage: 100, search: "", role: "" }));
+    }
+  }, [showNewChat, dispatch]);
+
+  // Accumulate users as they load
+  useEffect(() => {
+    if (showNewChat && users.length > 0) {
+      setAllLoadedUsers(users);
+    }
+  }, [showNewChat, users]);
+
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!userSearchQuery.trim()) {
+      // When no search, show all loaded users with pagination
+      return allLoadedUsers;
+    }
+
+    // When searching, filter all loaded users
+    return allLoadedUsers.filter((user) =>
+      user.name.toLowerCase().includes(userSearchQuery.toLowerCase()),
+    );
+  }, [allLoadedUsers, userSearchQuery]);
+
   const handleSelectConversation = (conversationId) => {
     dispatch(setActiveConversation(conversationId));
   };
 
-  // Handle sending a message
   const handleSend = () => {
     if (newMessage.trim() === "" || !activeConversation) return;
-
-    // Get other participants (excluding current user)
     const otherParticipants = activeConversation.conversation_users?.filter(
       (cu) => cu.user_id !== currentUserId,
     );
+    if (!otherParticipants || otherParticipants.length === 0) return;
 
-    if (!otherParticipants || otherParticipants.length === 0) {
-      console.error("No other participants found");
+    const success = sendChatMessage({
+      conversationId: activeConversationId,
+      receiverId: otherParticipants[0].user_id,
+      text: newMessage,
+      files: [],
+    });
+    if (success) setNewMessage("");
+  };
+
+  const handleStartNewChat = () => {
+    if (!selectedUserForChat) return;
+    const existingConversation = conversations.find((conversation) => {
+      return conversation.conversation_users.some(
+        (cu) => cu.user_id === selectedUserForChat.id,
+      );
+    });
+
+    if (existingConversation) {
+      dispatch(setActiveConversation(existingConversation.id));
+      setShowNewChat(false);
       return;
     }
 
-    // Create optimistic message
-    const tempMessage = {
-      id: `temp-${Date.now()}`,
-      conversation_id: activeConversationId,
-      conversation_user_id: activeConversation.conversation_users?.find(
-        (cu) => cu.user_id === currentUserId,
-      )?.id,
-      sender_id: currentUserId,
-      text: newMessage,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      file_contents: [],
-      isTemporary: true,
-    };
+    const success = sendChatMessage({
+      receiverId: selectedUserForChat.id,
+      text: initialMessage.trim() || `Hi ${selectedUserForChat.name}!`,
+      files: [],
+    });
 
-    // Optimistic update (add to beginning for newest messages)
-    dispatch(
-      addIncomingMessage({
-        conversationId: activeConversationId,
-        message: tempMessage,
-      }),
-    );
-
-    // Send via WebSocket (send to first other participant)
-    if (otherParticipants.length > 0) {
-      sendChatMessage({
-        conversationId: activeConversationId,
-        receiverId: otherParticipants[0].user_id,
-        text: newMessage,
-        files: [],
-      });
+    if (success) {
+      setSelectedUserForChat(null);
+      setInitialMessage("");
+      setUserSearchQuery("");
+      setCurrentPage(1);
+      setShowNewChat(false);
+      setTimeout(() => {
+        dispatch(getMyConversations());
+      }, 500);
     }
-
-    setNewMessage("");
-    scrollToBottom();
   };
 
-  // Get other participants (for conversation name and avatar)
-  const getOtherParticipants = (conversation) => {
-    if (!conversation?.conversation_users) return [];
-    return conversation.conversation_users.filter(
-      (cu) => cu.user_id !== currentUserId,
-    );
+  const handleLoadPage = (page) => {
+    setCurrentPage(page);
+    dispatch(getAllUsers({ page, perPage: 100, search: "", role: "" }));
   };
 
-  // Get conversation display name
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const totalPages = pagination.last_page || 1;
+    const current = currentPage;
+
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
+    } else {
+      if (current <= 3) pageNumbers.push(1, 2, 3, 4, "...", totalPages);
+      else if (current >= totalPages - 2)
+        pageNumbers.push(
+          1,
+          "...",
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages,
+        );
+      else
+        pageNumbers.push(
+          1,
+          "...",
+          current - 1,
+          current,
+          current + 1,
+          "...",
+          totalPages,
+        );
+    }
+    return pageNumbers;
+  };
+
   const getConversationName = (conversation) => {
-    const otherParticipants = getOtherParticipants(conversation);
-
-    if (conversation.group?.name) {
-      return conversation.group.name;
-    }
-
-    if (otherParticipants.length === 1) {
-      return otherParticipants[0]?.user?.name || "Unknown User";
-    }
-
-    // Multiple participants
-    return otherParticipants.map((p) => p.user?.name || "User").join(", ");
+    if (conversation.group?.name) return conversation.group.name;
+    const others =
+      conversation.conversation_users?.filter(
+        (cu) => cu.user_id !== currentUserId,
+      ) || [];
+    if (others.length === 1) return others[0]?.user?.name || "Unknown User";
+    return others.map((p) => p.user?.name || "User").join(", ");
   };
 
-  // Get conversation avatar
   const getConversationAvatar = (conversation) => {
-    const otherParticipants = getOtherParticipants(conversation);
-
-    // For 1-on-1 chat, use other person's profile picture
-    if (otherParticipants.length === 1) {
-      return otherParticipants[0]?.user?.profile_picture || UserPic;
-    }
-
-    // For group chat, use default or group avatar
+    const others =
+      conversation.conversation_users?.filter(
+        (cu) => cu.user_id !== currentUserId,
+      ) || [];
+    if (others.length === 1) return others[0]?.user?.profile_picture || UserPic;
     return conversation.group?.avatar || UserPic;
   };
 
-  // Get last message preview
-  const getLastMessagePreview = (conversation) => {
-    if (conversation.last_message) {
-      const isFromMe = conversation.last_message.sender_id === currentUserId;
-      const prefix = isFromMe ? "You: " : "";
-      return prefix + (conversation.last_message.text || "Sent a file");
-    }
-    return "No messages yet";
-  };
-
-  // Format time
   const formatTime = (timestamp) => {
     if (!timestamp) return "";
-
     try {
       const date = new Date(timestamp);
       return date.toLocaleTimeString([], {
@@ -218,144 +244,11 @@ const ChatPage = () => {
     }
   };
 
-  // Format date for grouping
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "";
-
-    try {
-      const date = new Date(timestamp);
-      const today = new Date();
-
-      if (date.toDateString() === today.toDateString()) {
-        return "Today";
-      }
-
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      if (date.toDateString() === yesterday.toDateString()) {
-        return "Yesterday";
-      }
-
-      return date.toLocaleDateString();
-    } catch {
-      return "";
-    }
-  };
-
-  // Group messages by date (oldest to newest within each group)
-  const groupMessagesByDate = (messages) => {
-    const groups = {};
-
-    // Sort messages oldest to newest for proper display
-    const sortedMessages = [...messages].sort((a, b) => 
-      new Date(a.created_at) - new Date(b.created_at)
-    );
-
-    sortedMessages.forEach((msg) => {
-      try {
-        const date = new Date(msg.created_at).toDateString();
-        if (!groups[date]) {
-          groups[date] = [];
-        }
-        groups[date].push(msg);
-      } catch {
-        // Skip invalid dates
-      }
-    });
-
-    return Object.entries(groups);
-  };
-
-  // Filter conversations based on search
   const filteredConversations = conversations.filter((conversation) => {
-    const conversationName = getConversationName(conversation).toLowerCase();
-    return conversationName.includes(searchQuery.toLowerCase());
+    return getConversationName(conversation)
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
   });
-
-  // Get sender name for message
-  const getSenderName = (message) => {
-    if (message.sender_id === currentUserId) return "You";
-
-    if (activeConversation) {
-      const sender = activeConversation.conversation_users?.find(
-        (cu) => cu.user_id === message.sender_id,
-      );
-      return sender?.user?.name || "Unknown";
-    }
-
-    return "Unknown";
-  };
-
-  // WebSocket Debug Panel
-  const renderDebugPanel = () => (
-    <div style={{ padding: '10px', background: '#f5f5f5', marginBottom: '20px', borderRadius: '5px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <strong>WebSocket Status:</strong> 
-          <span style={{ 
-            marginLeft: '10px', 
-            padding: '2px 8px', 
-            borderRadius: '3px',
-            backgroundColor: wsStatus === 'CONNECTED' ? '#4CAF50' : wsStatus === 'CONNECTING' ? '#FFC107' : '#F44336',
-            color: 'white'
-          }}>
-            {wsStatus}
-            {wsStatus === 'CONNECTED' && ' ✅'}
-            {wsStatus === 'CONNECTING' && ' 🔄'}
-            {wsStatus === 'DISCONNECTED' && ' ❌'}
-          </span>
-        </div>
-        <div>
-          <button 
-            onClick={() => {
-              reconnectWebSocket({
-                socketBaseUrl: "ws://verawell.koderspedia.online",
-                userId: currentUserId,
-              });
-            }}
-            style={{ 
-              marginLeft: '10px', 
-              padding: '5px 10px', 
-              fontSize: '12px',
-              backgroundColor: '#2196F3',
-              color: 'white',
-              border: 'none',
-              borderRadius: '3px',
-              cursor: 'pointer'
-            }}
-          >
-            Reconnect
-          </button>
-          <button 
-            onClick={() => {
-              console.log("=== WEBSOCKET DEBUG ===");
-              const socket = getSocketInstance();
-              const state = getSocketReadyState();
-              console.log("WebSocket:", socket);
-              console.log("State:", state?.stateName, `(${state?.state})`);
-              console.log("URL:", socket?.url);
-              console.log("Connected:", getSocketStatus());
-              console.log("Current Messages:", currentMessages.length);
-              console.log("Active Conversation:", activeConversationId);
-            }}
-            style={{ 
-              marginLeft: '5px', 
-              padding: '5px 10px', 
-              fontSize: '12px',
-              backgroundColor: '#9C27B0',
-              color: 'white',
-              border: 'none',
-              borderRadius: '3px',
-              cursor: 'pointer'
-            }}
-          >
-            Debug
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   if (isLoading && conversations.length === 0) {
     return (
@@ -368,21 +261,17 @@ const ChatPage = () => {
   return (
     <MasterLayout>
       <section className="chat-section">
-        {/* WebSocket Status Panel */}
-        {renderDebugPanel()}
-        
         <div className="flex chat-row row">
           {/* Left Sidebar */}
           <div className="chat-left col-md-4">
             <div className="chat-header">
-              <h1>Chat</h1>
-              <div className="socket-status">
-                <span
-                  className={`status-dot ${wsStatus === 'CONNECTED' ? "connected" : wsStatus === 'CONNECTING' ? "connecting" : "disconnected"}`}>
-                </span>
-                {wsStatus === 'CONNECTED' && 'Connected'}
-                {wsStatus === 'CONNECTING' && 'Connecting...'}
-                {wsStatus === 'DISCONNECTED' && 'Disconnected'}
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h1 className="mb-0">Chat</h1>
+                <button
+                  className="btn dsgnbtn btn-sm"
+                  onClick={() => setShowNewChat(true)}>
+                  <i className="fa-solid fa-plus me-1"></i> New Chat
+                </button>
               </div>
               <div className="search-chat">
                 <input
@@ -402,48 +291,36 @@ const ChatPage = () => {
                     : "No conversations yet"}
                 </div>
               ) : (
-                filteredConversations.map((conversation) => {
-                  const lastMessageTime = conversation.last_message?.created_at;
-
-                  return (
-                    <div
-                      key={conversation.id}
-                      className={`chat-item ${
-                        activeConversationId === conversation.id ? "active" : ""
-                      }`}
-                      onClick={() => handleSelectConversation(conversation.id)}>
-                      <img
-                        src={getConversationAvatar(conversation)}
-                        alt={getConversationName(conversation)}
-                        className="chat-avatar"
-                        onError={(e) => {
-                          e.target.src = UserPic;
-                        }}
-                      />
-                      <div className="chat-info d-flex align-items-center justify-content-between w-100">
-                        <div className="clientInfo">
-                          <h4>{getConversationName(conversation)}</h4>
-                          <p className="preview-text">
-                            {getLastMessagePreview(conversation)}
-                          </p>
-                        </div>
-                        <div className="clientInfoTime">
-                          {lastMessageTime && (
-                            <span className="chat-time">
-                              {formatTime(lastMessageTime)}
-                            </span>
-                          )}
-                          {/* Show unread count */}
-                          {conversation.unread_count > 0 && (
-                            <span className="chat-number">
-                              {conversation.unread_count}
-                            </span>
-                          )}
-                        </div>
+                filteredConversations.map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    className={`chat-item ${activeConversationId === conversation.id ? "active" : ""}`}
+                    onClick={() => handleSelectConversation(conversation.id)}>
+                    <img
+                      src={getConversationAvatar(conversation)}
+                      alt="avatar"
+                      className="chat-avatar"
+                      onError={(e) => {
+                        e.target.src = UserPic;
+                      }}
+                    />
+                    <div className="chat-info d-flex align-items-center justify-content-between w-100">
+                      <div className="clientInfo">
+                        <h4>{getConversationName(conversation)}</h4>
+                        <p className="preview-text">
+                          {conversation.last_message?.text || "No messages yet"}
+                        </p>
+                      </div>
+                      <div className="clientInfoTime">
+                        {conversation.last_message?.created_at && (
+                          <span className="chat-time">
+                            {formatTime(conversation.last_message.created_at)}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  );
-                })
+                  </div>
+                ))
               )}
             </div>
           </div>
@@ -455,7 +332,7 @@ const ChatPage = () => {
                 <div className="chat-topbar">
                   <img
                     src={getConversationAvatar(activeConversation)}
-                    alt={getConversationName(activeConversation)}
+                    alt="avatar"
                     className="chat-avatar-lg"
                     onError={(e) => {
                       e.target.src = UserPic;
@@ -464,67 +341,29 @@ const ChatPage = () => {
                   <h3>{getConversationName(activeConversation)}</h3>
                 </div>
 
-                <div className="chat-window" ref={chatWindowRef}>
+                <div className="chat-window">
                   {currentMessages.length > 0 ? (
-                    groupMessagesByDate(currentMessages).map(
-                      ([date, messages]) => (
-                        <div key={date}>
-                          <div className="chat-date">{formatDate(date)}</div>
-                          <div className="chat-messages">
-                            {messages.map((msg) => {
-                              const isSentByMe =
-                                msg.sender_id === currentUserId;
-
-                              return (
-                                <div
-                                  key={msg.id}
-                                  className={`chat-bubble ${isSentByMe ? "sent" : "received"} ${
-                                    msg.isTemporary ? "temporary" : ""
-                                  }`}>
-                                  <div className="recieved-name">
-                                    {!isSentByMe && (
-                                      <span className="chat-sender">
-                                        {getSenderName(msg)}
-                                      </span>
-                                    )}
-                                    <span className="chat-time">
-                                      {formatTime(msg.created_at)}
-                                    </span>
-                                    {msg.isTemporary && (
-                                      <span className="sending-indicator">
-                                        Sending...
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p>{msg.text}</p>
-
-                                  {/* Show files if any */}
-                                  {msg.file_contents && msg.file_contents.length > 0 && (
-                                    <div className="message-files">
-                                      {msg.file_contents.map((file) => (
-                                        <div
-                                          key={file.id}
-                                          className="message-file">
-                                          <a
-                                            href={file.path}
-                                            target="_blank"
-                                            rel="noopener noreferrer">
-                                            📎{" "}
-                                            {file.type === "file"
-                                              ? "File"
-                                              : "Image"}
-                                          </a>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
+                    <div className="chat-messages">
+                      {currentMessages.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className={`chat-bubble ${msg.sender_id === currentUserId ? "sent" : "received"}`}>
+                          <div className="recieved-name">
+                            {msg.sender_id !== currentUserId && (
+                              <span className="chat-sender">
+                                {activeConversation.conversation_users?.find(
+                                  (cu) => cu.user_id === msg.sender_id,
+                                )?.user?.name || "Unknown"}
+                              </span>
+                            )}
+                            <span className="chat-time">
+                              {formatTime(msg.created_at)}
+                            </span>
                           </div>
+                          <p>{msg.text}</p>
                         </div>
-                      ),
-                    )
+                      ))}
+                    </div>
                   ) : (
                     <div className="no-messages">
                       <p>No messages yet. Start the conversation!</p>
@@ -540,23 +379,226 @@ const ChatPage = () => {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                    disabled={wsStatus !== 'CONNECTED'}
+                    disabled={wsStatus !== "CONNECTED"}
                   />
                   <button
                     onClick={handleSend}
-                    disabled={wsStatus !== 'CONNECTED' || !newMessage.trim()}>
+                    disabled={wsStatus !== "CONNECTED" || !newMessage.trim()}>
                     <i className="fa-solid fa-paper-plane"></i>
                   </button>
                 </div>
               </>
             ) : (
-              <div className="no-chat-selected">
-                <h3>Select a conversation to start chatting</h3>
-                <p>Your messages will appear here</p>
+              <div className="no-chat-selected text-center py-5">
+                <i className="fa-regular fa-comments fa-3x text-muted mb-3"></i>
+                <h3>Welcome to Chat</h3>
+                <button
+                  className="btn dsgnbtn btn-lg"
+                  onClick={() => setShowNewChat(true)}>
+                  <i className="fa-solid fa-plus me-2"></i> Start New Chat
+                </button>
               </div>
             )}
           </div>
         </div>
+
+        {/* New Chat Modal */}
+        <DynamicModal
+          show={showNewChat}
+          handleClose={() => {
+            setShowNewChat(false);
+            setUserSearchQuery("");
+            setCurrentPage(1);
+            setAllLoadedUsers([]); // Clear loaded users when modal closes
+          }}
+          title="Start New Chat"
+          modalWidth="500px"
+          content={
+            <div className="new-chat-content">
+              {/* Search Bar for Users */}
+              <div className="user-search-bar mb-3">
+                <div className="input-group">
+                  <span className="input-group-text">
+                    <Icon icon="mdi:magnify" />
+                  </span>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search users by name..."
+                    value={userSearchQuery}
+                    onChange={(e) => {
+                      setUserSearchQuery(e.target.value);
+                      setSelectedUserForChat(null);
+                    }}
+                    autoFocus
+                  />
+                  {userSearchQuery && (
+                    <button
+                      className="btn btnbtn"
+                      type="button"
+                      onClick={() => setUserSearchQuery("")}>
+                      <Icon icon="mdi:close" />
+                    </button>
+                  )}
+                </div>
+                {userSearchQuery && (
+                  <div className="mt-2">
+                    <small className="text-muted">
+                      Searching: "{userSearchQuery}"
+                    </small>
+                  </div>
+                )}
+              </div>
+
+              <div className="user-list-section">
+                {isLoadingUsers && allLoadedUsers.length === 0 ? (
+                  <div className="text-center py-4">
+                    <div className="spinner-border spinner-border-sm text-primary"></div>
+                    <p className="mt-2">Loading users...</p>
+                  </div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="text-center py-4">
+                    <Icon
+                      icon="mdi:account"
+                      className="text-muted"
+                      width="48"
+                      height="48"
+                    />
+                    <p className="mt-2">
+                      {userSearchQuery
+                        ? `No users found for "${userSearchQuery}"`
+                        : "No users available"}
+                    </p>
+                    {userSearchQuery && (
+                      <button
+                        className="btn btn-sm btn-link"
+                        onClick={() => setUserSearchQuery("")}>
+                        Clear search
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="user-list">
+                      {filteredUsers.map((user) => (
+                        <div
+                          key={user.id}
+                          className={`user-item ${selectedUserForChat?.id === user.id ? "selected" : ""}`}
+                          onClick={() => setSelectedUserForChat(user)}>
+                          <div className="user-avatar">
+                            <img
+                              src={user.profile_picture || UserPic}
+                              alt={user.name}
+                              onError={(e) => {
+                                e.target.src = UserPic;
+                              }}
+                            />
+                          </div>
+                          <div className="user-details">
+                            <h6 className="mb-0">{user.name}</h6>
+                            <small className="user-role">
+                              {user.role === "team"
+                                ? "Team Member"
+                                : "Customer"}
+                            </small>
+                          </div>
+                          {selectedUserForChat?.id === user.id && (
+                            <div className="selected-check">
+                              <Icon
+                                icon="mdi:check-circle"
+                                className="text-primary"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Show pagination when NOT searching and there are multiple pages */}
+                    {!userSearchQuery && pagination.last_page > 1 && (
+                      <div className="pagination-wrapper mt-3">
+                        <div className="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+                          <button
+                            className="btn btn-sm btnbtn"
+                            disabled={currentPage === 1}
+                            onClick={() => handleLoadPage(currentPage - 1)}>
+                            <Icon icon="mdi:chevron-left" /> Prev
+                          </button>
+                          <div className="d-flex gap-1 flex-wrap">
+                            {getPageNumbers().map((pageNum, idx) => (
+                              <button
+                                key={idx}
+                                className={`btn btn-sm ${currentPage === pageNum ? "dsgnbtn" : "btnbtn"}`}
+                                onClick={() =>
+                                  typeof pageNum === "number" &&
+                                  handleLoadPage(pageNum)
+                                }>
+                                {pageNum}
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            className="btn btn-sm btnbtn"
+                            disabled={currentPage === pagination.last_page}
+                            onClick={() => handleLoadPage(currentPage + 1)}>
+                            Next <Icon icon="mdi:chevron-right" />
+                          </button>
+                        </div>
+                        <div className="text-center mt-2">
+                          <small className="text-muted">
+                            {userSearchQuery ? (
+                              `Found ${filteredUsers.length} users`
+                            ) : (
+                              <>
+                                Page {currentPage} of {pagination.last_page} •{" "}
+                                {pagination.total} users total
+                              </>
+                            )}
+                          </small>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Show search results count when searching */}
+                    {userSearchQuery && (
+                      <div className="text-center mt-2">
+                        <small className="text-muted">
+                          Found {filteredUsers.length} users matching "
+                          {userSearchQuery}"
+                        </small>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div className="modal-actions d-flex gap-2 mt-4 pt-3 border-top">
+                <button
+                  className="btn btnbtn flex-fill"
+                  onClick={() => {
+                    setShowNewChat(false);
+                    setUserSearchQuery("");
+                    setCurrentPage(1);
+                    setAllLoadedUsers([]);
+                  }}>
+                  Cancel
+                </button>
+                <button
+                  className="btn dsgnbtn flex-fill"
+                  onClick={handleStartNewChat}
+                  disabled={!selectedUserForChat || wsStatus !== "CONNECTED"}>
+                  {wsStatus !== "CONNECTED" ? (
+                    "Waiting for connection..."
+                  ) : (
+                    <>
+                      <Icon icon="mdi:message" className="me-2" /> Start Chat
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          }
+        />
       </section>
     </MasterLayout>
   );

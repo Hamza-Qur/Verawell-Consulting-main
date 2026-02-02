@@ -61,8 +61,8 @@
     4.13 Overlay Css
     4.14 Position Css
 / ================================= Table Of Contents =================================== **/
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap");
-@import url('https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap");
 :root {
   --default-font: ;
   --h1: clamp(2rem, 1.2rem + 4vw, 4.5rem);
@@ -156,7 +156,7 @@
   --font-sm: 0.875rem;
   --font-xs: 0.75rem;
   --font-xxs: 0.625rem;
-  --primary-main:#8B2885;
+  --primary-main: #8b2885;
   --primary-50: #e4f1ff;
   --primary-100: #bfdcff;
   --primary-200: #95c7ff;
@@ -177,7 +177,7 @@
   --neutral-700: #374151;
   --neutral-800: #1f2937;
   --neutral-900: #111827;
-  --sidebar:#343A40;
+  --sidebar: #343a40;
   --danger-50: #fef2f2;
   --danger-100: #fee2e2;
   --danger-200: #fecaca;
@@ -312,7 +312,7 @@
   --input-form-dark: #d1d5db;
   --input-bg: var(--dark-3);
   --input-stroke: #f3f4f6;
-  --primary-main:#fff;
+  --primary-main: #fff;
   --primary-50: #e4f1ff0f;
   --info-50: #eff6ff0f;
   --warning-50: #fefce80f;
@@ -332,14 +332,14 @@
   --neutral-700: #ebecef;
   --neutral-800: #f3f4f6;
   --neutral-900: #f5f6fa;
-  --sidebar:#273142;
+  --sidebar: #273142;
 }
 
 /* === reset css start === */
 /* === reset css start === */
 *:where(
-    :not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *)
-  ) {
+  :not(html, iframe, canvas, img, svg, video, audio):not(svg *, symbol *)
+) {
   all: unset;
   display: revert;
 }
@@ -379,7 +379,7 @@ html {
 body {
   background-color: var(--bg-color);
   color: var(--text-secondary-light);
-  font-family: "Urbanist", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 1rem;
   padding: 0;
   margin: 0;
@@ -15353,7 +15353,7 @@ td.fc-header-center {
   inset-inline-start: -100%;
   width: 15.625rem;
   height: 100vh;
-  background-color:  var(--sidebar);
+  background-color: var(--sidebar);
   z-index: 3;
 }
 
@@ -15520,7 +15520,7 @@ td.fc-header-center {
 
 .sidebar-menu-area::-webkit-scrollbar {
   width: 6px;
-  background-color: #343A40;
+  background-color: #343a40;
 }
 
 .sidebar-menu-area::-webkit-scrollbar-thumb {
@@ -15547,7 +15547,9 @@ td.fc-header-center {
   display: inline-block;
 }
 
-.sidebar-menu li{margin-bottom:10px;}
+.sidebar-menu li {
+  margin-bottom: 10px;
+}
 
 .sidebar-menu li.dropdown > a {
   position: relative;
@@ -15595,7 +15597,7 @@ td.fc-header-center {
 
 .sidebar-menu li > a.active-page {
   background-color: var(--base);
-  color: #343A40;
+  color: #343a40;
   justify-content: space-between;
   flex-direction: row-reverse;
 }
@@ -15625,7 +15627,7 @@ td.fc-header-center {
   }
 }
 .sidebar-menu li a:hover {
-  color: #343A40;
+  color: #343a40;
   background: #fff;
 }
 

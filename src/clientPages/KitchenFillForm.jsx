@@ -30,6 +30,7 @@ const KitchenFillForm = () => {
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [isFileError, setIsFileError] = useState(false);
   const [sections, setSections] = useState([]);
+  const [userRole, setUserRole] = useState(null);
 
   // Get category_id from navigation state
   const category_id = location.state?.category_id;
@@ -44,6 +45,12 @@ const KitchenFillForm = () => {
     }
   }, [dispatch, category_id]);
 
+  useEffect(() => {
+    const role = localStorage.getItem("role");
+    setUserRole(role || "guest");
+  }, []);
+  const isCustomer = userRole === "customer";
+
   // Transform API questions into sections format
   useEffect(() => {
     if (currentCategory?.questions) {
@@ -53,7 +60,7 @@ const KitchenFillForm = () => {
           label: question.question,
           question_id: question.question_id,
           order: question.order || index + 1,
-        })
+        }),
       );
       setSections(transformedSections);
     }
@@ -350,7 +357,11 @@ const KitchenFillForm = () => {
           fontSize: "30px",
         }}>
         <span
-          onClick={() => navigate("/facility-forms")}
+          onClick={() =>
+            navigate(
+              userRole === "customer" ? "/customer-forms" : "/facility-forms",
+            )
+          }
           style={{
             cursor: "pointer",
             display: "inline-flex",
@@ -541,20 +552,20 @@ const KitchenFillForm = () => {
                       message.type === "success"
                         ? "#d4edda"
                         : message.type === "error"
-                        ? "#f8d7da"
-                        : "#d1ecf1",
+                          ? "#f8d7da"
+                          : "#d1ecf1",
                     color:
                       message.type === "success"
                         ? "#155724"
                         : message.type === "error"
-                        ? "#721c24"
-                        : "#0c5460",
+                          ? "#721c24"
+                          : "#0c5460",
                     border: `1px solid ${
                       message.type === "success"
                         ? "#c3e6cb"
                         : message.type === "error"
-                        ? "#f5c6cb"
-                        : "#bee5eb"
+                          ? "#f5c6cb"
+                          : "#bee5eb"
                     }`,
                   }}>
                   {message.text}

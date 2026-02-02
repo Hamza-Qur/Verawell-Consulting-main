@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import MasterLayout from "../otherImages/MasterLayout";
 import DynamicModal from "../components/DynamicModal";
-import Toast from "../components/Toast"; // Import your Toast component
+import Toast from "../components/Toast";
 import {
   getMyTasks,
   updateTask,
@@ -25,12 +25,13 @@ const Timelogs = () => {
 
   // Get my tasks from Redux store
   const { myTasks, isMyTasksLoading, myTasksError } = useSelector(
-    (state) => state.attendance
+    (state) => state.attendance,
   );
 
   const [tasks, setTasks] = useState([]);
   const [activeModal, setActiveModal] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [isSaving, setIsSaving] = useState(false); // Add saving state at parent level
 
   // Toast state
   const [toast, setToast] = useState({
@@ -48,17 +49,13 @@ const Timelogs = () => {
     });
   };
 
-  // Hide toast function
   const hideToast = () => {
     setToast({ ...toast, show: false });
   };
 
-  // Initialize with current week's Monday
   const getCurrentWeekMonday = () => {
     const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-
-    // Adjust to get Monday (if Sunday, go back 6 days; otherwise go back to Monday)
+    const dayOfWeek = today.getDay();
     const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     const monday = new Date(today);
     monday.setDate(today.getDate() - diff);
@@ -79,11 +76,7 @@ const Timelogs = () => {
       const transformedTasks = myTasks.map((task) => {
         const startDate = new Date(task.start_time);
         const endDate = new Date(task.end_time);
-
-        // Get day index (0 = Monday, 6 = Sunday)
         const dayIndex = (startDate.getDay() + 6) % 7;
-
-        // Format date as YYYY-MM-DD
         const dateStr = startDate.toISOString().split("T")[0];
 
         return {
@@ -94,7 +87,6 @@ const Timelogs = () => {
           date: dateStr,
           startDate: startDate,
           endDate: endDate,
-          // Display date strings
           startDateStr: startDate.toLocaleDateString("en-US", {
             year: "numeric",
             month: "short",
@@ -109,22 +101,19 @@ const Timelogs = () => {
       });
       setTasks(transformedTasks);
     } else {
-      // Clear tasks if API returns empty
       setTasks([]);
     }
   }, [myTasks]);
 
-  // Helper function to get start of any week for a given date
   const getMondayOfWeek = (date) => {
     const d = new Date(date);
-    const day = d.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const diff = day === 0 ? 6 : day - 1; // Days to subtract to get Monday
+    const day = d.getDay();
+    const diff = day === 0 ? 6 : day - 1;
     d.setDate(d.getDate() - diff);
     d.setHours(0, 0, 0, 0);
     return d;
   };
 
-  // Reset to current week button
   const resetToCurrentWeek = () => {
     setBaseDate(getCurrentWeekMonday());
   };
@@ -138,18 +127,17 @@ const Timelogs = () => {
 
   const weekDates = getWeekDates();
 
-  // Check if current week is displayed
   const isCurrentWeek = () => {
     const currentMonday = getCurrentWeekMonday();
     return baseDate.getTime() === currentMonday.getTime();
   };
 
   const saveTask = (taskData) => {
-    // Format dates for API (YYYY-MM-DD)
+    setIsSaving(true); // Start saving
+    
     const startDate = taskData.startDateTime.split("T")[0];
     const endDate = taskData.endDateTime.split("T")[0];
 
-    // Update existing task
     const updateData = {
       id: selectedTask.id,
       title: taskData.title,
@@ -159,14 +147,19 @@ const Timelogs = () => {
     };
 
     dispatch(updateTask(updateData)).then((action) => {
+      setIsSaving(false); // Stop saving regardless of outcome
+      
       if (action.payload?.success) {
         showToast("Task updated successfully!", "success");
-        // Refresh tasks after update
         dispatch(getMyTasks());
         closeModals();
       } else {
         showToast(action.payload?.message || "Failed to update task", "error");
       }
+    }).catch((error) => {
+      setIsSaving(false);
+      showToast("An error occurred while saving", "error");
+      console.error("Save task error:", error);
     });
   };
 
@@ -175,13 +168,12 @@ const Timelogs = () => {
       dispatch(deleteAttendance(taskId)).then((action) => {
         if (action.payload?.success) {
           showToast("Task deleted successfully!", "success");
-          // Refresh tasks after delete
           dispatch(getMyTasks());
           closeModals();
         } else {
           showToast(
             action.payload?.message || "Failed to delete task",
-            "error"
+            "error",
           );
         }
       });
@@ -197,9 +189,9 @@ const Timelogs = () => {
   const closeModals = () => {
     setActiveModal(null);
     setSelectedTask(null);
+    setIsSaving(false); // Reset saving state when closing modal
   };
 
-  // Format date for display
   const formatDateRange = () => {
     const start = weekDates[0];
     const end = weekDates[6];
@@ -213,13 +205,11 @@ const Timelogs = () => {
     }
   };
 
-  // Group tasks by day for display
   const getTasksForDay = (date) => {
     const dateStr = date.toISOString().split("T")[0];
     return tasks.filter((task) => task.date === dateStr);
   };
 
-  // Loading state
   if (isMyTasksLoading) {
     return (
       <MasterLayout>
@@ -252,7 +242,6 @@ const Timelogs = () => {
     );
   }
 
-  // Error state
   if (myTasksError) {
     return (
       <MasterLayout>
@@ -295,7 +284,6 @@ const Timelogs = () => {
           minHeight: "100vh",
           position: "relative",
         }}>
-        {/* Toast Notification */}
         <Toast
           show={toast.show}
           message={toast.message}
@@ -316,7 +304,6 @@ const Timelogs = () => {
           </h2>
         </div>
 
-        {/* Navigation */}
         <div
           style={{
             display: "flex",
@@ -376,7 +363,6 @@ const Timelogs = () => {
           </div>
         </div>
 
-        {/* Grid - List view without time slots */}
         <div
           style={{
             background: "white",
@@ -418,7 +404,6 @@ const Timelogs = () => {
             })}
           </div>
 
-          {/* Tasks list for each day */}
           <div
             style={{
               display: "grid",
@@ -499,7 +484,13 @@ const Timelogs = () => {
           handleClose={closeModals}
           title="Edit Task"
           modalWidth="480px"
-          content={<TaskForm initialData={selectedTask} onSave={saveTask} />}
+          content={
+            <TaskForm 
+              initialData={selectedTask} 
+              onSave={saveTask} 
+              isSaving={isSaving} 
+            />
+          }
         />
 
         <DynamicModal
@@ -521,13 +512,10 @@ const Timelogs = () => {
   );
 };
 
-// --- SUBSIDIARY COMPONENTS ---
-
-const TaskForm = ({ initialData, onSave }) => {
-  // Helper to prepare initial data with datetime values
+// --- UPDATED TASKFORM COMPONENT WITH SAVING STATE ---
+const TaskForm = ({ initialData, onSave, isSaving }) => {
   const prepareInitialData = () => {
     if (initialData) {
-      // Use the actual dates from the task data
       return {
         title: initialData.title || "",
         description: initialData.description || "",
@@ -545,6 +533,12 @@ const TaskForm = ({ initialData, onSave }) => {
   };
 
   const [formData, setFormData] = useState(prepareInitialData());
+  const [localIsSaving, setLocalIsSaving] = useState(false);
+
+  // Update local saving state when prop changes
+  useEffect(() => {
+    setLocalIsSaving(isSaving);
+  }, [isSaving]);
 
   const inputStyle = {
     background: "#F7F8FA",
@@ -558,19 +552,47 @@ const TaskForm = ({ initialData, onSave }) => {
     boxSizing: "border-box",
   };
 
+  const handleSave = () => {
+    if (localIsSaving) return; // Prevent multiple clicks
+    
+    // Validate required fields
+    if (!formData.title.trim()) {
+      alert("Please enter a task title");
+      return;
+    }
+    
+    if (!formData.startDateTime || !formData.endDateTime) {
+      alert("Please select both start and end dates");
+      return;
+    }
+    
+    // Validate date logic (end date shouldn't be before start date)
+    const startDate = new Date(formData.startDateTime);
+    const endDate = new Date(formData.endDateTime);
+    
+    if (endDate < startDate) {
+      alert("End date cannot be before start date");
+      return;
+    }
+    
+    setLocalIsSaving(true);
+    onSave(formData);
+  };
+
   return (
     <div>
-      <label>Title</label>
+      <label>Title *</label>
       <input
         value={formData.title}
         style={inputStyle}
         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
         placeholder="Enter task title"
+        disabled={localIsSaving}
       />
 
       <div style={{ display: "flex", gap: "10px" }}>
         <div style={{ flex: 1 }}>
-          <label>Start Date</label>
+          <label>Start Date *</label>
           <input
             type="date"
             value={formData.startDateTime.split("T")[0]}
@@ -584,10 +606,11 @@ const TaskForm = ({ initialData, onSave }) => {
                   (formData.startDateTime.split("T")[1] || "00:00"),
               })
             }
+            disabled={localIsSaving}
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label>End Date</label>
+          <label>End Date *</label>
           <input
             type="date"
             value={formData.endDateTime.split("T")[0]}
@@ -601,6 +624,7 @@ const TaskForm = ({ initialData, onSave }) => {
                   (formData.endDateTime.split("T")[1] || "00:00"),
               })
             }
+            disabled={localIsSaving}
           />
         </div>
       </div>
@@ -613,22 +637,56 @@ const TaskForm = ({ initialData, onSave }) => {
           setFormData({ ...formData, description: e.target.value })
         }
         placeholder="Enter task description"
+        disabled={localIsSaving}
       />
 
       <button
-        onClick={() => onSave(formData)}
+        onClick={handleSave}
+        disabled={localIsSaving}
         style={{
           width: "100%",
           padding: "16px",
           borderRadius: "12px",
           color: "white",
-          background: "linear-gradient(90deg, #d64c4c, #8B2885)",
+          background: localIsSaving 
+            ? "#cccccc" 
+            : "linear-gradient(90deg, #d64c4c, #8B2885)",
           border: "none",
-          cursor: "pointer",
+          cursor: localIsSaving ? "not-allowed" : "pointer",
           fontWeight: "700",
+          textAlign: "center",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+          transition: "all 0.3s ease",
         }}>
-        Save
+        {localIsSaving ? (
+          <>
+            <Icon 
+              icon="mdi:loading" 
+              width={20} 
+              height={20} 
+              style={{ animation: "spin 1s linear infinite" }} 
+            />
+            Saving...
+          </>
+        ) : (
+          "Save Changes"
+        )}
       </button>
+
+      {localIsSaving && (
+        <div style={{
+          textAlign: "center",
+          marginTop: "12px",
+          fontSize: "12px",
+          color: "#666",
+          fontStyle: "italic"
+        }}>
+          Please wait while we save your changes...
+        </div>
+      )}
     </div>
   );
 };

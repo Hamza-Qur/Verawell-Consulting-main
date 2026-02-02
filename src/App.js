@@ -36,6 +36,7 @@ import CustomerForms from "./customerPages/CustomerForms";
 import AdminFacilityDetailPage from "./components/AdminFacilityDetailPage";
 import TeamFacilityDetailPage from "./components/TeamFacilityDetailPage";
 import SocketProvider from "./components/SocketProvider";
+import ClientFacilityDetailPage from "./components/ClientFacilityDetailPage";
 
 function App() {
   return (
@@ -151,6 +152,15 @@ function App() {
                 <ProtectedRoute
                   element={TeamFacilityDetailPage}
                   allowedRole="team"
+                />
+              }
+            />
+            <Route
+              path="/client-facility/:facilityId"
+              element={
+                <ProtectedRoute
+                  element={ClientFacilityDetailPage}
+                  allowedRole="customer"
                 />
               }
             />

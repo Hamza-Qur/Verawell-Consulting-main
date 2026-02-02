@@ -85,8 +85,8 @@ const MasterLayout = ({ children, Chain }) => {
           sidebarActive
             ? "sidebar active "
             : mobileMenu
-            ? "sidebar sidebar-open"
-            : "sidebar"
+              ? "sidebar sidebar-open"
+              : "sidebar"
         }>
         <button
           onClick={mobileMenuControl}
@@ -560,12 +560,16 @@ const MasterLayout = ({ children, Chain }) => {
                   <div className="dropdown-menu to-top dropdown-menu-sm">
                     <div className="py-12 px-16 radius-8 bg-primary-50 mb-16 d-flex align-items-center justify-content-between gap-2">
                       <div>
-                        <h6 className="text-lg text-primary-light fw-semibold mb-2">
+                        <h6
+                          className="text-lg text-primary-light fw-semibold mb-2"
+                          style={{ textTransform: "capitalize" }}>
                           {profile?.data?.name || "User Name"}{" "}
                           {/* Use profile from userSlice */}
                         </h6>
-                        <span className="text-secondary-light fw-medium text-sm">
-                          {profile?.data?.role || "Admin"}{" "}
+                        <span
+                          className="text-secondary-light fw-medium text-sm"
+                          style={{ textTransform: "capitalize" }}>
+                          {profile?.data?.role || "Unknown"}{" "}
                           {/* Use profile from userSlice */}
                         </span>
                       </div>

@@ -16,7 +16,7 @@ const AttendanceDataTable = () => {
   const dispatch = useDispatch();
 
   const { attendanceList, isLoading, error, isDeleting } = useSelector(
-    (state) => state.attendance
+    (state) => state.attendance,
   );
 
   const [dropdownOpen, setDropdownOpen] = useState(null);
@@ -62,7 +62,7 @@ const AttendanceDataTable = () => {
   const handleDelete = (rowData) => {
     if (
       window.confirm(
-        `Are you sure you want to delete attendance record for "${rowData.title}"?`
+        `Are you sure you want to delete attendance record for "${rowData.title}"?`,
       )
     ) {
       dispatch(deleteAttendance(rowData.id)).then((result) => {
@@ -211,6 +211,14 @@ const AttendanceDataTable = () => {
           );
         },
       },
+    },
+    {
+      name: "startTime",
+      label: "Check-In",
+    },
+    {
+      name: "endTime",
+      label: "Check-Out",
     },
     {
       name: "hoursWorked",
@@ -427,7 +435,7 @@ const AttendanceDataTable = () => {
               <span>{isDeleting ? "Deleting..." : "Delete"}</span>
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );

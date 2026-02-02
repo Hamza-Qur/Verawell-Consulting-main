@@ -88,13 +88,13 @@ const EmployeeDashboardData = () => {
         setProfileImagePreview(
           user.profile_picture.startsWith("http")
             ? user.profile_picture
-            : `https://verawell.koderspedia.net${user.profile_picture}`
+            : `https://verawell.koderspedia.net${user.profile_picture}`,
         );
       } else {
         setProfileImagePreview(
           `https://ui-avatars.com/api/?name=${encodeURIComponent(
-            user.name || "User"
-          )}&background=random&color=fff&size=200`
+            user.name || "User",
+          )}&background=random&color=fff&size=200`,
         );
       }
       setProfileImage(null);
@@ -138,13 +138,13 @@ const EmployeeDashboardData = () => {
         setProfileImagePreview(
           user.profile_picture.startsWith("http")
             ? user.profile_picture
-            : `https://verawell.koderspedia.net${user.profile_picture}`
+            : `https://verawell.koderspedia.net${user.profile_picture}`,
         );
       } else {
         setProfileImagePreview(
           `https://ui-avatars.com/api/?name=${encodeURIComponent(
-            user.name || "User"
-          )}&background=random&color=fff&size=200`
+            user.name || "User",
+          )}&background=random&color=fff&size=200`,
         );
       }
     }
@@ -161,7 +161,7 @@ const EmployeeDashboardData = () => {
         adminUpdateUserProfile({
           userId: editUserId,
           profileData: updateData,
-        })
+        }),
       )
         .then((action) => {
           if (action.payload?.success) {
@@ -352,7 +352,7 @@ const EmployeeDashboardData = () => {
         </div>
       ) : (
         <div>
-          <h2 className="fs-2 mt-40">Users</h2>
+          <h2 className="fs-2 mt-24">Users</h2>
           {employeeData.length === 0 ? (
             <div
               style={{ textAlign: "center", padding: "40px", color: "#666" }}>
@@ -609,7 +609,7 @@ const EmployeeDashboardData = () => {
               </div>
             </div>
           </div>,
-          document.body
+          document.body,
         )}
 
       {/* Delete Confirmation Modal */}
@@ -710,7 +710,7 @@ const EmployeeDashboardData = () => {
               </div>
             </div>
           </div>,
-          document.body
+          document.body,
         )}
 
       {dropdownOpen !== null &&
@@ -755,14 +755,14 @@ const EmployeeDashboardData = () => {
                 handleDeleteClick(
                   employeeData[dropdownOpen]?.id,
                   dropdownOpen,
-                  e
+                  e,
                 )
               }>
               <Icon icon="material-symbols:delete-outline" width={18} />
               Delete
             </div>
           </div>,
-          document.body
+          document.body,
         )}
 
       {/* Add CSS for spinner animation */}
