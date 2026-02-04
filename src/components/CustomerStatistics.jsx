@@ -24,11 +24,11 @@ const CustomerStatistics = () => {
       submittedForms.forEach((item) => {
         // Extract month from "YYYY-MM" format
         const monthStr = item.month; // e.g., "2026-01"
-        
+
         if (monthStr && monthStr.includes("-")) {
           const monthPart = monthStr.split("-")[1]; // Get "01" from "2026-01"
           const monthIndex = parseInt(monthPart, 10) - 1; // Convert to 0-based index
-          
+
           if (monthIndex >= 0 && monthIndex < 12) {
             monthlyData[monthIndex] = item.total || 0;
           }
@@ -42,18 +42,28 @@ const CustomerStatistics = () => {
   // Get month names for the current year's data
   const getMonthNames = () => {
     const monthNames = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ];
-    
+
     // If we have data, find the year from the first item
     if (submittedForms && submittedForms.length > 0) {
       const firstItem = submittedForms[0];
       if (firstItem.month && firstItem.month.includes("-")) {
-        return monthNames.map(month => `${month}`);
+        return monthNames.map((month) => `${month}`);
       }
     }
-    
+
     return monthNames; // Fallback to just month names
   };
 
@@ -150,7 +160,7 @@ const CustomerStatistics = () => {
 
         return `
         <div style="padding: 10px; background: #fff; border-radius: 5px; border: 1px solid #ddd;">
-          <div style="font-size: 14px; color: #333; font-weight: bold;">${month}</div>
+          <div style="font-size: 14px; color: #333; font-weight: bold;">This Month</div>
           <div style="font-size: 16px; color: #8B2885; font-weight: bold;">${value} Forms Submitted</div>
         </div>
       `;

@@ -34,11 +34,14 @@ export const initChatSocket = ({ socketBaseUrl, userId }) => {
       startPingPong();
     };
 
-    socket.onclose = (event) => {
+    socket.onclose = (closeEvent) => {
       store.dispatch(setSocketStatus(false));
       stopPingPong();
 
-      if (event.code !== 1000 && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      if (
+        closeEvent.code !== 1000 &&
+        reconnectAttempts < MAX_RECONNECT_ATTEMPTS
+      ) {
         reconnectAttempts++;
         const delay = Math.min(3000 * reconnectAttempts, 15000);
         reconnectTimer = setTimeout(() => {
@@ -47,13 +50,13 @@ export const initChatSocket = ({ socketBaseUrl, userId }) => {
       }
     };
 
-    socket.onerror = (error) => {
+    socket.onerror = (errorEvent) => {
       stopPingPong();
     };
 
-    socket.onmessage = (event) => {
+    socket.onmessage = (messageEvent) => {
       try {
-        const data = event.data;
+        const data = messageEvent.data;
 
         if (data === "pong" || data === '"pong"') {
           lastPongTime = Date.now();
@@ -84,8 +87,8 @@ export const initChatSocket = ({ socketBaseUrl, userId }) => {
                     payload.data.created_at || new Date().toISOString(),
                   updated_at:
                     payload.data.updated_at || new Date().toISOString(),
-                  file_contents: payload.data.messages || [],
-                  file_content: payload.data.messages || [],
+                  file_contents: payload.data.file_contents || [],
+                  file_content: payload.data.file_contents || [],
                 },
               }),
             );
@@ -94,7 +97,7 @@ export const initChatSocket = ({ socketBaseUrl, userId }) => {
           sendPong();
         }
       } catch (error) {
-        if (event.data === "pong" || event.data === '"pong"') {
+        if (messageEvent.data === "pong" || messageEvent.data === '"pong"') {
           lastPongTime = Date.now();
           return;
         }
@@ -127,7 +130,9 @@ const sendPing = () => {
   if (socket?.readyState === WebSocket.OPEN) {
     try {
       socket.send(JSON.stringify({ type: "ping" }));
-    } catch (error) {}
+    } catch (error) {
+      console.error("Failed to send ping:", error);
+    }
   }
 };
 
@@ -135,7 +140,9 @@ const sendPong = () => {
   if (socket?.readyState === WebSocket.OPEN) {
     try {
       socket.send(JSON.stringify({ type: "pong" }));
-    } catch (error) {}
+    } catch (error) {
+      console.error("Failed to send pong:", error);
+    }
   }
 };
 
@@ -160,7 +167,7 @@ const cleanUpSocket = () => {
 
 export const sendChatMessage = ({
   conversationId = null,
-  receiverId,
+  receiverId = null,
   text,
   files = [],
 }) => {
@@ -174,13 +181,16 @@ export const sendChatMessage = ({
     data: files,
   };
 
-  // Include conversation_id if we have one (existing conversation)
+  // Always include conversation_id if we have it
   if (conversationId) {
     messageData.conversation_id = conversationId;
   }
 
-  // Always include receiver_id (required for new conversations)
-  messageData.receiver_id = receiverId;
+  // Only include receiver_id if it's provided and not null/undefined
+  // This allows us to send receiver_id for individual chats but omit it for groups
+  if (receiverId !== null && receiverId !== undefined) {
+    messageData.receiver_id = receiverId;
+  }
 
   console.log("Sending chat message:", messageData);
 
@@ -205,7 +215,9 @@ export const joinConversation = (conversationId) => {
 
   try {
     socket.send(JSON.stringify(joinMessage));
-  } catch (error) {}
+  } catch (error) {
+    console.error("Failed to join conversation:", error);
+  }
 };
 
 export const getSocketStatus = () => {

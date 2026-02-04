@@ -42,7 +42,7 @@ const SalesStatisticOne = () => {
     const topFacilities = [...facilityScores]
       .sort(
         (a, b) =>
-          Math.abs(parseInt(b.total_score)) - Math.abs(parseInt(a.total_score))
+          Math.abs(parseInt(b.total_score)) - Math.abs(parseInt(a.total_score)),
       )
       .slice(0, 5);
 
@@ -50,7 +50,7 @@ const SalesStatisticOne = () => {
       {
         name: "Facility Score",
         data: topFacilities.map(
-          (facility) => parseInt(facility.total_score) || 0
+          (facility) => parseInt(facility.total) || 0,
         ),
       },
     ];
@@ -81,7 +81,7 @@ const SalesStatisticOne = () => {
     for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthKey = `${date.getFullYear()}-${String(
-        date.getMonth() + 1
+        date.getMonth() + 1,
       ).padStart(2, "0")}`;
       const monthName = date.toLocaleString("default", { month: "short" });
 
@@ -118,14 +118,14 @@ const SalesStatisticOne = () => {
         .sort(
           (a, b) =>
             Math.abs(parseInt(b.total_score)) -
-            Math.abs(parseInt(a.total_score))
+            Math.abs(parseInt(a.total_score)),
         )
         .slice(0, 5);
 
       return topFacilities.map((facility) =>
         facility.facility_name.length > 10
           ? facility.facility_name.substring(0, 10) + "..."
-          : facility.facility_name
+          : facility.facility_name,
       );
     }
   };
@@ -221,7 +221,7 @@ const SalesStatisticOne = () => {
           const date = new Date(
             now.getFullYear(),
             now.getMonth() - monthsAgo,
-            1
+            1,
           );
           const monthYear = date.toLocaleString("default", {
             month: "long",
@@ -235,7 +235,7 @@ const SalesStatisticOne = () => {
               .sort(
                 (a, b) =>
                   Math.abs(parseInt(b.total_score)) -
-                  Math.abs(parseInt(a.total_score))
+                  Math.abs(parseInt(a.total_score)),
               )
               .slice(0, 5);
 
@@ -277,7 +277,7 @@ const SalesStatisticOne = () => {
               // For facility scores, set min based on data
               if (!facilityScores || facilityScores.length === 0) return -10;
               const scores = facilityScores.map(
-                (f) => parseInt(f.total_score) || 0
+                (f) => parseInt(f.total_score) || 0,
               );
               const minScore = Math.min(...scores);
               return Math.min(minScore - 5, -10);
@@ -295,7 +295,7 @@ const SalesStatisticOne = () => {
               // For facility scores
               if (!facilityScores || facilityScores.length === 0) return 10;
               const scores = facilityScores.map(
-                (f) => parseInt(f.total_score) || 0
+                (f) => parseInt(f.total_score) || 0,
               );
               const maxScore = Math.max(...scores);
               return Math.max(maxScore + 5, 10);

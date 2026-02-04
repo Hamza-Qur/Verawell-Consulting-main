@@ -33,8 +33,8 @@ const CustomerDashboard = () => {
       setDisplayedFacilityId(firstFacility.facility_id);
 
       // Convert total_score from string to number for the gauge
-      const kitchenScore = parseInt(firstFacility.total_score) || 0;
-      const mealScore = firstFacility.total || 0; // Using 'total' as meal score
+      const kitchenScore = parseInt(firstFacility.total_score_1) || 0;
+      const mealScore = firstFacility.total_score_2 || 0; // Using 'total' as meal score
 
       setDisplayedScores({
         kitchen: kitchenScore,
@@ -196,7 +196,7 @@ const CustomerDashboard = () => {
             <KitchenScoreGauge
               score={displayedScores.kitchen}
               title="Total Score"
-              subtitle={`${displayedFacility?.facility_name || "Facility"} – Overall Assessment`}
+              subtitle={`${displayedFacility?.facility_name || "Facility"} – Kitchen Sanitation Assessment`}
               strokeGauge="#ffe54fff"
             />
           </div>
@@ -211,7 +211,7 @@ const CustomerDashboard = () => {
             <KitchenScoreGauge
               score={displayedScores.meal}
               title="Total Assessments"
-              subtitle={`${displayedFacility?.facility_name || "Facility"} – Completed Assessments`}
+              subtitle={`${displayedFacility?.facility_name || "Facility"} – Meal Observation Assessments`}
               strokeGauge="#50D4B5"
             />
           </div>

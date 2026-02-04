@@ -6817,7 +6817,7 @@ h6,
 /* === text-align css end === */
 /* === border css start === */
 .border {
-  border: 1px solid var(--border-color) !important;
+  border: 1px solid black !important;
 }
 
 .border-start {
@@ -8729,8 +8729,8 @@ h6,
 
 .btn-outline-danger {
   background-color: transparent;
-  color: var(--danger-main);
-  border-color: var(--danger-main);
+  color: crimson;
+  border-color: crimson;
 }
 
 .btn-outline-danger:hover {
@@ -12678,7 +12678,7 @@ textarea:active {
 
 .input-group-text {
   color: var(--text-secondary-light);
-  height: 44px;
+  height: 40px;
 }
 
 .form-control.is-invalid,

@@ -174,7 +174,7 @@ export const getFacilityScores = createAsyncThunk(
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        `${BASE_URL}/api/dashboard/get-facility-score`,
+        `${BASE_URL}/api/dashboard/get-facility-score-customer`,
         {
           headers: {
             Accept: "application/json",

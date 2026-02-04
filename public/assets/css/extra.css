@@ -2043,6 +2043,7 @@ p.MuiTablePagination-displayedRows {
 
 .chat-bubble.received .chat-sender {
   color: #28a745;
+  min-width: 150px;
 }
 
 /* Add these styles to your existing CSS file */
@@ -2159,6 +2160,9 @@ p.MuiTablePagination-displayedRows {
   flex: 1;
   min-width: 0;
   text-transform: capitalize;
+}
+.user-details-sm h6 {
+  font-size: 18px !important;
 }
 
 .user-details h6 {
@@ -2398,4 +2402,247 @@ p.MuiTablePagination-displayedRows {
 
 .sidebar-menu li a span {
   font-size: 16px !important;
+}
+
+.selected-user-badge {
+  background: #f0f7ff;
+  border: 1px solid #d0e3ff;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.selected-user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.selected-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.selected-user-name {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.btn-remove-user {
+  background: none;
+  border: none;
+  color: #e74c3c;
+  padding: 0;
+  margin-left: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.btn-remove-user:hover {
+  background: #ffeaea;
+}
+
+.selected-users-container {
+  min-height: 50px;
+  padding: 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.photo-preview {
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+}
+
+.photo-preview:hover {
+  background: #e9ecef;
+}
+
+.user-item {
+  padding: 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.user-item:hover {
+  background: #f8f9fa;
+  border-color: #c0c6cc;
+}
+
+.user-item.selected {
+  background: #f0f7ff;
+  border-color: #3498db;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member-avatar {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+}
+
+.selected-user-badge-sm {
+  background: #f0f7ff;
+  border: 1px solid #d0e3ff;
+  border-radius: 16px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.selected-user-avatar-sm {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.selected-user-avatar-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.selected-user-name-sm {
+  font-weight: 500;
+  color: #2c3e50;
+  font-size: 11px;
+}
+
+.btn-remove-user-sm {
+  background: none;
+  border: none;
+  color: #e74c3c;
+  padding: 0;
+  margin-left: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 10px;
+}
+
+.btn-remove-user-sm:hover {
+  background: #ffeaea;
+}
+
+.user-item-sm {
+  padding: 6px 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.user-item-sm:hover {
+  background: #f8f9fa;
+  border-color: #c0c6cc;
+}
+
+.user-avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.user-avatar-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-list-sm {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.user-role-sm {
+  font-size: 12px;
+}
+
+.add-icon-sm {
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* Custom scrollbar styling */
+.new-group-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.new-group-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.new-group-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.new-group-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.selected-users-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.selected-users-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.selected-users-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+.user-list-sm::-webkit-scrollbar {
+  width: 4px;
+}
+
+.user-list-sm::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.user-list-sm::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
 }

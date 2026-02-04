@@ -119,10 +119,14 @@ const AttendanceDataTable = () => {
         title: task.title || "No Title",
         description: task.description || "No Description",
         startTime: task.start_time
-          ? new Date(task.start_time).toLocaleDateString()
+          ? new Date(task.start_time).toLocaleTimeString("en-US", {
+              hour12: true,
+            })
           : "N/A",
         endTime: task.end_time
-          ? new Date(task.end_time).toLocaleDateString()
+          ? new Date(task.end_time).toLocaleTimeString("en-US", {
+              hour12: true,
+            })
           : "N/A",
         month: month,
         employeeName: task.user_name || `User ${task.user_id || "N/A"}`,
