@@ -71,13 +71,25 @@ const Timelogs = () => {
   }, [dispatch]);
 
   // Transform API data to match the UI format when data loads
+  // Transform API data to match the UI format when data loads
   useEffect(() => {
     if (myTasks && myTasks.length > 0) {
       const transformedTasks = myTasks.map((task) => {
-        const startDate = new Date(task.start_time);
-        const endDate = new Date(task.end_time);
+        // Parse date string manually to avoid timezone issues
+        const parseDateTime = (dateTimeStr) => {
+          // dateTimeStr format: "2026-02-04 15:00:00"
+          const [datePart, timePart] = dateTimeStr.split(" ");
+          const [year, month, day] = datePart.split("-");
+          const [hours, minutes] = (timePart || "00:00:00").split(":");
+
+          // Create date object with local time
+          return new Date(year, month - 1, day, hours, minutes);
+        };
+
+        const startDate = parseDateTime(task.start_time);
+        const endDate = parseDateTime(task.end_time);
         const dayIndex = (startDate.getDay() + 6) % 7;
-        const dateStr = startDate.toISOString().split("T")[0];
+        const dateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}-${String(startDate.getDate()).padStart(2, "0")}`;
 
         return {
           id: task.id,
@@ -91,11 +103,15 @@ const Timelogs = () => {
             year: "numeric",
             month: "short",
             day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
           }),
           endDateStr: endDate.toLocaleDateString("en-US", {
             year: "numeric",
             month: "short",
             day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
           }),
         };
       });
@@ -134,33 +150,56 @@ const Timelogs = () => {
 
   const saveTask = (taskData) => {
     setIsSaving(true); // Start saving
-    
-    const startDate = taskData.startDateTime.split("T")[0];
-    const endDate = taskData.endDateTime.split("T")[0];
+
+    // Parse the datetime-local string (format: YYYY-MM-DDTHH:MM)
+    const parseDateTimeLocal = (dateTimeStr) => {
+      // dateTimeStr is in format: "2026-02-04T15:00"
+      const [datePart, timePart] = dateTimeStr.split("T");
+      const [year, month, day] = datePart.split("-");
+      const [hours, minutes] = timePart.split(":");
+
+      return {
+        year,
+        month,
+        day,
+        hours,
+        minutes: minutes || "00",
+      };
+    };
+
+    const startParts = parseDateTimeLocal(taskData.startDateTime);
+    const endParts = parseDateTimeLocal(taskData.endDateTime);
 
     const updateData = {
       id: selectedTask.id,
       title: taskData.title,
       description: taskData.description || "",
-      start_time: startDate,
-      end_time: endDate,
+      start_time: `${startParts.year}-${startParts.month}-${startParts.day} ${startParts.hours}:${startParts.minutes}:00`,
+      end_time: `${endParts.year}-${endParts.month}-${endParts.day} ${endParts.hours}:${endParts.minutes}:00`,
     };
 
-    dispatch(updateTask(updateData)).then((action) => {
-      setIsSaving(false); // Stop saving regardless of outcome
-      
-      if (action.payload?.success) {
-        showToast("Task updated successfully!", "success");
-        dispatch(getMyTasks());
-        closeModals();
-      } else {
-        showToast(action.payload?.message || "Failed to update task", "error");
-      }
-    }).catch((error) => {
-      setIsSaving(false);
-      showToast("An error occurred while saving", "error");
-      console.error("Save task error:", error);
-    });
+    console.log("Sending exact time:", updateData); // Debug log
+
+    dispatch(updateTask(updateData))
+      .then((action) => {
+        setIsSaving(false); // Stop saving regardless of outcome
+
+        if (action.payload?.success) {
+          showToast("Task updated successfully!", "success");
+          dispatch(getMyTasks());
+          closeModals();
+        } else {
+          showToast(
+            action.payload?.message || "Failed to update task",
+            "error",
+          );
+        }
+      })
+      .catch((error) => {
+        setIsSaving(false);
+        showToast("An error occurred while saving", "error");
+        console.error("Save task error:", error);
+      });
   };
 
   const handleDeleteTask = (taskId) => {
@@ -485,10 +524,10 @@ const Timelogs = () => {
           title="Edit Task"
           modalWidth="480px"
           content={
-            <TaskForm 
-              initialData={selectedTask} 
-              onSave={saveTask} 
-              isSaving={isSaving} 
+            <TaskForm
+              initialData={selectedTask}
+              onSave={saveTask}
+              isSaving={isSaving}
             />
           }
         />
@@ -516,11 +555,23 @@ const Timelogs = () => {
 const TaskForm = ({ initialData, onSave, isSaving }) => {
   const prepareInitialData = () => {
     if (initialData) {
+      // Extract date and time from the Date objects WITHOUT timezone conversion
+      const formatForDateTimeLocal = (date) => {
+        // Get local date components (what the user originally entered)
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      };
+
       return {
         title: initialData.title || "",
         description: initialData.description || "",
-        startDateTime: initialData.startDate.toISOString().slice(0, 16),
-        endDateTime: initialData.endDate.toISOString().slice(0, 16),
+        startDateTime: formatForDateTimeLocal(initialData.startDate),
+        endDateTime: formatForDateTimeLocal(initialData.endDate),
       };
     }
 
@@ -531,7 +582,6 @@ const TaskForm = ({ initialData, onSave, isSaving }) => {
       endDateTime: "",
     };
   };
-
   const [formData, setFormData] = useState(prepareInitialData());
   const [localIsSaving, setLocalIsSaving] = useState(false);
 
@@ -554,27 +604,27 @@ const TaskForm = ({ initialData, onSave, isSaving }) => {
 
   const handleSave = () => {
     if (localIsSaving) return; // Prevent multiple clicks
-    
+
     // Validate required fields
     if (!formData.title.trim()) {
       alert("Please enter a task title");
       return;
     }
-    
+
     if (!formData.startDateTime || !formData.endDateTime) {
-      alert("Please select both start and end dates");
+      alert("Please select both start and end date & time");
       return;
     }
-    
+
     // Validate date logic (end date shouldn't be before start date)
     const startDate = new Date(formData.startDateTime);
     const endDate = new Date(formData.endDateTime);
-    
+
     if (endDate < startDate) {
-      alert("End date cannot be before start date");
+      alert("End date & time cannot be before start date & time");
       return;
     }
-    
+
     setLocalIsSaving(true);
     onSave(formData);
   };
@@ -592,36 +642,30 @@ const TaskForm = ({ initialData, onSave, isSaving }) => {
 
       <div style={{ display: "flex", gap: "10px" }}>
         <div style={{ flex: 1 }}>
-          <label>Start Date *</label>
+          <label>Start Date & Time *</label>
           <input
-            type="date"
-            value={formData.startDateTime.split("T")[0]}
+            type="datetime-local"
+            value={formData.startDateTime}
             style={inputStyle}
             onChange={(e) =>
               setFormData({
                 ...formData,
-                startDateTime:
-                  e.target.value +
-                  "T" +
-                  (formData.startDateTime.split("T")[1] || "00:00"),
+                startDateTime: e.target.value,
               })
             }
             disabled={localIsSaving}
           />
         </div>
         <div style={{ flex: 1 }}>
-          <label>End Date *</label>
+          <label>End Date & Time *</label>
           <input
-            type="date"
-            value={formData.endDateTime.split("T")[0]}
+            type="datetime-local"
+            value={formData.endDateTime}
             style={inputStyle}
             onChange={(e) =>
               setFormData({
                 ...formData,
-                endDateTime:
-                  e.target.value +
-                  "T" +
-                  (formData.endDateTime.split("T")[1] || "00:00"),
+                endDateTime: e.target.value,
               })
             }
             disabled={localIsSaving}
@@ -648,8 +692,8 @@ const TaskForm = ({ initialData, onSave, isSaving }) => {
           padding: "16px",
           borderRadius: "12px",
           color: "white",
-          background: localIsSaving 
-            ? "#cccccc" 
+          background: localIsSaving
+            ? "#cccccc"
             : "linear-gradient(90deg, #d64c4c, #8B2885)",
           border: "none",
           cursor: localIsSaving ? "not-allowed" : "pointer",
@@ -663,11 +707,11 @@ const TaskForm = ({ initialData, onSave, isSaving }) => {
         }}>
         {localIsSaving ? (
           <>
-            <Icon 
-              icon="mdi:loading" 
-              width={20} 
-              height={20} 
-              style={{ animation: "spin 1s linear infinite" }} 
+            <Icon
+              icon="mdi:loading"
+              width={20}
+              height={20}
+              style={{ animation: "spin 1s linear infinite" }}
             />
             Saving...
           </>
@@ -677,13 +721,14 @@ const TaskForm = ({ initialData, onSave, isSaving }) => {
       </button>
 
       {localIsSaving && (
-        <div style={{
-          textAlign: "center",
-          marginTop: "12px",
-          fontSize: "12px",
-          color: "#666",
-          fontStyle: "italic"
-        }}>
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "12px",
+            fontSize: "12px",
+            color: "#666",
+            fontStyle: "italic",
+          }}>
           Please wait while we save your changes...
         </div>
       )}
@@ -693,6 +738,17 @@ const TaskForm = ({ initialData, onSave, isSaving }) => {
 
 const TaskView = ({ task, onEdit, onDelete, close }) => {
   if (!task) return null;
+
+  // Format date and time for display
+  const formatDateTime = (date) => {
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   return (
     <div>
@@ -721,7 +777,10 @@ const TaskView = ({ task, onEdit, onDelete, close }) => {
             overflowWrap: "break-word",
             marginBottom: "15px",
           }}>
-          {task.startDateStr} - {task.endDateStr}
+          {/* Updated to use the formatDateTime function */}
+          Start: {formatDateTime(task.startDate)}
+          <br />
+          End: {formatDateTime(task.endDate)}
         </p>
         <p
           style={{
