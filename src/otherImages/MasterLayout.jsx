@@ -16,53 +16,32 @@ const MasterLayout = ({ children, Chain }) => {
   const dispatch = useDispatch();
   const { user, isLoading } = useSelector((state) => state.auth);
   const { profile, isLoadingProfile } = useSelector((state) => state.user);
-  const role = localStorage.getItem("role");
+
+  // Get role from persisted auth state
+  const role = user?.role || localStorage.getItem("role");
+
   const [sidebarActive, setSidebarActive] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const location = useLocation();
-
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleShowCreateModal = () => setShowCreateModal(true);
   const handleCloseCreateModal = () => setShowCreateModal(false);
 
-  // useEffect(() => {
-  //   const openActiveDropdown = () => {
-  //     const allDropdowns = document.querySelectorAll(".navbar-header .dropdown");
-  //     allDropdowns.forEach((dropdown) => {
-  //       const submenuLinks = dropdown.querySelectorAll(".sidebar-submenu li a");
-  //       submenuLinks.forEach((link) => {
-  //         if (
-  //           link.getAttribute("href") === location.pathname ||
-  //           link.getAttribute("to") === location.pathname
-  //         ) {
-  //           dropdown.classList.add("open");
-  //           const submenu = dropdown.querySelector(".sidebar-submenu");
-  //           if (submenu) {
-  //             submenu.style.maxHeight = `${submenu.scrollHeight}px`;
-  //           }
-  //         }
-  //       });
-  //     });
-  //   };
-
-  //   openActiveDropdown();
-  // }, [location.pathname]);
-
-  // Handle dropdown toggle on button click
-
   const sidebarControl = () => setSidebarActive(!sidebarActive);
   const mobileMenuControl = () => setMobileMenu(!mobileMenu);
+
   const handleLogout = () => {
+    // Clear localStorage
     localStorage.clear();
+    // Dispatch logout action to clear Redux state
+    dispatch(logout());
     window.location.href = "/";
   };
 
   useEffect(() => {
-    // Only fetch if profile doesn't exist in state AND localStorage
-    const cachedProfile = localStorage.getItem("userProfile");
-
-    if (!profile && !cachedProfile && !isLoadingProfile) {
+    // Only fetch profile if it doesn't exist in persisted state
+    if (!profile && !isLoadingProfile) {
       dispatch(getUserProfile());
     }
   }, [dispatch, profile, isLoadingProfile]);
