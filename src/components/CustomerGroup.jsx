@@ -14,10 +14,13 @@ import {
 import DateFilter from "./DateFilter";
 import useDateFilter from "./useDateFilter";
 import Toast from "./Toast";
+import MasterLayout from "../otherImages/MasterLayout";
+import { useParams } from "react-router-dom";
 
-const FacilityDataTable = () => {
+const CustomerGroup = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { customerId } = useParams();
 
   const {
     myFacilities,
@@ -51,6 +54,7 @@ const FacilityDataTable = () => {
         page: currentPage,
         from_date: dateRange.from_date,
         to_date: dateRange.to_date,
+        user_id: customerId, // Add this line - pass the user_id from URL
       }),
     );
   }, [
@@ -60,6 +64,7 @@ const FacilityDataTable = () => {
     dateFilter.viewType,
     dateFilter.selectedQuarter,
     dateFilter.selectedMonth,
+    customerId, // Add customerId to dependency array
   ]);
 
   useEffect(() => {
@@ -137,6 +142,7 @@ const FacilityDataTable = () => {
               page: currentPage,
               from_date: dateRange.from_date,
               to_date: dateRange.to_date,
+              user_id: customerId,
             }),
           );
         }
@@ -167,6 +173,7 @@ const FacilityDataTable = () => {
             page: currentPage,
             from_date: dateRange.from_date,
             to_date: dateRange.to_date,
+            user_id: customerId,
           }),
         );
         setEditingFacility(null);
@@ -190,14 +197,14 @@ const FacilityDataTable = () => {
       facilityName: facility.facility_name || "N/A",
       formsSubmitted: facility.total_assessments || "0",
       totalHoursWorked: facility.total_hours || "0",
-      customerName: facility.customer_name || "N/A",
-      groupNames: facility.customer_group_name || "N/A",
-      customerId: facility.customer_id || null,
+      customerNames: facility.customer_names || "N/A", // Add customer name
+      customerIds: facility.customer_ids || null, // Add customer ID
       date: facility.created_at
         ? new Date(facility.created_at).toLocaleDateString()
         : "N/A",
       status: facility.total_assessments > 0 ? true : false,
       address: facility.facility_address || "No address",
+      customerName: "Customer Name",
       assignedEmployees: [],
       originalData: facility,
     }));
@@ -216,55 +223,6 @@ const FacilityDataTable = () => {
       options: {
         filter: true,
         sort: true,
-      },
-    },
-    {
-      name: "groupNames",
-      label: "Group Name",
-      options: {
-        filter: true,
-        sort: true,
-      },
-    },
-    {
-      name: "customerName",
-      label: "Customer Name",
-      options: {
-        filter: true,
-        sort: true,
-        customBodyRender: (value, tableMeta) => {
-          const rowData = facilityData[tableMeta.rowIndex];
-          const customerId = rowData?.customerId;
-          return (
-            <span
-              onClick={(e) => {
-                e.stopPropagation();
-                if (customerId) {
-                  navigate(`/customers/${customerId}`, {
-                    state: {
-                      customerId: customerId,
-                      customerName: value,
-                      from: "facilities",
-                    },
-                  });
-                }
-              }}
-              style={{
-                color: customerId ? "#8b2885" : "#333",
-                cursor: customerId ? "pointer" : "default",
-                textDecoration: customerId ? "underline" : "none",
-                fontWeight: 500,
-              }}
-              onMouseEnter={(e) => {
-                if (customerId) e.target.style.opacity = "0.8";
-              }}
-              onMouseLeave={(e) => {
-                if (customerId) e.target.style.opacity = "1";
-              }}>
-              {value}
-            </span>
-          );
-        },
       },
     },
     {
@@ -604,97 +562,120 @@ const FacilityDataTable = () => {
 
   return (
     <>
-      <Toast
-        show={toast.show}
-        message={toast.message}
-        type={toast.type}
-        onClose={() => setToast({ show: false, message: "", type: "" })}
-      />
+      <MasterLayout>
+        <button
+          onClick={() => navigate("/facilities")}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#8B2885",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginTop: "20px",
+            marginBottom: "20px",
+            fontSize: "14px",
+          }}>
+          <Icon icon="mdi:arrow-left" width="20" height="20" />
+          Back to Facilities
+        </button>
+        <Toast
+          show={toast.show}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast({ show: false, message: "", type: "" })}
+        />
 
-      {/* Date Filter and Header */}
-      <div className="mb-4 pb-2 border-bottom">
-        <div className="d-flex justify-content-between align-items-start flex-wrap gap-3">
-          <DateFilter {...dateFilter} onFilterChange={updateFilter} size="sm" />
-        </div>
+        {/* Date Filter and Header */}
+        <div className="mb-4 pb-2 border-bottom">
+          <div className="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <DateFilter
+              {...dateFilter}
+              onFilterChange={updateFilter}
+              size="sm"
+            />
+          </div>
 
-        <div className="mt-10 mb-10 d-flex align-items-center gap-2 flex-wrap">
-          <span className="badge bg-light text-dark p-2">
-            <i className="fas fa-calendar-alt me-1"></i>
-            {getDateRange().label}
-          </span>
-          {myFacilities.total > 0 && (
-            <span className="badge bg-success p-2">
-              <i className="fas fa-building me-1"></i>
-              {myFacilities.total} Facilities
+          <div className="mt-10 mb-10 d-flex align-items-center gap-2 flex-wrap">
+            <span className="badge bg-light text-dark p-2">
+              <i className="fas fa-calendar-alt me-1"></i>
+              {getDateRange().label}
             </span>
-          )}
+            {myFacilities.total > 0 && (
+              <span className="badge bg-success p-2">
+                <i className="fas fa-building me-1"></i>
+                {myFacilities.total} Facilities
+              </span>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Table */}
-      <div className="basic-data-table">
-        <MUIDataTable
-          title=""
-          data={facilityData}
-          columns={columns}
-          options={options}
-          className="overflow-hidden packageTable"
-        />
-      </div>
+        {/* Table */}
+        <div className="basic-data-table">
+          <MUIDataTable
+            title=""
+            data={facilityData}
+            columns={columns}
+            options={options}
+            className="overflow-hidden packageTable"
+          />
+        </div>
 
-      {dropdownOpen !== null &&
-        createPortal(
-          <div
-            style={{
-              position: "absolute",
-              top: buttonPosition.top,
-              left: buttonPosition.left,
-              backgroundColor: "white",
-              border: "1px solid #E0E0E0",
-              borderRadius: "8px",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-              minWidth: "160px",
-              zIndex: 9999,
-            }}
-            onClick={(e) => e.stopPropagation()}>
-            {dropdownOptions.map((option, idx) => (
-              <div
-                key={idx}
-                style={{
-                  padding: "10px 16px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  fontSize: "14px",
-                  color: option.color,
-                  borderTop: idx === 0 ? "none" : "1px solid #F0F0F0",
-                  transition: "background-color 0.2s",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#F5F5F5")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = "transparent")
-                }
-                onClick={() => option.onClick(facilityData[dropdownOpen])}>
-                <Icon icon={option.icon} width="18" height="18" />
-                <span>{option.label}</span>
-              </div>
-            ))}
-          </div>,
-          document.body,
+        {dropdownOpen !== null &&
+          createPortal(
+            <div
+              style={{
+                position: "absolute",
+                top: buttonPosition.top,
+                left: buttonPosition.left,
+                backgroundColor: "white",
+                border: "1px solid #E0E0E0",
+                borderRadius: "8px",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                minWidth: "160px",
+                zIndex: 9999,
+              }}
+              onClick={(e) => e.stopPropagation()}>
+              {dropdownOptions.map((option, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    padding: "10px 16px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    fontSize: "14px",
+                    color: option.color,
+                    borderTop: idx === 0 ? "none" : "1px solid #F0F0F0",
+                    transition: "background-color 0.2s",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#F5F5F5")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "transparent")
+                  }
+                  onClick={() => option.onClick(facilityData[dropdownOpen])}>
+                  <Icon icon={option.icon} width="18" height="18" />
+                  <span>{option.label}</span>
+                </div>
+              ))}
+            </div>,
+            document.body,
+          )}
+
+        {editingFacility && (
+          <FacilityEditModal
+            facility={editingFacility}
+            onClose={() => setEditingFacility(null)}
+            onSave={handleSaveEdit}
+          />
         )}
-
-      {editingFacility && (
-        <FacilityEditModal
-          facility={editingFacility}
-          onClose={() => setEditingFacility(null)}
-          onSave={handleSaveEdit}
-        />
-      )}
+      </MasterLayout>
     </>
   );
 };
 
-export default FacilityDataTable;
+export default CustomerGroup;

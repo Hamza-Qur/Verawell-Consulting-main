@@ -169,19 +169,27 @@ export const getSubmittedForms = createAsyncThunk(
 // Get facility scores
 export const getFacilityScores = createAsyncThunk(
   "dashboard/getFacilityScores",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(
-        `${BASE_URL}/api/dashboard/get-facility-score-customer`,
-        {
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+      // Build URL with query parameters if provided
+      let url = `${BASE_URL}/api/dashboard/get-facility-score-customer`;
+
+      // Add query parameters if they exist
+      if (params.from_date || params.to_date) {
+        const queryParams = new URLSearchParams();
+        if (params.from_date) queryParams.append("from_date", params.from_date);
+        if (params.to_date) queryParams.append("to_date", params.to_date);
+        url += `?${queryParams.toString()}`;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       const data = await response.json();
 
@@ -200,19 +208,31 @@ export const getFacilityScores = createAsyncThunk(
 
 export const getTeamAssignedFacilities = createAsyncThunk(
   "dashboard/getTeamAssignedFacilities",
-  async (page = 1, { rejectWithValue }) => {
+  async (params = { page: 1 }, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(
-        `${BASE_URL}/api/assign-facility/get-my?page=${page}`,
-        {
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+      // Build URL with query parameters
+      let url = `${BASE_URL}/api/assign-facility/get-my`;
+      const queryParams = new URLSearchParams();
+
+      // Add page parameter
+      if (params.page) queryParams.append("page", params.page);
+
+      // Add date parameters if they exist
+      if (params.from_date) queryParams.append("from_date", params.from_date);
+      if (params.to_date) queryParams.append("to_date", params.to_date);
+
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       const data = await response.json();
 

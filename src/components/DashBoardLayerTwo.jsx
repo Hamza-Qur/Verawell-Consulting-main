@@ -4,6 +4,7 @@ import TeamDashboardData from "./TeamDashboardData";
 import UsersOverviewTwo from "../components/UsersOverviewTwo";
 import TeamStatistics from "./TeamStatistics";
 import UnitCountTwo from "./UnitCountTwo";
+import FacilityDetailDashboardData from "./FacilityDetailDashboardData";
 
 const DashBoardLayerTwo = () => {
   return (
@@ -11,10 +12,11 @@ const DashBoardLayerTwo = () => {
       {/* UnitCountOne */}
       <UnitCountTwo />
 
-        <TeamStatistics />
+      <TeamStatistics />
 
-        {/* LatestRegisteredOne */}
-        <TeamDashboardData />
+      {/* LatestRegisteredOne */}
+      <TeamDashboardData rows={5} />
+      <FacilityDetailDashboardData rows={5} />
     </>
   );
 };

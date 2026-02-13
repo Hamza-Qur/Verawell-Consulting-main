@@ -12637,6 +12637,7 @@ textarea:active {
 .form-select,
 .form-control:not(textarea) {
   height: 2.75rem;
+  align-items: center;
 }
 
 .form-control[type="file"] {
@@ -13445,13 +13446,6 @@ select option {
 
 .rounded-tooltip-value .apexcharts-tooltip-text {
   display: flex;
-}
-
-/* Home Two Widget Chart Css End*/
-/* Chart's text color Css End*/
-.apexcharts-xaxis-label,
-.apexcharts-yaxis-label {
-  fill: #8a929f;
 }
 
 /* Chart's text color Css End*/
@@ -16020,7 +16014,6 @@ td.fc-header-center {
 
 .gauges {
   display: flex;
-  margin: 20px 0px;
 }
 
 .nav-tabs .nav-link {

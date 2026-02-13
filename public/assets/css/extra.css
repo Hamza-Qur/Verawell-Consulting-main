@@ -1148,8 +1148,8 @@ button.MuiIconButton-sizeMedium[aria-label="Search"] svg {
 }
 .firstHeadBtn svg {
   font-size: 22px !important;
-  height: auto;
-  width: auto;
+  /* height: auto;
+  width: auto; */
 }
 .secondHeadBtn {
   background-color: #8b2885;
@@ -2645,4 +2645,73 @@ p.MuiTablePagination-displayedRows {
 .user-list-sm::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 2px;
+}
+
+.announcementModal {
+  max-height: 80vh; /* Limit modal height */
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-scrollable-content {
+  max-height: calc(80vh - 100px); /* Adjust based on your modal header/footer */
+  overflow-y: auto;
+  padding-right: 10px; /* Add some padding for scrollbar */
+  margin-bottom: 15px;
+}
+
+/* Style the scrollbar for better appearance */
+.modal-scrollable-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-scrollable-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.modal-scrollable-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.modal-scrollable-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Make action buttons sticky */
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding: 15px 0;
+  margin-top: 10px;
+  border-top: 1px solid #eee;
+  z-index: 1;
+}
+
+/* Optional: Add shadow to indicate scrollability */
+.modal-scrollable-content {
+  background:
+    linear-gradient(white 30%, rgba(255, 255, 255, 0)),
+    linear-gradient(rgba(255, 255, 255, 0), white 70%) 0 100%,
+    radial-gradient(
+      farthest-side at 50% 0,
+      rgba(0, 0, 0, 0.1),
+      rgba(0, 0, 0, 0)
+    ),
+    radial-gradient(
+        farthest-side at 50% 100%,
+        rgba(0, 0, 0, 0.1),
+        rgba(0, 0, 0, 0)
+      )
+      0 100%;
+  background-repeat: no-repeat;
+  background-color: white;
+  background-size:
+    100% 40px,
+    100% 40px,
+    100% 14px,
+    100% 14px;
+  background-attachment: local, local, scroll, scroll;
 }

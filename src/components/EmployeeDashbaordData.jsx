@@ -220,8 +220,9 @@ const EmployeeDashboardData = () => {
 
   // Transform API data to match table structure
   const transformUserData = (apiData) => {
+    const filteredData = apiData.filter((user) => user.role === "team");
     // Sort by created_at (most recent first) and take first 5
-    const sortedData = [...apiData]
+    const sortedData = [...filteredData]
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       .slice(0, 5);
 
@@ -352,7 +353,7 @@ const EmployeeDashboardData = () => {
         </div>
       ) : (
         <div>
-          <h2 className="fs-2 mt-24">Users</h2>
+          <h2 className="fs-2 mt-24">Employees</h2>
           {employeeData.length === 0 ? (
             <div
               style={{ textAlign: "center", padding: "40px", color: "#666" }}>
@@ -766,7 +767,7 @@ const EmployeeDashboardData = () => {
         )}
 
       {/* Add CSS for spinner animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes spin {
           0% {
             transform: rotate(0deg);

@@ -137,14 +137,14 @@ const DocumentDataTable = () => {
       window.confirm(
         `Are you sure you want to delete "${
           assessment.documentName || "this document"
-        }"? This action cannot be undone.`
+        }"? This action cannot be undone.`,
       )
     ) {
       dispatch(deleteAssessment(assessmentId)).then((result) => {
         if (result.payload?.success) {
           showToast(
             `Document "${assessment.documentName}" deleted successfully`,
-            "success"
+            "success",
           );
           // Refresh the assessments list
           const currentPage = assessments.current_page || 1;
@@ -204,14 +204,9 @@ const DocumentDataTable = () => {
         documentName = "Unnamed Document";
       }
 
-      // Use title/name if it exists, otherwise use the combined name
-      const finalDocumentName =
-        assessment.title || assessment.name || documentName;
-
       return {
         id: assessment.id,
         assessmentId: assessment.assessment_id || assessment.id,
-        documentName: finalDocumentName,
         uploadedBy:
           assessment.user_name || assessment.user?.name || "Unknown User",
         userId: assessment.user_id || assessment.user?.id || "N/A",
@@ -229,10 +224,14 @@ const DocumentDataTable = () => {
   const documentData = isLoading
     ? []
     : assessments.data && Array.isArray(assessments.data)
-    ? transformAssessmentData(assessments.data)
-    : [];
+      ? transformAssessmentData(assessments.data)
+      : [];
 
   const columns = [
+    {
+      name: "facility_name",
+      label: "Facility Name",
+    },
     {
       name: "documentName",
       label: "Document Name",
@@ -248,12 +247,8 @@ const DocumentDataTable = () => {
               />
               <div>
                 <div style={{ fontWeight: "500" }}>{value}</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
-                  {rowData?.description
-                    ? rowData.description.length > 50
-                      ? `${rowData.description.substring(0, 50)}...`
-                      : rowData.description
-                    : "PDF Document"}
+                <div style={{ fontSize: "14px", color: "#666" }}>
+                  {rowData?.category_name}
                 </div>
                 {rowData?.assessmentId && (
                   <div
@@ -285,19 +280,6 @@ const DocumentDataTable = () => {
     {
       name: "uploadedBy",
       label: "Uploaded By",
-    },
-    {
-      name: "userId",
-      label: "User ID",
-      options: {
-        customBodyRender: (value) => {
-          return (
-            <div style={{ color: "#8B2885", fontWeight: "500" }}>
-              ID: {value}
-            </div>
-          );
-        },
-      },
     },
     {
       name: "uploadDate",
@@ -559,7 +541,7 @@ const DocumentDataTable = () => {
               )}
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );

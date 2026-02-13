@@ -310,6 +310,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
       : transformedData.filter((item) => item.facility === selectedFacility);
 
   const employeeColumns = [
+    { name: "facility", label: "Facility Name" },
     { name: "formName", label: "Form Name" },
     {
       name: "time",
@@ -769,7 +770,8 @@ const FacilityDetailDashboardData = ({ rows }) => {
                   padding: "10px 20px",
                   border: "none",
                   borderRadius: "6px",
-                  background: "linear-gradient(90deg,rgba(216, 81, 80, 1) 0%,rgba(87, 36, 103, 1) 100% )",
+                  background:
+                    "linear-gradient(90deg,rgba(216, 81, 80, 1) 0%,rgba(87, 36, 103, 1) 100% )",
                   cursor: "pointer",
                   color: "white",
                   fontWeight: "500",

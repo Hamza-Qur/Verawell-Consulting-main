@@ -38,6 +38,7 @@ const EmployeeDataTable = () => {
   const [editFormData, setEditFormData] = useState({
     name: "",
     phone_number: "",
+    user_group_name: "",
   });
   const [profileImage, setProfileImage] = useState(null);
   const [profileImagePreview, setProfileImagePreview] = useState("");
@@ -138,19 +139,20 @@ const EmployeeDataTable = () => {
       setEditFormData({
         name: user.name || "",
         phone_number: user.phone || user.phone_number || "",
+        user_group_name: user.user_group_name || "",
       });
       // Set profile image preview from existing image
       if (user.profile_picture) {
         setProfileImagePreview(
           user.profile_picture.startsWith("http")
             ? user.profile_picture
-            : `https://verawell.koderspedia.net${user.profile_picture}`
+            : `https://verawell.koderspedia.net${user.profile_picture}`,
         );
       } else {
         setProfileImagePreview(
           `https://ui-avatars.com/api/?name=${encodeURIComponent(
-            user.name || "User"
-          )}&background=random&color=fff&size=200`
+            user.name || "User",
+          )}&background=random&color=fff&size=200`,
         );
       }
       setProfileImage(null);
@@ -193,13 +195,13 @@ const EmployeeDataTable = () => {
         setProfileImagePreview(
           user.profile_picture.startsWith("http")
             ? user.profile_picture
-            : `https://verawell.koderspedia.net${user.profile_picture}`
+            : `https://verawell.koderspedia.net${user.profile_picture}`,
         );
       } else {
         setProfileImagePreview(
           `https://ui-avatars.com/api/?name=${encodeURIComponent(
-            user.name || "User"
-          )}&background=random&color=fff&size=200`
+            user.name || "User",
+          )}&background=random&color=fff&size=200`,
         );
       }
     }
@@ -208,15 +210,22 @@ const EmployeeDataTable = () => {
   const handleSaveEdit = () => {
     if (editUserId) {
       const updateData = {
-        ...editFormData,
+        name: editFormData.name,
+        phone_number: editFormData.phone_number,
         ...(profileImage && { profile_picture: profileImage }),
       };
+
+      // Add user_group_name only for customers
+      const user = filteredUsers.find((u) => u.id === editUserId);
+      if (user?.role === "customer" && editFormData.user_group_name) {
+        updateData.user_group_name = editFormData.user_group_name;
+      }
 
       dispatch(
         adminUpdateUserProfile({
           userId: editUserId,
           profileData: updateData,
-        })
+        }),
       )
         .then((action) => {
           if (action.payload?.success) {
@@ -264,6 +273,7 @@ const EmployeeDataTable = () => {
     setEditFormData({
       name: "",
       phone_number: "",
+      user_group_name: "",
     });
     setProfileImage(null);
     setProfileImagePreview("");
@@ -298,7 +308,7 @@ const EmployeeDataTable = () => {
     }
 
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      u.name || "User"
+      u.name || "User",
     )}&background=random&color=fff&size=128`;
   };
 
@@ -489,7 +499,7 @@ const EmployeeDataTable = () => {
               Delete
             </div>
           </div>,
-          document.body
+          document.body,
         )}
 
       {/* Delete Confirmation Modal */}
@@ -608,7 +618,7 @@ const EmployeeDataTable = () => {
               </div>
             </div>
           </div>,
-          document.body
+          document.body,
         )}
 
       {/* Edit User Modal - SIMPLIFIED VERSION */}
@@ -791,6 +801,40 @@ const EmployeeDataTable = () => {
                 </div>
               </div>
 
+              {/* Customer Group Field - Only for customers */}
+              {(() => {
+                const user = filteredUsers.find((u) => u.id === editUserId);
+                return (
+                  user?.role === "customer" && (
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "8px",
+                          fontWeight: 500,
+                          color: "#555",
+                        }}>
+                        Customer Group
+                      </label>
+                      <input
+                        type="text"
+                        name="user_group_name"
+                        value={editFormData.user_group_name}
+                        onChange={handleEditInputChange}
+                        placeholder="Enter customer group"
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          border: "1px solid #ddd",
+                          borderRadius: "6px",
+                          fontSize: "14px",
+                        }}
+                      />
+                    </div>
+                  )
+                );
+              })()}
+
               <div
                 style={{
                   display: "flex",
@@ -851,11 +895,11 @@ const EmployeeDataTable = () => {
               </div>
             </div>
           </div>,
-          document.body
+          document.body,
         )}
 
       {/* Add CSS for spinner animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes spin {
           0% {
             transform: rotate(0deg);

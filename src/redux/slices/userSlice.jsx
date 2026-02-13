@@ -156,6 +156,11 @@ export const adminUpdateUserProfile = createAsyncThunk(
       if (profileData.name) formData.append("name", profileData.name);
       if (profileData.phone_number !== undefined)
         formData.append("phone_number", profileData.phone_number || "");
+      
+      // ADD THIS: Add user_group_name if it exists
+      if (profileData.user_group_name !== undefined) {
+        formData.append("user_group_name", profileData.user_group_name || "");
+      }
 
       // Add profile picture if it exists (File object)
       if (profileData.profile_picture instanceof File) {

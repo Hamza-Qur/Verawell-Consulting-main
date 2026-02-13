@@ -11,6 +11,7 @@ import {
   validateResetCode,
   resetPassword,
 } from "../redux/slices/authSlice";
+import { getUserProfile } from "../redux/slices/userSlice"; // ADD THIS IMPORT
 
 const SignInLayer = () => {
   const navigate = useNavigate();
@@ -81,6 +82,10 @@ const SignInLayer = () => {
       const result = await dispatch(login(values)).unwrap();
       if (result.success) {
         const userRole = result.data.user.role;
+
+        // FORCE REFRESH user profile to update persisted store
+        await dispatch(getUserProfile(true)).unwrap();
+
         if (userRole === "admin") {
           navigate("/dashboard");
         } else if (userRole === "team") {
@@ -100,7 +105,7 @@ const SignInLayer = () => {
     setResetError("");
     try {
       const result = await dispatch(
-        requestPasswordReset({ email: values.email })
+        requestPasswordReset({ email: values.email }),
       ).unwrap();
       if (result.success) {
         setResetEmail(values.email);
@@ -109,7 +114,7 @@ const SignInLayer = () => {
       } else {
         if (result.data?.error) {
           setResetError(
-            `Validation failed: ${formatValidationErrors(result.data)}`
+            `Validation failed: ${formatValidationErrors(result.data)}`,
           );
         } else {
           setResetError(result.message || "Failed to send reset code");
@@ -135,7 +140,7 @@ const SignInLayer = () => {
         validateResetCode({
           email: resetEmail,
           code: values.code,
-        })
+        }),
       ).unwrap();
       if (result.success) {
         setResetCode(values.code);
@@ -144,7 +149,7 @@ const SignInLayer = () => {
       } else {
         if (result.data?.error) {
           setResetError(
-            `Validation failed: ${formatValidationErrors(result.data)}`
+            `Validation failed: ${formatValidationErrors(result.data)}`,
           );
         } else {
           setResetError(result.message || "Invalid code");
@@ -172,19 +177,19 @@ const SignInLayer = () => {
           code: values.code,
           password: values.password,
           password_confirmation: values.password_confirmation,
-        })
+        }),
       ).unwrap();
 
       if (result.success) {
         showToast(
           "Password reset successful! You can now login with your new password.",
-          "success"
+          "success",
         );
         closeResetModal();
       } else {
         if (result.data?.error) {
           setResetError(
-            `Validation failed: ${formatValidationErrors(result.data)}`
+            `Validation failed: ${formatValidationErrors(result.data)}`,
           );
         } else {
           setResetError(result.message || "Failed to reset password");
@@ -395,8 +400,8 @@ const SignInLayer = () => {
                         timeLeft > 30
                           ? "bg-success"
                           : timeLeft > 10
-                          ? "bg-warning"
-                          : "bg-danger"
+                            ? "bg-warning"
+                            : "bg-danger"
                       }`}>
                       {formatTime(timeLeft)}
                     </div>

@@ -3,18 +3,18 @@ import React from "react";
 import { Icon } from "@iconify/react";
 import { Link } from "react-router-dom";
 
-const DefaultTopBar = ({ 
-  title, 
-  desc, 
-  btnText, 
+const DefaultTopBar = ({
+  title,
+  desc,
+  btnText,
   btnLink,
-  btnText2, 
+  btnText2,
   btnLink2,
   // New props for API button functionality
   isApiButton2 = false,
   onBtn2Click,
   isBtn2Loading = false,
-  btn2LoadingText = "Loading..."
+  btn2LoadingText = "Loading...",
 }) => {
   // Handle btnLink2 click - if it's an API button, prevent default and call onClick
   const handleBtn2Click = (e) => {
@@ -26,9 +26,9 @@ const DefaultTopBar = ({
   };
 
   return (
-    <div className='d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24'>
-      <h2 className='fw-bold mb-0 fs-2'>{title}</h2>
-      {btnLink || btnLink2 ?
+    <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-24">
+      <h2 className="fw-bold mb-0 fs-2">{title}</h2>
+      {btnLink || btnLink2 ? (
         <div className="buttonDiv d-flex gap-20 align-items-center">
           {btnLink ? (
             <Link to={btnLink} className="firstHeadBtn d-flex gap-10">
@@ -38,20 +38,19 @@ const DefaultTopBar = ({
           ) : (
             ""
           )}
-          
+
           {btnLink2 ? (
             isApiButton2 ? (
               // API Button (button element)
               <button
                 onClick={handleBtn2Click}
                 disabled={isBtn2Loading}
-                className="secondHeadBtn d-flex gap-10"
-              >        
+                className="secondHeadBtn d-flex gap-10">
                 {isBtn2Loading ? (
                   <>
-                    <Icon 
-                      icon="mdi:loading" 
-                      className="mb-0" 
+                    <Icon
+                      icon="mdi:loading"
+                      className="mb-0"
                       style={{ animation: "spin 1s linear infinite" }}
                     />
                     {btn2LoadingText}
@@ -59,25 +58,33 @@ const DefaultTopBar = ({
                 ) : (
                   <>
                     {btnText2}
-                    <Icon icon="material-symbols:arrow-downward-alt-rounded" className="mb-0" />
+                    <Icon
+                      icon="material-symbols:arrow-downward-alt-rounded"
+                      className="mb-0"
+                    />
                   </>
                 )}
               </button>
             ) : (
               // Regular Link (for navigation)
-              <Link to={btnLink2} className="secondHeadBtn d-flex gap-10">        
+              <Link to={btnLink2} className="secondHeadBtn d-flex gap-10">
                 {btnText2}
-                <Icon icon="material-symbols:arrow-downward-alt-rounded" className="mb-0" />
+                <Icon
+                  icon="material-symbols:arrow-downward-alt-rounded"
+                  className="mb-0"
+                />
               </Link>
             )
           ) : (
             ""
           )}
         </div>
-        : <div></div>}
-      
+      ) : (
+        <div></div>
+      )}
+
       {/* CSS for spinner animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes spin {
           0% {
             transform: rotate(0deg);

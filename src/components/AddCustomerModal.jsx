@@ -9,9 +9,10 @@ const AddCustomerModal = ({ onClose }) => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [userGroup, setUserGroup] = useState(""); // New state for user group
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false); // Add success state
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -26,6 +27,7 @@ const AddCustomerModal = ({ onClose }) => {
         password_confirmation: confirmPassword,
         phone_number: phone || "1234567890",
         role: "customer",
+        user_group_name: userGroup, // Add user group to customer data
       };
 
       const result = await dispatch(register(customerData)).unwrap();
@@ -38,6 +40,7 @@ const AddCustomerModal = ({ onClose }) => {
         setPhone("");
         setPassword("");
         setConfirmPassword("");
+        setUserGroup("");
 
         // Auto-close after 2 seconds
         setTimeout(() => {
@@ -67,6 +70,7 @@ const AddCustomerModal = ({ onClose }) => {
     setPhone("");
     setPassword("");
     setConfirmPassword("");
+    setUserGroup("");
     setError("");
     setSuccess(false);
   };
@@ -82,9 +86,9 @@ const AddCustomerModal = ({ onClose }) => {
           )}
 
           {!success ? (
-            <>
+            <div className="modal-scrollable-content">
               <div className="form-group">
-                <label htmlFor="fullName">Full Name *</label>
+                <label htmlFor="fullName">Full Name</label>
                 <input
                   type="text"
                   id="fullName"
@@ -97,7 +101,7 @@ const AddCustomerModal = ({ onClose }) => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="email">Email Address *</label>
+                <label htmlFor="email">Email Address</label>
                 <input
                   type="email"
                   id="email"
@@ -127,7 +131,20 @@ const AddCustomerModal = ({ onClose }) => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="password">Password *</label>
+                <label htmlFor="userGroup">Customer Group</label>
+                <input
+                  type="text"
+                  id="userGroup"
+                  className="form-control mb-10"
+                  placeholder="Enter customer group"
+                  value={userGroup}
+                  onChange={(e) => setUserGroup(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
                 <input
                   type="password"
                   id="password"
@@ -140,7 +157,7 @@ const AddCustomerModal = ({ onClose }) => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="confirmPassword">Confirm Password *</label>
+                <label htmlFor="confirmPassword">Confirm Password</label>
                 <input
                   type="password"
                   id="confirmPassword"
@@ -152,7 +169,7 @@ const AddCustomerModal = ({ onClose }) => {
                 />
               </div>
 
-              <div className="d-flex gap-10 mt-20">
+              <div className="d-flex gap-10 mt-20 sticky-actions">
                 <button
                   className="btn announceButton flex-grow-1"
                   onClick={handleSubmit}
@@ -167,7 +184,7 @@ const AddCustomerModal = ({ onClose }) => {
                   Clear
                 </button>
               </div>
-            </>
+            </div>
           ) : (
             <div className="text-center py-4">
               <div className="mb-3">

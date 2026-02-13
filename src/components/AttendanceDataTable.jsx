@@ -1,3 +1,4 @@
+// src/components/AttendanceDataTable.jsx
 import React, { useState, useEffect, useRef } from "react";
 import MUIDataTable from "mui-datatables";
 import { Icon } from "@iconify/react";
@@ -10,6 +11,8 @@ import {
   getAttendance,
   deleteAttendance,
 } from "../redux/slices/attendanceSlice";
+import DateFilter from "./DateFilter";
+import useDateFilter from "./useDateFilter";
 
 const AttendanceDataTable = () => {
   const navigate = useNavigate();
@@ -19,6 +22,9 @@ const AttendanceDataTable = () => {
     (state) => state.attendance,
   );
 
+  // Use date filter hook
+  const { dateFilter, updateFilter, getDateRange } = useDateFilter();
+
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
   const [selectedFacility, setSelectedFacility] = useState("All");
@@ -26,9 +32,23 @@ const AttendanceDataTable = () => {
   const [selectedAttendance, setSelectedAttendance] = useState(null);
   const buttonRefs = useRef([]);
 
+  // Fetch attendance with date filters
   useEffect(() => {
-    dispatch(getAttendance());
-  }, [dispatch]);
+    const dateRange = getDateRange();
+
+    dispatch(
+      getAttendance({
+        from_date: dateRange.from_date,
+        to_date: dateRange.to_date,
+      }),
+    );
+  }, [
+    dispatch,
+    dateFilter.selectedYear,
+    dateFilter.viewType,
+    dateFilter.selectedQuarter,
+    dateFilter.selectedMonth,
+  ]);
 
   const handleFacilityFilter = (facility) => {
     setSelectedFacility(facility);
@@ -66,9 +86,14 @@ const AttendanceDataTable = () => {
       )
     ) {
       dispatch(deleteAttendance(rowData.id)).then((result) => {
-        // Refresh after successful deletion
         if (result.payload?.success) {
-          dispatch(getAttendance());
+          const dateRange = getDateRange();
+          dispatch(
+            getAttendance({
+              from_date: dateRange.from_date,
+              to_date: dateRange.to_date,
+            }),
+          );
         }
       });
     }
@@ -290,10 +315,37 @@ const AttendanceDataTable = () => {
     searchPlaceholder: "Search by employee name, facility...",
     pagination: false,
     tableBodyHeight: "auto",
+    textLabels: {
+      body: {
+        noMatch: isLoading
+          ? "Loading..."
+          : "No attendance records found for selected period",
+      },
+    },
   };
 
   return (
     <>
+      {/* Date Filter - ONLY THIS ADDED */}
+      <div className="mb-4 pb-2 border-bottom">
+        <div className="d-flex justify-content-between align-items-start flex-wrap gap-3">
+          <DateFilter {...dateFilter} onFilterChange={updateFilter} size="sm" />
+
+          <div className="mt-2 d-flex align-items-center gap-2 flex-wrap">
+            <span className="badge bg-light text-dark p-2">
+              <i className="fas fa-calendar-alt me-1"></i>
+              {getDateRange().label}
+            </span>
+            {!isLoading && attendanceList.length > 0 && (
+              <span className="badge bg-success p-2">
+                <i className="fas fa-clock me-1"></i>
+                {attendanceList.length} Records
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
       {isLoading ? (
         <div style={{ textAlign: "center", padding: "40px" }}>
           <div className="spinner-border text-primary" role="status">
@@ -306,7 +358,15 @@ const AttendanceDataTable = () => {
           <Icon icon="material-symbols:error-outline" width="48" height="48" />
           <p style={{ marginTop: "10px" }}>Error: {error}</p>
           <button
-            onClick={() => dispatch(getAttendance())}
+            onClick={() => {
+              const dateRange = getDateRange();
+              dispatch(
+                getAttendance({
+                  from_date: dateRange.from_date,
+                  to_date: dateRange.to_date,
+                }),
+              );
+            }}
             style={{
               marginTop: "20px",
               padding: "10px 20px",
@@ -321,26 +381,16 @@ const AttendanceDataTable = () => {
         </div>
       ) : (
         <>
-          <div
-            style={{
-              marginBottom: "20px",
-              borderBottom: "1px solid #E0E0E0",
-              paddingBottom: "0px",
-            }}>
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                flexWrap: "wrap",
-                justifyContent: "center",
-              }}></div>
-          </div>
-
           {attendanceData.length === 0 ? (
             <div
               style={{ textAlign: "center", padding: "40px", color: "#666" }}>
               <Icon icon="mdi:calendar-clock" width="48" height="48" />
-              <p style={{ marginTop: "10px" }}>No attendance records found.</p>
+              <p style={{ marginTop: "10px" }}>
+                No attendance records found for {getDateRange().label}.
+              </p>
+              <p style={{ fontSize: "14px", marginTop: "8px", color: "#999" }}>
+                Try selecting a different date range
+              </p>
             </div>
           ) : (
             <div className="basic-data-table">
@@ -366,9 +416,14 @@ const AttendanceDataTable = () => {
             isEditMode={true}
             onClose={handleCloseEditModal}
             onSuccess={() => {
-              // This will be called when the edit is successful
               handleCloseEditModal();
-              dispatch(getAttendance()); // Refresh the attendance data
+              const dateRange = getDateRange();
+              dispatch(
+                getAttendance({
+                  from_date: dateRange.from_date,
+                  to_date: dateRange.to_date,
+                }),
+              );
             }}
           />
         }

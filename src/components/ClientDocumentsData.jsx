@@ -137,14 +137,14 @@ const ClientDocumentsData = () => {
       window.confirm(
         `Are you sure you want to delete "${
           assessment.documentName || "this document"
-        }"? This action cannot be undone.`
+        }"? This action cannot be undone.`,
       )
     ) {
       dispatch(deleteAssessment(assessmentId)).then((result) => {
         if (result.payload?.success) {
           showToast(
             `Document "${assessment.documentName}" deleted successfully`,
-            "success"
+            "success",
           );
           // Refresh the assessments list
           const currentPage = assessments.current_page || 1;
@@ -187,31 +187,19 @@ const ClientDocumentsData = () => {
     }
   };
 
-  // Transform API data to match table structure - USING assessment_id
+  // Transform API data to match table structure
   const transformAssessmentData = (apiData) => {
     if (!apiData || !Array.isArray(apiData)) return [];
 
     return apiData.map((assessment) => {
-      // Create document name by combining facility_name and category_name
-      let documentName = "";
-      if (assessment.facility_name && assessment.category_name) {
-        documentName = `${assessment.facility_name} - ${assessment.category_name}`;
-      } else if (assessment.facility_name) {
-        documentName = `${assessment.facility_name} - Assessment`;
-      } else if (assessment.category_name) {
-        documentName = assessment.category_name;
-      } else {
-        documentName = "Unnamed Document";
-      }
-
-      // Use title/name if it exists, otherwise use the combined name
-      const finalDocumentName =
-        assessment.title || assessment.name || documentName;
+      // Document name is now the category name
+      const documentName = assessment.category_name || "Uncategorized";
 
       return {
         id: assessment.id,
         assessmentId: assessment.assessment_id || assessment.id,
-        documentName: finalDocumentName,
+        documentName: documentName, // This is now category_name
+        facilityName: assessment.facility_name || "Unknown Facility",
         uploadedBy:
           assessment.user_name || assessment.user?.name || "Unknown User",
         userId: assessment.user_id || assessment.user?.id || "N/A",
@@ -219,8 +207,6 @@ const ClientDocumentsData = () => {
         uploadTime: formatTime(assessment.created_at || assessment.upload_date),
         description: assessment.description || "",
         pdf_url: assessment.pdf_url || assessment.file_url,
-        facility_name: assessment.facility_name || "Unknown Facility",
-        category_name: assessment.category_name || "Uncategorized",
         originalData: assessment,
       };
     });
@@ -229,13 +215,24 @@ const ClientDocumentsData = () => {
   const documentData = isLoading
     ? []
     : assessments.data && Array.isArray(assessments.data)
-    ? transformAssessmentData(assessments.data)
-    : [];
+      ? transformAssessmentData(assessments.data)
+      : [];
 
   const columns = [
     {
+      name: "facilityName",
+      label: "Facility",
+      options: {
+        customBodyRender: (value) => {
+          return (
+            <div style={{ color: "#000000", fontWeight: "400" }}>{value}</div>
+          );
+        },
+      },
+    },
+    {
       name: "documentName",
-      label: "Document Name",
+      label: "Document Name", // This is now Category Name
       options: {
         customBodyRender: (value, tableMeta) => {
           const rowData = documentData[tableMeta.rowIndex];
@@ -247,8 +244,10 @@ const ClientDocumentsData = () => {
                 alt="pdfImage"
               />
               <div>
-                <div style={{ fontWeight: "500" }}>{value}</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
+                <div style={{ fontWeight: "500", color: "#000000" }}>
+                  {value}
+                </div>
+                <div style={{ fontSize: "12px", color: "#666666" }}>
                   {rowData?.description
                     ? rowData.description.length > 50
                       ? `${rowData.description.substring(0, 50)}...`
@@ -259,23 +258,12 @@ const ClientDocumentsData = () => {
                   <div
                     style={{
                       fontSize: "10px",
-                      color: "#999",
+                      color: "#999999",
                       marginTop: "2px",
                     }}>
-                    Assessment ID: {rowData.assessmentId}
+                    ID: {rowData.assessmentId}
                   </div>
                 )}
-                {/* Optional: Show facility and category separately if needed */}
-                {/* <div
-                  style={{
-                    fontSize: "10px",
-                    color: "#666",
-                    marginTop: "2px",
-                  }}>
-                  {rowData?.facility_name && rowData?.category_name && (
-                    <span>{rowData.facility_name} • {rowData.category_name}</span>
-                  )}
-                </div> */}
               </div>
             </div>
           );
@@ -285,27 +273,42 @@ const ClientDocumentsData = () => {
     {
       name: "uploadedBy",
       label: "Uploaded By",
-    },
-    {
-      name: "userId",
-      label: "User ID",
       options: {
         customBodyRender: (value) => {
-          return (
-            <div style={{ color: "#8B2885", fontWeight: "500" }}>
-              ID: {value}
-            </div>
-          );
+          return <div style={{ color: "#000000" }}>{value}</div>;
+        },
+      },
+    },
+    // {
+    //   name: "userId",
+    //   label: "User ID",
+    //   options: {
+    //     customBodyRender: (value) => {
+    //       return (
+    //         <div style={{ color: "#8B2885", fontWeight: "500" }}>
+    //           ID: {value}
+    //         </div>
+    //       );
+    //     },
+    //   },
+    // },
+    {
+      name: "uploadDate",
+      label: "Uploaded Date",
+      options: {
+        customBodyRender: (value) => {
+          return <div style={{ color: "#000000" }}>{value}</div>;
         },
       },
     },
     {
-      name: "uploadDate",
-      label: "Uploaded Date",
-    },
-    {
       name: "uploadTime",
       label: "Uploaded Time",
+      options: {
+        customBodyRender: (value) => {
+          return <div style={{ color: "#000000" }}>{value}</div>;
+        },
+      },
     },
     {
       name: "action",
@@ -336,7 +339,12 @@ const ClientDocumentsData = () => {
                   alignItems: "center",
                   justifyContent: "center",
                 }}>
-                <Icon icon="mdi:dots-horizontal" width="20" height="20" />
+                <Icon
+                  icon="mdi:dots-horizontal"
+                  width="20"
+                  height="20"
+                  color="#000000"
+                />
               </button>
             </div>
           );
@@ -355,13 +363,19 @@ const ClientDocumentsData = () => {
     filter: false,
     search: true,
     searchPlaceholder: "Search documents...",
-    pagination: false, // REMOVED PAGINATION
+    pagination: false,
     tableBodyHeight: "auto",
     setRowProps: (row, dataIndex) => ({
       style: {
         backgroundColor: dataIndex % 2 === 0 ? "#f9f9f9" : "white",
       },
     }),
+    // Remove any custom styling that adds colors
+    textLabels: {
+      body: {
+        noMatch: "No documents found",
+      },
+    },
   };
 
   // Loading state
@@ -371,7 +385,9 @@ const ClientDocumentsData = () => {
         <div className="spinner-border text-primary" role="status">
           <span className="visually-hidden">Loading...</span>
         </div>
-        <p style={{ marginTop: "10px" }}>Loading documents...</p>
+        <p style={{ marginTop: "10px", color: "#000000" }}>
+          Loading documents...
+        </p>
       </div>
     );
   }
@@ -402,7 +418,7 @@ const ClientDocumentsData = () => {
   // No data state
   if (!documentData.length && !isLoading) {
     return (
-      <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
+      <div style={{ textAlign: "center", padding: "40px", color: "#666666" }}>
         <Icon
           icon="material-symbols:description-outline"
           width="48"
@@ -559,7 +575,7 @@ const ClientDocumentsData = () => {
               )}
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );

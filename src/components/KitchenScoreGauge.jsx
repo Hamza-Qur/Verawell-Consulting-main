@@ -32,10 +32,10 @@ const KitchenScoreGauge = ({ score, title, subtitle, strokeGauge }) => {
 
       <div style={{ position: "relative", height: "120px", width: "100%" }}>
         <svg
-          width="100%"
-          height="auto"
+          height="100%"
           viewBox="0 0 200 100"
-          style={{ margin: "0 auto", display: "block" }}>
+          preserveAspectRatio="xMidYMid meet"
+          style={{ display: "block", margin: "0 auto" }}>
           {/* Background Gray Arch */}
           <path
             d="M 20 100 A 80 80 0 0 1 180 100"

@@ -16,7 +16,7 @@ const DashBoardLayerOne = () => {
 
                 {/* SalesStatisticOne */}
                 <SalesStatisticOne />
-
+                
                 {/* LatestRegisteredOne */}
                 <EmployeeDashbaordData/>
 

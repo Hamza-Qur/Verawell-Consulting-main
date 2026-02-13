@@ -94,6 +94,9 @@ export const register = createAsyncThunk("auth/register", async (userData) => {
   formData.append("password_confirmation", userData.password_confirmation);
   formData.append("phone_number", userData.phone_number);
   formData.append("role", userData.role);
+  if (userData.role === "customer" && userData.user_group_name) {
+    formData.append("user_group_name", userData.user_group_name);
+  }
 
   const response = await fetch(`${BASE_URL}/api/auth/register`, {
     method: "POST",

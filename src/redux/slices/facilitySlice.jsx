@@ -28,26 +28,41 @@ export const createFacility = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 // Get my assigned facilities
 export const getMyFacilities = createAsyncThunk(
   "facility/getMyFacilities",
-  async (page = 1, { rejectWithValue }) => {
+  async (params = { page: 1 }, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(
-        `${BASE_URL}/api/assign-facility/get-my?page=${page}`,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // Build URL with query parameters
+      let url = `${BASE_URL}/api/assign-facility/get-my`;
+      const queryParams = new URLSearchParams();
+
+      // page parameter
+      if (params.page) queryParams.append("page", params.page);
+
+      // date parameters if they exist
+      if (params.from_date) queryParams.append("from_date", params.from_date);
+      if (params.to_date) queryParams.append("to_date", params.to_date);
+      
+      //user_id parameter if it exists
+      if (params.user_id) queryParams.append("user_id", params.user_id);
+
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`;
+      }
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = await response.json();
 
@@ -59,7 +74,7 @@ export const getMyFacilities = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 // Get assigned users for a specific facility
@@ -78,14 +93,14 @@ export const getAssignedUsers = createAsyncThunk(
             Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = await response.json();
 
       if (!response.ok) {
         return rejectWithValue(
-          data.message || "Failed to fetch assigned users"
+          data.message || "Failed to fetch assigned users",
         );
       }
 
@@ -93,7 +108,7 @@ export const getAssignedUsers = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 // Assign user to facility
@@ -123,7 +138,7 @@ export const assignUserToFacility = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 export const assignAssessment = createAsyncThunk(
@@ -156,7 +171,7 @@ export const assignAssessment = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 // Unassign user from facility
@@ -186,7 +201,7 @@ export const unassignUserFromFacility = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 // Update facility
@@ -219,7 +234,7 @@ export const updateFacility = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 // Delete facility
@@ -237,7 +252,7 @@ export const deleteFacility = createAsyncThunk(
             Accept: "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -250,7 +265,7 @@ export const deleteFacility = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 export const downloadFacilitiesCSV = createAsyncThunk(
@@ -267,7 +282,7 @@ export const downloadFacilitiesCSV = createAsyncThunk(
             Accept: "application/json, text/csv", // CHANGED: Accept both JSON and CSV
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -298,7 +313,7 @@ export const downloadFacilitiesCSV = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 const facilitySlice = createSlice({

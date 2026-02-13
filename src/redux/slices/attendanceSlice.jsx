@@ -5,11 +5,23 @@ import { BASE_URL } from "../services/endpoint";
 // Get all attendance/tasks list (admin)
 export const getAttendance = createAsyncThunk(
   "attendance/getAttendance",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(`${BASE_URL}/api/task/get`, {
+      // Build URL with query parameters
+      let url = `${BASE_URL}/api/task/get`;
+      const queryParams = new URLSearchParams();
+
+      // Add date parameters if they exist
+      if (params.from_date) queryParams.append("from_date", params.from_date);
+      if (params.to_date) queryParams.append("to_date", params.to_date);
+
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`;
+      }
+
+      const response = await fetch(url, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -27,9 +39,8 @@ export const getAttendance = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
-
 // Get my tasks (team member - specific to logged in user)
 export const getMyTasks = createAsyncThunk(
   "attendance/getMyTasks",
@@ -55,7 +66,7 @@ export const getMyTasks = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 // Add a new task
@@ -90,7 +101,7 @@ export const addTask = createAsyncThunk(
       console.error("Add task error:", err);
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 // Update a task
@@ -125,7 +136,7 @@ export const updateTask = createAsyncThunk(
       console.error("Update task error:", err);
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 // Update attendance (legacy - kept for backward compatibility)
@@ -164,7 +175,7 @@ export const updateAttendance = createAsyncThunk(
       console.error("Update error:", err);
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 // Delete a task/attendance
@@ -192,7 +203,7 @@ export const deleteAttendance = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error");
     }
-  }
+  },
 );
 
 export const downloadAttendanceCSV = createAsyncThunk(
@@ -234,7 +245,7 @@ export const downloadAttendanceCSV = createAsyncThunk(
     } catch (err) {
       return rejectWithValue("Network error: " + err.message);
     }
-  }
+  },
 );
 
 const attendanceSlice = createSlice({
@@ -328,7 +339,8 @@ const attendanceSlice = createSlice({
       .addCase(addTask.fulfilled, (state, action) => {
         state.isAddingTask = false;
         if (action.payload.success) {
-          state.successMessage = action.payload.message || "Task added successfully";
+          state.successMessage =
+            action.payload.message || "Task added successfully";
         } else {
           state.addTaskError = action.payload.message || "Failed to add task";
           // Handle validation errors
@@ -352,9 +364,11 @@ const attendanceSlice = createSlice({
       .addCase(updateTask.fulfilled, (state, action) => {
         state.isUpdatingTask = false;
         if (action.payload.success) {
-          state.successMessage = action.payload.message || "Task updated successfully";
+          state.successMessage =
+            action.payload.message || "Task updated successfully";
         } else {
-          state.updateTaskError = action.payload.message || "Failed to update task";
+          state.updateTaskError =
+            action.payload.message || "Failed to update task";
         }
       })
       .addCase(updateTask.rejected, (state, action) => {
@@ -423,9 +437,6 @@ const attendanceSlice = createSlice({
   },
 });
 
-export const { 
-  clearAttendanceState, 
-  clearAttendanceList, 
-  clearMyTasks,
-} = attendanceSlice.actions;
+export const { clearAttendanceState, clearAttendanceList, clearMyTasks } =
+  attendanceSlice.actions;
 export default attendanceSlice.reducer;

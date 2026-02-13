@@ -11,7 +11,7 @@ import {
 const NotificationTab = () => {
   const dispatch = useDispatch();
   const { notifications, unreadCount, isFetching } = useSelector(
-    (state) => state.notification
+    (state) => state.notification,
   );
 
   const [activeTab, setActiveTab] = useState("all");
@@ -72,7 +72,7 @@ const NotificationTab = () => {
       return parsed.image;
     }
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      parsed.userName || "User"
+      parsed.userName || "User",
     )}&background=8B2885&color=fff&size=40`;
   };
 
@@ -177,7 +177,7 @@ const NotificationTab = () => {
           msOverflowStyle: "none" /* IE and Edge */,
         }}>
         {/* Hide scrollbar for Chrome, Safari and Opera */}
-        <style jsx>{`
+        <style>{`
           div::-webkit-scrollbar {
             display: none;
           }
@@ -291,7 +291,7 @@ const NotificationTab = () => {
       </div>
 
       {/* CSS for spinner animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes spin {
           0% {
             transform: rotate(0deg);
