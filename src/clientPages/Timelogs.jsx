@@ -8,6 +8,7 @@ import {
   getMyTasks,
   updateTask,
   deleteAttendance,
+  addTask, // Make sure this is imported
 } from "../redux/slices/attendanceSlice";
 
 const DAYS = [
@@ -24,14 +25,15 @@ const Timelogs = () => {
   const dispatch = useDispatch();
 
   // Get my tasks from Redux store
-  const { myTasks, isMyTasksLoading, myTasksError } = useSelector(
+  const { myTasks, isMyTasksLoading, myTasksError, isAddingTask } = useSelector(
     (state) => state.attendance,
   );
 
   const [tasks, setTasks] = useState([]);
   const [activeModal, setActiveModal] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [isSaving, setIsSaving] = useState(false); // Add saving state at parent level
+  const [isSaving, setIsSaving] = useState(false);
+  const [showAddOtherTaskModal, setShowAddOtherTaskModal] = useState(false); // New state for add other task modal
 
   // Toast state
   const [toast, setToast] = useState({
@@ -70,7 +72,6 @@ const Timelogs = () => {
     dispatch(getMyTasks());
   }, [dispatch]);
 
-  // Transform API data to match the UI format when data loads
   // Transform API data to match the UI format when data loads
   useEffect(() => {
     if (myTasks && myTasks.length > 0) {
@@ -149,11 +150,10 @@ const Timelogs = () => {
   };
 
   const saveTask = (taskData) => {
-    setIsSaving(true); // Start saving
+    setIsSaving(true);
 
     // Parse the datetime-local string (format: YYYY-MM-DDTHH:MM)
     const parseDateTimeLocal = (dateTimeStr) => {
-      // dateTimeStr is in format: "2026-02-04T15:00"
       const [datePart, timePart] = dateTimeStr.split("T");
       const [year, month, day] = datePart.split("-");
       const [hours, minutes] = timePart.split(":");
@@ -178,11 +178,9 @@ const Timelogs = () => {
       end_time: `${endParts.year}-${endParts.month}-${endParts.day} ${endParts.hours}:${endParts.minutes}:00`,
     };
 
-    console.log("Sending exact time:", updateData); // Debug log
-
     dispatch(updateTask(updateData))
       .then((action) => {
-        setIsSaving(false); // Stop saving regardless of outcome
+        setIsSaving(false);
 
         if (action.payload?.success) {
           showToast("Task updated successfully!", "success");
@@ -200,6 +198,27 @@ const Timelogs = () => {
         showToast("An error occurred while saving", "error");
         console.error("Save task error:", error);
       });
+  };
+
+  // NEW: Handle adding other task (without assigned_assessment_id)
+  const handleAddOtherTask = (taskData) => {
+    const apiTaskData = {
+      title: taskData.title,
+      description: taskData.description || "",
+      start_time: taskData.startDateTime.split("T")[0],
+      end_time: taskData.endDateTime.split("T")[0],
+      assigned_assessment_id: null, // Explicitly set to null for other tasks
+    };
+
+    dispatch(addTask(apiTaskData)).then((action) => {
+      if (action.payload?.success) {
+        showToast("Task added to timelogs successfully!", "success");
+        setShowAddOtherTaskModal(false);
+        dispatch(getMyTasks()); // Refresh the task list
+      } else {
+        showToast(action.payload?.message || "Failed to add task", "error");
+      }
+    });
   };
 
   const handleDeleteTask = (taskId) => {
@@ -228,7 +247,8 @@ const Timelogs = () => {
   const closeModals = () => {
     setActiveModal(null);
     setSelectedTask(null);
-    setIsSaving(false); // Reset saving state when closing modal
+    setIsSaving(false);
+    setShowAddOtherTaskModal(false);
   };
 
   const formatDateRange = () => {
@@ -341,6 +361,27 @@ const Timelogs = () => {
           <h2 style={{ fontSize: "24px", fontWeight: "700", margin: 0 }}>
             Timelogs - Form Completion Tracking
           </h2>
+
+          {/* NEW: Add Other Task Button */}
+          <button
+            onClick={() => setShowAddOtherTaskModal(true)}
+            style={{
+              background: "linear-gradient(90deg, #d64c4c, #8B2885)",
+              border: "none",
+              cursor: "pointer",
+              padding: "12px 24px",
+              color: "white",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontWeight: "600",
+              fontSize: "14px",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            }}>
+            <Icon icon="mdi:plus-circle-outline" width={20} height={20} />
+            Add Other Task
+          </button>
         </div>
 
         <div
@@ -450,7 +491,6 @@ const Timelogs = () => {
               minHeight: "300px",
             }}>
             {weekDates.map((date, i) => {
-              const dateStr = date.toISOString().split("T")[0];
               const isToday = new Date().toDateString() === date.toDateString();
               const dayTasks = getTasksForDay(date);
 
@@ -546,18 +586,186 @@ const Timelogs = () => {
             />
           }
         />
+
+        {/* NEW: Add Other Task Modal */}
+        <DynamicModal
+          show={showAddOtherTaskModal}
+          handleClose={closeModals}
+          title="Add Other Task"
+          modalWidth="480px"
+          content={
+            <AddOtherTaskForm
+              onSave={handleAddOtherTask}
+              isSaving={isAddingTask}
+              onClose={closeModals}
+            />
+          }
+        />
       </div>
     </MasterLayout>
   );
 };
 
-// --- UPDATED TASKFORM COMPONENT WITH SAVING STATE ---
+// NEW: Add Other Task Form Component
+const AddOtherTaskForm = ({ onSave, isSaving, onClose }) => {
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    startDateTime: new Date().toISOString().slice(0, 16),
+    endDateTime: new Date(new Date().getTime() + 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 16),
+  });
+
+  const inputStyle = {
+    background: "#F7F8FA",
+    border: "none",
+    borderRadius: "12px",
+    padding: "12px",
+    width: "100%",
+    fontSize: "14px",
+    marginTop: "8px",
+    marginBottom: "16px",
+    boxSizing: "border-box",
+  };
+
+  const handleSave = () => {
+    if (isSaving) return;
+
+    if (!formData.title.trim()) {
+      alert("Please enter a task title");
+      return;
+    }
+
+    if (!formData.startDateTime || !formData.endDateTime) {
+      alert("Please select both start and end date & time");
+      return;
+    }
+
+    const startDate = new Date(formData.startDateTime);
+    const endDate = new Date(formData.endDateTime);
+
+    if (endDate < startDate) {
+      alert("End date & time cannot be before start date & time");
+      return;
+    }
+
+    onSave(formData);
+  };
+
+  return (
+    <div>
+      <label>Title *</label>
+      <input
+        value={formData.title}
+        style={inputStyle}
+        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+        placeholder="Enter task title"
+        disabled={isSaving}
+      />
+
+      <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ flex: 1 }}>
+          <label>Start Date & Time *</label>
+          <input
+            type="datetime-local"
+            value={formData.startDateTime}
+            style={inputStyle}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                startDateTime: e.target.value,
+              })
+            }
+            disabled={isSaving}
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label>End Date & Time *</label>
+          <input
+            type="datetime-local"
+            value={formData.endDateTime}
+            style={inputStyle}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                endDateTime: e.target.value,
+              })
+            }
+            disabled={isSaving}
+          />
+        </div>
+      </div>
+
+      <label>Description</label>
+      <textarea
+        value={formData.description}
+        style={{ ...inputStyle, height: "80px" }}
+        onChange={(e) =>
+          setFormData({ ...formData, description: e.target.value })
+        }
+        placeholder="Enter task description"
+        disabled={isSaving}
+      />
+
+      <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+        <button
+          onClick={onClose}
+          style={{
+            flex: 1,
+            padding: "12px",
+            borderRadius: "12px",
+            border: "1px solid #ddd",
+            background: "white",
+            cursor: "pointer",
+            fontWeight: "600",
+          }}
+          disabled={isSaving}>
+          Cancel
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          style={{
+            flex: 2,
+            padding: "12px",
+            borderRadius: "12px",
+            color: "white",
+            background: isSaving
+              ? "#cccccc"
+              : "linear-gradient(90deg, #d64c4c, #8B2885)",
+            border: "none",
+            cursor: isSaving ? "not-allowed" : "pointer",
+            fontWeight: "600",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+          }}>
+          {isSaving ? (
+            <>
+              <Icon
+                icon="mdi:loading"
+                width={20}
+                height={20}
+                style={{ animation: "spin 1s linear infinite" }}
+              />
+              Adding...
+            </>
+          ) : (
+            "Add Task"
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// TaskForm component (unchanged)
 const TaskForm = ({ initialData, onSave, isSaving }) => {
   const prepareInitialData = () => {
     if (initialData) {
-      // Extract date and time from the Date objects WITHOUT timezone conversion
       const formatForDateTimeLocal = (date) => {
-        // Get local date components (what the user originally entered)
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, "0");
         const day = String(date.getDate()).padStart(2, "0");
@@ -585,7 +793,6 @@ const TaskForm = ({ initialData, onSave, isSaving }) => {
   const [formData, setFormData] = useState(prepareInitialData());
   const [localIsSaving, setLocalIsSaving] = useState(false);
 
-  // Update local saving state when prop changes
   useEffect(() => {
     setLocalIsSaving(isSaving);
   }, [isSaving]);
@@ -603,9 +810,8 @@ const TaskForm = ({ initialData, onSave, isSaving }) => {
   };
 
   const handleSave = () => {
-    if (localIsSaving) return; // Prevent multiple clicks
+    if (localIsSaving) return;
 
-    // Validate required fields
     if (!formData.title.trim()) {
       alert("Please enter a task title");
       return;
@@ -616,7 +822,6 @@ const TaskForm = ({ initialData, onSave, isSaving }) => {
       return;
     }
 
-    // Validate date logic (end date shouldn't be before start date)
     const startDate = new Date(formData.startDateTime);
     const endDate = new Date(formData.endDateTime);
 
@@ -736,10 +941,10 @@ const TaskForm = ({ initialData, onSave, isSaving }) => {
   );
 };
 
+// TaskView component (unchanged)
 const TaskView = ({ task, onEdit, onDelete, close }) => {
   if (!task) return null;
 
-  // Format date and time for display
   const formatDateTime = (date) => {
     return date.toLocaleDateString("en-US", {
       year: "numeric",
@@ -777,7 +982,6 @@ const TaskView = ({ task, onEdit, onDelete, close }) => {
             overflowWrap: "break-word",
             marginBottom: "15px",
           }}>
-          {/* Updated to use the formatDateTime function */}
           Start: {formatDateTime(task.startDate)}
           <br />
           End: {formatDateTime(task.endDate)}

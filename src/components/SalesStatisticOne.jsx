@@ -8,6 +8,7 @@ import {
   getFacilityScores,
 } from "../redux/slices/dashboardSlice";
 import DateFilter from "../components/DateFilter";
+import CustomerGroupFilter from "../components/CustomerGroupFilter";
 import useDateFilter from "../components/useDateFilter";
 
 const SalesStatisticOne = () => {
@@ -20,14 +21,57 @@ const SalesStatisticOne = () => {
   } = useSelector((state) => state.dashboard);
 
   const [activeTab, setActiveTab] = useState("tab2");
+  const [customerGroup, setCustomerGroup] = useState("");
 
-  // Use the custom hook for date filtering - NO PREDICTION STUFF
+  // Use the custom hook for date filtering
   const { dateFilter, updateFilter, getDateRange } = useDateFilter();
 
-  // ============ DEFINE FUNCTIONS FIRST ============
+  // ============ SAFELY GET ARRAY DATA ============
+
+  // Ensure facilityScores is always an array
+  const safeFacilityScores = useMemo(() => {
+    // If it's an array, use it
+    if (Array.isArray(facilityScores)) {
+      return facilityScores;
+    }
+    // If it's an object with a data property that's an array
+    if (
+      facilityScores &&
+      typeof facilityScores === "object" &&
+      Array.isArray(facilityScores.data)
+    ) {
+      return facilityScores.data;
+    }
+    // If it's a truthy value but not an array, log it for debugging
+    if (facilityScores) {
+      console.warn("facilityScores is not an array:", facilityScores);
+    }
+    // Default to empty array
+    return [];
+  }, [facilityScores]);
+
+  // Ensure submittedForms is always an array
+  const safeSubmittedForms = useMemo(() => {
+    if (Array.isArray(submittedForms)) {
+      return submittedForms;
+    }
+    if (
+      submittedForms &&
+      typeof submittedForms === "object" &&
+      Array.isArray(submittedForms.data)
+    ) {
+      return submittedForms.data;
+    }
+    if (submittedForms) {
+      console.warn("submittedForms is not an array:", submittedForms);
+    }
+    return [];
+  }, [submittedForms]);
+
+  // ============ DEFINE FUNCTIONS ============
 
   const getFormsSeries = useCallback(() => {
-    if (!submittedForms || submittedForms.length === 0) {
+    if (!safeSubmittedForms || safeSubmittedForms.length === 0) {
       return [
         {
           name: "Forms Submitted",
@@ -37,7 +81,7 @@ const SalesStatisticOne = () => {
     }
 
     const monthData = {};
-    submittedForms.forEach((item) => {
+    safeSubmittedForms.forEach((item) => {
       monthData[item.month] = item.total;
     });
 
@@ -56,7 +100,7 @@ const SalesStatisticOne = () => {
         data: data,
       },
     ];
-  }, [submittedForms]);
+  }, [safeSubmittedForms]);
 
   const getFormsCategories = useCallback(() => {
     const months = [];
@@ -70,20 +114,36 @@ const SalesStatisticOne = () => {
 
   // ============ USEEFFECTS ============
 
-  // Fetch data based on filters - ONLY ONE API CALL
+  // Debug effect to log customerGroup changes
+  useEffect(() => {
+    console.log("🎯 customerGroup changed to:", customerGroup);
+  }, [customerGroup]);
+
+  // Debug effect to log facilityScores structure
+  useEffect(() => {
+    console.log("📊 facilityScores received:", facilityScores);
+    console.log("📊 safeFacilityScores after processing:", safeFacilityScores);
+  }, [facilityScores, safeFacilityScores]);
+
+  // Fetch data based on filters
   useEffect(() => {
     if (activeTab === "tab1") {
       dispatch(getSubmittedForms());
     } else if (activeTab === "tab2") {
       const dateRange = getDateRange();
 
-      console.log("Fetching facility scores with params:", dateRange);
+      console.log("🔍 Fetching facility scores with params:", {
+        from_date: dateRange.from_date,
+        to_date: dateRange.to_date,
+        customer_group_name: customerGroup || undefined,
+      });
 
-      // ONLY fetch the main requested date range - NO PREDICTION CALLS
+      // Fetch with both date and customer group filters
       dispatch(
         getFacilityScores({
           from_date: dateRange.from_date,
           to_date: dateRange.to_date,
+          customer_group_name: customerGroup || undefined,
         }),
       );
     }
@@ -91,31 +151,39 @@ const SalesStatisticOne = () => {
     dispatch,
     activeTab,
     dateFilter.selectedYear,
-    dateFilter.viewType,
-    dateFilter.selectedQuarter,
     dateFilter.selectedMonth,
+    dateFilter.selectedQuarter,
+    dateFilter.viewType,
+    customerGroup,
   ]);
 
   // ============ MEMOIZED VALUES ============
 
   const maxScore = useMemo(() => {
-    if (!facilityScores || facilityScores.length === 0) return 100;
-    const scores = facilityScores.map((f) => parseInt(f.total_score) || 0);
-    return Math.max(...scores);
-  }, [facilityScores]);
+    if (!safeFacilityScores || safeFacilityScores.length === 0) return 100;
+    const scores = safeFacilityScores
+      .map((f) => parseInt(f?.total_score) || 0)
+      .filter((score) => !isNaN(score));
+    return scores.length > 0 ? Math.max(...scores) : 100;
+  }, [safeFacilityScores]);
 
   const facilityCategories = useMemo(() => {
-    if (!facilityScores || facilityScores.length === 0) return ["No Data"];
+    if (!safeFacilityScores || safeFacilityScores.length === 0)
+      return ["No Data"];
 
-    const topFacilities = [...facilityScores]
-      .sort((a, b) => parseInt(b.total_score) - parseInt(a.total_score))
+    const topFacilities = [...safeFacilityScores]
+      .sort(
+        (a, b) => parseInt(b?.total_score || 0) - parseInt(a?.total_score || 0),
+      )
       .slice(0, 5);
 
-    return topFacilities.map((facility) => facility.facility_name);
-  }, [facilityScores]);
+    return topFacilities.map(
+      (facility) => facility?.facility_name || "Unknown",
+    );
+  }, [safeFacilityScores]);
 
   const facilitySeries = useMemo(() => {
-    if (!facilityScores || facilityScores.length === 0) {
+    if (!safeFacilityScores || safeFacilityScores.length === 0) {
       return [
         {
           name: "Facility Score",
@@ -124,20 +192,22 @@ const SalesStatisticOne = () => {
       ];
     }
 
-    const topFacilities = [...facilityScores]
-      .sort((a, b) => parseInt(b.total_score) - parseInt(a.total_score))
+    const topFacilities = [...safeFacilityScores]
+      .sort(
+        (a, b) => parseInt(b?.total_score || 0) - parseInt(a?.total_score || 0),
+      )
       .slice(0, 5);
 
     return [
       {
         name: "Facility Score (%)",
         data: topFacilities.map((facility) => {
-          const score = parseInt(facility.total_score) || 0;
+          const score = parseInt(facility?.total_score) || 0;
           return maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
         }),
       },
     ];
-  }, [facilityScores, maxScore]);
+  }, [safeFacilityScores, maxScore]);
 
   const chartOptions = useMemo(() => {
     const isFacilityTab = activeTab === "tab2";
@@ -187,31 +257,36 @@ const SalesStatisticOne = () => {
       tooltip: {
         enabled: true,
         custom: ({ series, seriesIndex, dataPointIndex, w }) => {
-          const label = w.config.xaxis.categories[dataPointIndex];
           const value = series[seriesIndex][dataPointIndex];
 
           if (isFacilityTab) {
-            if (facilityScores?.length > 0) {
-              const topFacilities = [...facilityScores]
+            if (safeFacilityScores?.length > 0) {
+              const topFacilities = [...safeFacilityScores]
                 .sort(
-                  (a, b) => parseInt(b.total_score) - parseInt(a.total_score),
+                  (a, b) =>
+                    parseInt(b?.total_score || 0) -
+                    parseInt(a?.total_score || 0),
                 )
                 .slice(0, 5);
 
               if (topFacilities[dataPointIndex]) {
                 const facility = topFacilities[dataPointIndex];
-                const actualScore = parseInt(facility.total_score) || 0;
+                const actualScore = parseInt(facility?.total_score) || 0;
                 const percentage =
                   maxScore > 0 ? Math.round((actualScore / maxScore) * 100) : 0;
 
                 return `
-                  <div style="padding: 12px; background: #fff; border-radius: 6px; border: 1px solid #e2e8f0; min-width: 200px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                  <div style="padding: 12px; background: #fff; border-radius: 6px; border: 1px solid #e2e8f0; min-width: 220px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                     <div style="font-size: 15px; color: #1a202c; font-weight: 600; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
-                      ${facility.facility_name}
+                      ${facility?.facility_name || "Unknown Facility"}
                     </div>
                     <div style="font-size: 13px; color: #4a5568; margin-bottom: 6px; display: flex; justify-content: space-between;">
                       <span>Period:</span>
                       <span style="font-weight: 500;">${dateRange.label}</span>
+                    </div>
+                    <div style="font-size: 13px; color: #4a5568; margin-bottom: 6px; display: flex; justify-content: space-between;">
+                      <span>Customer Group:</span>
+                      <span style="font-weight: 500;">${customerGroup || "All Groups"}</span>
                     </div>
                     <div style="font-size: 14px; color: #8B2885; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between;">
                       <span>Score:</span>
@@ -219,7 +294,7 @@ const SalesStatisticOne = () => {
                     </div>
                     <div style="font-size: 13px; color: #4a5568; display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; margin-top: 6px; padding-top: 6px;">
                       <span>Forms Submitted:</span>
-                      <span style="font-weight: 500;">${facility.total || 0}</span>
+                      <span style="font-weight: 500;">${facility?.total || 0}</span>
                     </div>
                   </div>
                 `;
@@ -252,8 +327,9 @@ const SalesStatisticOne = () => {
         max: isFacilityTab
           ? 100
           : (() => {
-              if (!submittedForms || submittedForms.length === 0) return 100;
-              const totals = submittedForms.map((f) => f.total || 0);
+              if (!safeSubmittedForms || safeSubmittedForms.length === 0)
+                return 100;
+              const totals = safeSubmittedForms.map((f) => f?.total || 0);
               const maxTotal = Math.max(...totals);
               return Math.max(maxTotal + 10, 50);
             })(),
@@ -268,14 +344,21 @@ const SalesStatisticOne = () => {
     activeTab,
     facilityCategories,
     getFormsCategories,
-    facilityScores,
+    safeFacilityScores,
+    safeSubmittedForms,
     maxScore,
-    submittedForms,
     getDateRange,
+    customerGroup,
   ]);
 
   const isLoading =
     activeTab === "tab1" ? isFormsLoading : isFacilityScoresLoading;
+
+  // Handle customer group filter change
+  const handleGroupChange = (group) => {
+    console.log("Group changed to:", group);
+    setCustomerGroup(group);
+  };
 
   return (
     <div className="col-xxl-12 col-xl-12">
@@ -299,24 +382,44 @@ const SalesStatisticOne = () => {
             </li>
           </ul>
 
-          {/* Date Filter - Only for Facility Score tab */}
+          {/* Filters Section - Only for Facility Score tab */}
           {activeTab === "tab2" && (
             <div className="mb-4 pb-2 border-bottom">
-              <DateFilter
-                {...dateFilter}
-                onFilterChange={updateFilter}
-                size="sm"
-              />
+              <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+                <div style={{ minWidth: "300px" }}>
+                  <DateFilter
+                    {...dateFilter}
+                    onFilterChange={updateFilter}
+                    size="sm"
+                  />
+                </div>
 
-              <div className="mt-10 mb-10 d-flex align-items-center gap-2 flex-wrap">
+                <div className="flex-grow-1">
+                  <CustomerGroupFilter
+                    selectedGroup={customerGroup}
+                    onGroupChange={handleGroupChange}
+                    size="sm"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-2 d-flex align-items-center gap-2 flex-wrap">
                 <span className="badge bg-light text-dark p-2">
                   <i className="fas fa-calendar-alt me-1"></i>
                   {getDateRange().label}
                 </span>
-                {facilityScores?.length > 0 && (
+
+                {customerGroup && (
+                  <span className="badge bg-info text-white p-2">
+                    <i className="fas fa-tag me-1"></i>
+                    Group: {customerGroup}
+                  </span>
+                )}
+
+                {safeFacilityScores?.length > 0 && (
                   <span className="badge bg-success p-2">
                     <i className="fas fa-building me-1"></i>
-                    {facilityScores.length} Facilities
+                    {safeFacilityScores.length} Facilities
                   </span>
                 )}
               </div>
@@ -362,9 +465,10 @@ const SalesStatisticOne = () => {
                   <div className="d-flex flex-wrap align-items-center justify-content-start mb-3">
                     <h6 className="text-lg mb-0 mt-0">
                       Facility Performance
-                      {facilityScores?.length > 0 && (
+                      {safeFacilityScores?.length > 0 && (
                         <span className="ms-2 small text-muted fw-normal">
-                          (Showing Top 5 of {facilityScores.length} Facilities)
+                          (Showing Top 5 of {safeFacilityScores.length}{" "}
+                          Facilities)
                         </span>
                       )}
                     </h6>
@@ -378,7 +482,7 @@ const SalesStatisticOne = () => {
                     </ul>
                   </div>
 
-                  {!facilityScores || facilityScores.length === 0 ? (
+                  {!safeFacilityScores || safeFacilityScores.length === 0 ? (
                     <div className="text-center py-5">
                       <Icon
                         icon="mdi:chart-line"
@@ -388,9 +492,11 @@ const SalesStatisticOne = () => {
                       />
                       <p className="text-muted mb-1">
                         No facility data available for selected period
+                        {customerGroup &&
+                          ` and customer group "${customerGroup}"`}
                       </p>
                       <p className="text-muted small">
-                        Try selecting a different date range
+                        Try selecting a different date range or customer group
                       </p>
                     </div>
                   ) : (

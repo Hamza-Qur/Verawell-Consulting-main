@@ -157,6 +157,10 @@ const FacilityDetailDashboardData = ({ rows }) => {
         showToast("Task added to timelogs successfully!", "success");
         setShowAddTaskModal(false);
         setSelectedForm(null);
+
+        // Get current page from Redux or state if you track it
+        const currentPage = 1; // Replace with actual current page if you track it
+        dispatch(getAssignedAssessments(currentPage));
       } else if (action.error) {
         // Error will be shown via useEffect
       }
@@ -214,7 +218,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
           cursor: "not-allowed",
           opacity: 0.6,
         },
-        fillFormText: "Fill Form",
+        fillFormText: "Fill",
         fillFormIcon: "material-symbols:edit-document",
       };
     } else if (startTime === null && endTime === null) {
@@ -227,21 +231,21 @@ const FacilityDetailDashboardData = ({ rows }) => {
           background: "#2196F3",
           cursor: isCustomer ? "not-allowed" : "pointer",
         },
-        fillFormText: "View Form",
+        fillFormText: "View",
         fillFormIcon: "ic:baseline-remove-red-eye",
       };
     } else {
       return {
         isCompleted: true,
         canShowTaskButton: !isCustomer, // Hide for customers
-        taskButtonText: "Task Already Added",
+        taskButtonText: "Task Added",
         taskButtonDisabled: true,
         taskButtonStyle: {
           background: "#28a745",
           cursor: "not-allowed",
           opacity: 0.8,
         },
-        fillFormText: "View Form",
+        fillFormText: "View",
         fillFormIcon: "ic:baseline-remove-red-eye",
       };
     }
@@ -290,6 +294,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
         time: timeStr,
         date: dateStr,
         hoursWorked: hoursWorked,
+        customergroup: assessment.customer_group_name || "N/A",
         formStatus: formStatusInfo.isCompleted,
         facility: facility,
         canShowTaskButton: formStatusInfo.canShowTaskButton,
@@ -312,6 +317,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
   const employeeColumns = [
     { name: "facility", label: "Facility Name" },
     { name: "formName", label: "Form Name" },
+    { name: "customergroup", label: "Group Name" },
     {
       name: "time",
       label: "Time",

@@ -12679,7 +12679,7 @@ textarea:active {
 
 .input-group-text {
   color: var(--text-secondary-light);
-  height: 40px;
+  height: 44px;
 }
 
 .form-control.is-invalid,

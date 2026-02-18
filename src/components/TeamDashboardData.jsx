@@ -73,13 +73,14 @@ const TeamDashboardData = ({ rows }) => {
       id: facility.id,
       facility: facility.facility_name || "N/A",
       facility_address: facility.facility_address || "N/A",
+      customer_group: facility.customer_group_name || "N/A",
       hoursWorked: facility.total_hours || "0",
       formsSubmitted: facility.total_assessments || "0",
       documents: facility.total_assigned_assessments || "0",
       total_tasks: facility.total_tasks || "0",
       total_assigned_users: facility.total_assigned_users || "0",
-      date: facility.created_at
-        ? new Date(facility.created_at).toLocaleDateString()
+      budgetedhours: facility.budgeted_hours
+        ? Math.round(facility.budgeted_hours)
         : "N/A",
       // Include all original data for navigation
       originalData: facility,
@@ -96,8 +97,16 @@ const TeamDashboardData = ({ rows }) => {
       },
     },
     {
-      name: "date",
-      label: "Assigned Date",
+      name: "customer_group",
+      label: "Group Name",
+      options: {
+        filter: true,
+        sort: true,
+      },
+    },
+    {
+      name: "budgetedhours",
+      label: "Budgeted Hours",
       options: {
         filter: true,
         sort: true,
@@ -182,7 +191,7 @@ const TeamDashboardData = ({ rows }) => {
     searchText: searchText,
     onSearchChange: (searchText) => setSearchText(searchText),
     pagination: true,
-    serverSide: true,
+    serverSide: false,
     count: teamAssignedFacilities?.total || 0,
     page: currentPage - 1,
     onPageChange: (page) => handlePageChange(page + 1),

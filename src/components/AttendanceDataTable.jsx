@@ -154,6 +154,7 @@ const AttendanceDataTable = () => {
             })
           : "N/A",
         month: month,
+        customergroupname: task.customer_group_name || "N/A",
         employeeName: task.user_name || `User ${task.user_id || "N/A"}`,
         employeeId: task.user_id || "N/A",
         employeeEmail: task.user_email || "N/A",
@@ -207,6 +208,10 @@ const AttendanceDataTable = () => {
           );
         },
       },
+    },
+    {
+      name: "customergroupname",
+      label: "Group Name",
     },
     {
       name: "employeeId",

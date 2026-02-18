@@ -173,14 +173,16 @@ export const getFacilityScores = createAsyncThunk(
     try {
       const token = localStorage.getItem("token");
 
-      // Build URL with query parameters if provided
       let url = `${BASE_URL}/api/dashboard/get-facility-score-customer`;
 
-      // Add query parameters if they exist
-      if (params.from_date || params.to_date) {
-        const queryParams = new URLSearchParams();
-        if (params.from_date) queryParams.append("from_date", params.from_date);
-        if (params.to_date) queryParams.append("to_date", params.to_date);
+      const queryParams = new URLSearchParams();
+      if (params.from_date) queryParams.append("from_date", params.from_date);
+      if (params.to_date) queryParams.append("to_date", params.to_date);
+      if (params.customer_group_name) {
+        queryParams.append("customer_group_name", params.customer_group_name);
+      }
+
+      if (queryParams.toString()) {
         url += `?${queryParams.toString()}`;
       }
 
@@ -192,13 +194,6 @@ export const getFacilityScores = createAsyncThunk(
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        return rejectWithValue(
-          data.message || "Failed to fetch facility scores",
-        );
-      }
-
       return data.data || [];
     } catch (err) {
       return rejectWithValue("Network error");
@@ -540,19 +535,28 @@ const dashboardSlice = createSlice({
       });
 
     // Get Facility Scores
-    builder
-      .addCase(getFacilityScores.pending, (state) => {
-        state.isFacilityScoresLoading = true;
-        state.facilityScoresError = null;
-      })
-      .addCase(getFacilityScores.fulfilled, (state, action) => {
-        state.isFacilityScoresLoading = false;
+    // Add this to your extraReducers
+    builder.addCase(getFacilityScores.fulfilled, (state, action) => {
+      state.isFacilityScoresLoading = false;
+      // Ensure we always store an array
+      if (Array.isArray(action.payload)) {
         state.facilityScores = action.payload;
-      })
-      .addCase(getFacilityScores.rejected, (state, action) => {
-        state.isFacilityScoresLoading = false;
-        state.facilityScoresError = action.payload;
-      });
+      } else if (action.payload && typeof action.payload === "object") {
+        // If it's an object with a data property that's an array
+        if (Array.isArray(action.payload.data)) {
+          state.facilityScores = action.payload.data;
+        } else {
+          // If it's some other object, wrap it in an array or use empty array
+          console.warn(
+            "Unexpected facilityScores payload format:",
+            action.payload,
+          );
+          state.facilityScores = [];
+        }
+      } else {
+        state.facilityScores = [];
+      }
+    });
 
     // Download Users CSV
     builder

@@ -192,10 +192,10 @@ const FacilityDataTable = () => {
       totalHoursWorked: facility.total_hours || "0",
       customerName: facility.customer_name || "N/A",
       groupNames: facility.customer_group_name || "N/A",
-      customerId: facility.customer_id || null,
-      date: facility.created_at
-        ? new Date(facility.created_at).toLocaleDateString()
+      budgetedHours: facility.budgeted_hours
+        ? Math.round(facility.budgeted_hours)
         : "N/A",
+      customerId: facility.customer_id || null,
       status: facility.total_assessments > 0 ? true : false,
       address: facility.facility_address || "No address",
       assignedEmployees: [],
@@ -268,8 +268,16 @@ const FacilityDataTable = () => {
       },
     },
     {
-      name: "date",
-      label: "Assigned Date",
+      name: "formsSubmitted",
+      label: "Forms Submitted",
+      options: {
+        filter: true,
+        sort: true,
+      },
+    },
+    {
+      name: "budgetedHours",
+      label: "Budgeted Hours",
       options: {
         filter: true,
         sort: true,
@@ -278,14 +286,6 @@ const FacilityDataTable = () => {
             <span style={{ color: "#666", fontSize: "14px" }}>{value}</span>
           );
         },
-      },
-    },
-    {
-      name: "formsSubmitted",
-      label: "Forms Submitted",
-      options: {
-        filter: true,
-        sort: true,
       },
     },
     {
@@ -382,7 +382,7 @@ const FacilityDataTable = () => {
     search: true,
     searchPlaceholder: "Search facilities...",
     pagination: true,
-    serverSide: true,
+    serverSide: false,
     count: myFacilities.total || 0,
     rowsPerPage: myFacilities.per_page || 10,
     rowsPerPageOptions: [5, 10, 25, 50],

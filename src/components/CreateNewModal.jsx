@@ -1,3 +1,4 @@
+// CreateNewModal.jsx
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import DynamicModal from "./DynamicModal";
@@ -6,6 +7,7 @@ import CreateFaciltyModal from "./CreateFaciltyModal";
 import CreateEmployeeModal from "./CreateEmployeeModal";
 import AssignFacilityModal from "./AssignFacilityModal";
 import AddCustomerModal from "./AddCustomerModal";
+import CreateBudgetedHoursModal from "./CreateBudgetedHoursModal"; // Import the new modal
 
 export default function CreateNewModal() {
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
@@ -14,6 +16,7 @@ export default function CreateNewModal() {
   const [showaAssignFacilityModal, setShowAssignFacilityModal] =
     useState(false);
   const [showCustomerModal, setshowCustomerModal] = useState(false);
+  const [showBudgetedHoursModal, setShowBudgetedHoursModal] = useState(false); // New state
 
   const handleShowAnnouncementModal = () => setShowAnnouncementModal(true);
   const handleCloseAnnouncementModal = () => setShowAnnouncementModal(false);
@@ -30,6 +33,10 @@ export default function CreateNewModal() {
 
   const handleShowCustomerModal = () => setshowCustomerModal(true);
   const handleCloseCustomerModal = () => setshowCustomerModal(false);
+
+  // New handlers for budgeted hours modal
+  const handleShowBudgetedHoursModal = () => setShowBudgetedHoursModal(true);
+  const handleCloseBudgetedHoursModal = () => setShowBudgetedHoursModal(false);
 
   return (
     <div>
@@ -83,6 +90,7 @@ export default function CreateNewModal() {
           title="Assign Facility Form"
           content={<AssignFacilityModal />}
         />
+
         <Link
           onClick={handleShowCustomerModal}
           className="btn modalButton w-100">
@@ -93,6 +101,20 @@ export default function CreateNewModal() {
           handleClose={handleCloseCustomerModal}
           title="Add Customer"
           content={<AddCustomerModal />}
+        />
+
+        {/* New Budgeted Hours Modal Link */}
+        <Link
+          onClick={handleShowBudgetedHoursModal}
+          className="btn modalButton w-100">
+          Set Budgeted Hours
+        </Link>
+        <DynamicModal
+          show={showBudgetedHoursModal}
+          handleClose={handleCloseBudgetedHoursModal}
+          title="Set Facility Budgeted Hours"
+          content={<CreateBudgetedHoursModal />}
+          modalWidth="40%"
         />
       </ul>
     </div>
