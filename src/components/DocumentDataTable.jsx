@@ -308,7 +308,6 @@ const DocumentDataTable = () => {
                 disabled={isDeleting || isDownloadingPDF}
                 style={{
                   background: "none",
-                  border: "1px solid #E0E0E0",
                   borderRadius: "4px",
                   cursor:
                     isDeleting || isDownloadingPDF ? "not-allowed" : "pointer",

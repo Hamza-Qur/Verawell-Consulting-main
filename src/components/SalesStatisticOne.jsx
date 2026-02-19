@@ -171,13 +171,12 @@ const SalesStatisticOne = () => {
     if (!safeFacilityScores || safeFacilityScores.length === 0)
       return ["No Data"];
 
-    const topFacilities = [...safeFacilityScores]
-      .sort(
-        (a, b) => parseInt(b?.total_score || 0) - parseInt(a?.total_score || 0),
-      )
-      .slice(0, 5);
+    // REMOVED THE .slice(0, 5) LIMIT - Now showing all facilities
+    const sortedFacilities = [...safeFacilityScores].sort(
+      (a, b) => parseInt(b?.total_score || 0) - parseInt(a?.total_score || 0),
+    );
 
-    return topFacilities.map(
+    return sortedFacilities.map(
       (facility) => facility?.facility_name || "Unknown",
     );
   }, [safeFacilityScores]);
@@ -187,21 +186,20 @@ const SalesStatisticOne = () => {
       return [
         {
           name: "Facility Score",
-          data: [0, 0, 0, 0, 0],
+          data: [0], // Default to single zero
         },
       ];
     }
 
-    const topFacilities = [...safeFacilityScores]
-      .sort(
-        (a, b) => parseInt(b?.total_score || 0) - parseInt(a?.total_score || 0),
-      )
-      .slice(0, 5);
+    // REMOVED THE .slice(0, 5) LIMIT - Now showing all facilities
+    const sortedFacilities = [...safeFacilityScores].sort(
+      (a, b) => parseInt(b?.total_score || 0) - parseInt(a?.total_score || 0),
+    );
 
     return [
       {
         name: "Facility Score (%)",
-        data: topFacilities.map((facility) => {
+        data: sortedFacilities.map((facility) => {
           const score = parseInt(facility?.total_score) || 0;
           return maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
         }),
@@ -261,16 +259,14 @@ const SalesStatisticOne = () => {
 
           if (isFacilityTab) {
             if (safeFacilityScores?.length > 0) {
-              const topFacilities = [...safeFacilityScores]
-                .sort(
-                  (a, b) =>
-                    parseInt(b?.total_score || 0) -
-                    parseInt(a?.total_score || 0),
-                )
-                .slice(0, 5);
+              // REMOVED THE .slice(0, 5) LIMIT - Now using all facilities
+              const sortedFacilities = [...safeFacilityScores].sort(
+                (a, b) =>
+                  parseInt(b?.total_score || 0) - parseInt(a?.total_score || 0),
+              );
 
-              if (topFacilities[dataPointIndex]) {
-                const facility = topFacilities[dataPointIndex];
+              if (sortedFacilities[dataPointIndex]) {
+                const facility = sortedFacilities[dataPointIndex];
                 const actualScore = parseInt(facility?.total_score) || 0;
                 const percentage =
                   maxScore > 0 ? Math.round((actualScore / maxScore) * 100) : 0;
@@ -463,18 +459,10 @@ const SalesStatisticOne = () => {
               {activeTab === "tab2" && (
                 <>
                   <div className="d-flex flex-wrap align-items-center justify-content-start mb-3">
-                    <h6 className="text-lg mb-0 mt-0">
-                      Facility Performance
-                      {safeFacilityScores?.length > 0 && (
-                        <span className="ms-2 small text-muted fw-normal">
-                          (Showing Top 5 of {safeFacilityScores.length}{" "}
-                          Facilities)
-                        </span>
-                      )}
-                    </h6>
+                    <h6 className="text-lg mb-0 mt-0">Facility Performance</h6>
                     <ul className="salesList">
                       <li className="text-sm fw-semibold">
-                        X-axis: Top 5 Facilities by Score
+                        X-axis: Facilities by Score
                       </li>
                       <li className="text-sm fw-semibold">
                         Y-axis: Score (% of Highest Scoring Facility)
