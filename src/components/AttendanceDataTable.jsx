@@ -13,6 +13,7 @@ import {
 } from "../redux/slices/attendanceSlice";
 import DateFilter from "./DateFilter";
 import useDateFilter from "./useDateFilter";
+import CustomerGroupFilter from "./CustomerGroupFilter"; // Import CustomerGroupFilter
 
 const AttendanceDataTable = () => {
   const navigate = useNavigate();
@@ -25,6 +26,9 @@ const AttendanceDataTable = () => {
   // Use date filter hook
   const { dateFilter, updateFilter, getDateRange } = useDateFilter();
 
+  // Add state for customer group filter
+  const [customerGroup, setCustomerGroup] = useState("");
+
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
   const [selectedFacility, setSelectedFacility] = useState("All");
@@ -32,7 +36,7 @@ const AttendanceDataTable = () => {
   const [selectedAttendance, setSelectedAttendance] = useState(null);
   const buttonRefs = useRef([]);
 
-  // Fetch attendance with date filters
+  // Fetch attendance with date filters and customer group filter
   useEffect(() => {
     const dateRange = getDateRange();
 
@@ -40,6 +44,7 @@ const AttendanceDataTable = () => {
       getAttendance({
         from_date: dateRange.from_date,
         to_date: dateRange.to_date,
+        customer_group_name: customerGroup || undefined,
       }),
     );
   }, [
@@ -48,7 +53,13 @@ const AttendanceDataTable = () => {
     dateFilter.viewType,
     dateFilter.selectedQuarter,
     dateFilter.selectedMonth,
+    customerGroup, // Add customerGroup as dependency
   ]);
+
+  // Handle customer group filter change
+  const handleGroupChange = (group) => {
+    setCustomerGroup(group);
+  };
 
   const handleFacilityFilter = (facility) => {
     setSelectedFacility(facility);
@@ -92,6 +103,7 @@ const AttendanceDataTable = () => {
             getAttendance({
               from_date: dateRange.from_date,
               to_date: dateRange.to_date,
+              customer_group_name: customerGroup || undefined,
             }),
           );
         }
@@ -331,23 +343,61 @@ const AttendanceDataTable = () => {
 
   return (
     <>
-      {/* Date Filter - ONLY THIS ADDED */}
+      {/* Date Filter and Customer Group Filter */}
       <div className="mb-4 pb-2 border-bottom">
-        <div className="d-flex justify-content-between align-items-start flex-wrap gap-3">
-          <DateFilter {...dateFilter} onFilterChange={updateFilter} size="sm" />
-
-          <div className="mt-2 d-flex align-items-center gap-2 flex-wrap">
-            <span className="badge bg-light text-dark p-2">
-              <i className="fas fa-calendar-alt me-1"></i>
-              {getDateRange().label}
-            </span>
-            {!isLoading && attendanceList.length > 0 && (
-              <span className="badge bg-success p-2">
-                <i className="fas fa-clock me-1"></i>
-                {attendanceList.length} Records
-              </span>
-            )}
+        <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+          <div style={{ minWidth: "300px" }}>
+            <DateFilter
+              {...dateFilter}
+              onFilterChange={updateFilter}
+              size="sm"
+            />
           </div>
+
+          <div className="flex-grow-1" style={{ minWidth: "250px" }}>
+            <CustomerGroupFilter
+              selectedGroup={customerGroup}
+              onGroupChange={handleGroupChange}
+              size="sm"
+            />
+          </div>
+        </div>
+
+        {/* Active filter badges */}
+        <div className="mt-2 d-flex align-items-center gap-2 flex-wrap">
+          <span className="badge bg-light text-dark p-2">
+            <i className="fas fa-calendar-alt me-1"></i>
+            {getDateRange().label}
+          </span>
+
+          {customerGroup && (
+            <span className="badge bg-info text-white p-2">
+              <i className="fas fa-tag me-1"></i>
+              Group: {customerGroup}
+              <button
+                onClick={() => {
+                  setCustomerGroup("");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "white",
+                  marginLeft: "8px",
+                  padding: "0 4px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}>
+                ×
+              </button>
+            </span>
+          )}
+
+          {!isLoading && attendanceList.length > 0 && (
+            <span className="badge bg-success p-2">
+              <i className="fas fa-clock me-1"></i>
+              {attendanceList.length} Records
+            </span>
+          )}
         </div>
       </div>
 
@@ -369,6 +419,7 @@ const AttendanceDataTable = () => {
                 getAttendance({
                   from_date: dateRange.from_date,
                   to_date: dateRange.to_date,
+                  customer_group_name: customerGroup || undefined,
                 }),
               );
             }}
@@ -391,10 +442,11 @@ const AttendanceDataTable = () => {
               style={{ textAlign: "center", padding: "40px", color: "#666" }}>
               <Icon icon="mdi:calendar-clock" width="48" height="48" />
               <p style={{ marginTop: "10px" }}>
-                No attendance records found for {getDateRange().label}.
+                No attendance records found for {getDateRange().label}
+                {customerGroup && ` for group "${customerGroup}"`}.
               </p>
               <p style={{ fontSize: "14px", marginTop: "8px", color: "#999" }}>
-                Try selecting a different date range
+                Try selecting a different date range or customer group
               </p>
             </div>
           ) : (
@@ -427,6 +479,7 @@ const AttendanceDataTable = () => {
                 getAttendance({
                   from_date: dateRange.from_date,
                   to_date: dateRange.to_date,
+                  customer_group_name: customerGroup || undefined,
                 }),
               );
             }}

@@ -9,9 +9,10 @@ import {
   deleteFacility,
   getMyFacilities,
   updateFacility,
-  downloadFacilitiesCSV, // Keep CSV import as is
+  downloadFacilitiesCSV,
 } from "../redux/slices/facilitySlice";
 import DateFilter from "./DateFilter";
+import CustomerGroupFilter from "./CustomerGroupFilter"; // Import the new filter
 import useDateFilter from "./useDateFilter";
 import Toast from "./Toast";
 
@@ -35,6 +36,9 @@ const FacilityDataTable = () => {
   // Use date filter hook
   const { dateFilter, updateFilter, getDateRange } = useDateFilter();
 
+  // Add state for customer group filter
+  const [customerGroup, setCustomerGroup] = useState("");
+
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
   const [editingFacility, setEditingFacility] = useState(null);
@@ -42,7 +46,7 @@ const FacilityDataTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const buttonRefs = useRef([]);
 
-  // Fetch facilities with date filters
+  // Fetch facilities with date filters and customer group filter
   useEffect(() => {
     const dateRange = getDateRange();
 
@@ -51,6 +55,7 @@ const FacilityDataTable = () => {
         page: currentPage,
         from_date: dateRange.from_date,
         to_date: dateRange.to_date,
+        customer_group_name: customerGroup || undefined, // Add customer group filter
       }),
     );
   }, [
@@ -60,6 +65,7 @@ const FacilityDataTable = () => {
     dateFilter.viewType,
     dateFilter.selectedQuarter,
     dateFilter.selectedMonth,
+    customerGroup, // Add customerGroup as dependency
   ]);
 
   useEffect(() => {
@@ -137,6 +143,7 @@ const FacilityDataTable = () => {
               page: currentPage,
               from_date: dateRange.from_date,
               to_date: dateRange.to_date,
+              customer_group_name: customerGroup || undefined,
             }),
           );
         }
@@ -167,6 +174,7 @@ const FacilityDataTable = () => {
             page: currentPage,
             from_date: dateRange.from_date,
             to_date: dateRange.to_date,
+            customer_group_name: customerGroup || undefined,
           }),
         );
         setEditingFacility(null);
@@ -178,9 +186,16 @@ const FacilityDataTable = () => {
     setCurrentPage(page);
   };
 
-  // CSV Download handler - REVERTED to original without date params
+  // CSV Download handler
   const handleDownloadCSV = () => {
     dispatch(downloadFacilitiesCSV());
+  };
+
+  // Handle customer group filter change
+  const handleGroupChange = (group) => {
+    setCustomerGroup(group);
+    // Reset to first page when filter changes
+    setCurrentPage(1);
   };
 
   const transformFacilityData = (apiData) => {
@@ -269,7 +284,7 @@ const FacilityDataTable = () => {
     },
     {
       name: "formsSubmitted",
-      label: "Forms Submitted",
+      label: "Tasks Submitted",
       options: {
         filter: true,
         sort: true,
@@ -369,19 +384,18 @@ const FacilityDataTable = () => {
     },
   ];
 
-  // FIXED: MUIDataTable options - CSV and View Columns disabled
   const options = {
     selectableRows: "none",
     responsive: "standard",
     elevation: 0,
     print: false,
-    download: false, // DISABLED: Use custom download button instead
-    viewColumns: false, // DISABLED: Remove view columns toggle
+    download: false,
+    viewColumns: false,
     filter: false,
     filterType: "dropdown",
     search: true,
     searchPlaceholder: "Search facilities...",
-    pagination: true,
+    pagination: false,
     serverSide: false,
     count: myFacilities.total || 0,
     rowsPerPage: myFacilities.per_page || 10,
@@ -405,7 +419,7 @@ const FacilityDataTable = () => {
       },
       toolbar: {
         search: "Search",
-        viewColumns: "View Columns", // This won't show since viewColumns is false
+        viewColumns: "View Columns",
       },
     },
   };
@@ -611,17 +625,39 @@ const FacilityDataTable = () => {
         onClose={() => setToast({ show: false, message: "", type: "" })}
       />
 
-      {/* Date Filter and Header */}
+      {/* Date Filter and Customer Group Filter */}
       <div className="mb-4 pb-2 border-bottom">
-        <div className="d-flex justify-content-between align-items-start flex-wrap gap-3">
-          <DateFilter {...dateFilter} onFilterChange={updateFilter} size="sm" />
+        <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+          <div style={{ minWidth: "300px" }}>
+            <DateFilter
+              {...dateFilter}
+              onFilterChange={updateFilter}
+              size="sm"
+            />
+          </div>
+
+          <div className="flex-grow-1">
+            <CustomerGroupFilter
+              selectedGroup={customerGroup}
+              onGroupChange={handleGroupChange}
+              size="sm"
+            />
+          </div>
         </div>
 
-        <div className="mt-10 mb-10 d-flex align-items-center gap-2 flex-wrap">
+        <div className="mt-2 d-flex align-items-center gap-2 flex-wrap">
           <span className="badge bg-light text-dark p-2">
             <i className="fas fa-calendar-alt me-1"></i>
             {getDateRange().label}
           </span>
+
+          {customerGroup && (
+            <span className="badge bg-info text-white p-2">
+              <i className="fas fa-tag me-1"></i>
+              Group: {customerGroup}
+            </span>
+          )}
+
           {myFacilities.total > 0 && (
             <span className="badge bg-success p-2">
               <i className="fas fa-building me-1"></i>

@@ -127,7 +127,7 @@ const TeamDashboardData = ({ rows }) => {
     },
     {
       name: "formsSubmitted",
-      label: "Forms Submitted",
+      label: "Tasks Submitted",
       options: {
         filter: true,
         sort: true,

@@ -121,7 +121,7 @@ const AdminFacilityDetailPage = () => {
             name: editForm.facilityName || "",
             address: editForm.address || "",
           },
-        })
+        }),
       ).then((result) => {
         if (result.payload?.success) {
           setFacility((prev) => ({
@@ -149,14 +149,14 @@ const AdminFacilityDetailPage = () => {
 
     if (
       window.confirm(
-        "Are you sure you want to remove this user from this facility?"
+        "Are you sure you want to remove this user from this facility?",
       )
     ) {
       dispatch(
         unassignUserFromFacility({
           facility_id: actualFacilityId,
           user_id: numericUserId,
-        })
+        }),
       ).then((result) => {
         if (result.payload?.success) {
           dispatch(getAssignedUsers({ facilityId: facility.id, page: 1 }));
@@ -177,7 +177,7 @@ const AdminFacilityDetailPage = () => {
       assignUserToFacility({
         facility_id: actualFacilityId,
         user_id: parseInt(selectedUserId),
-      })
+      }),
     ).then((result) => {
       if (result.payload?.success) {
         dispatch(getAssignedUsers({ facilityId: facility.id, page: 1 }));
@@ -192,7 +192,7 @@ const AdminFacilityDetailPage = () => {
 
     if (
       window.confirm(
-        `Are you sure you want to delete ${facility?.facility_name}? This action cannot be undone.`
+        `Are you sure you want to delete ${facility?.facility_name}? This action cannot be undone.`,
       )
     ) {
       dispatch(deleteFacility(actualFacilityId)).then((result) => {
@@ -239,7 +239,7 @@ const AdminFacilityDetailPage = () => {
     assignedUsers.data?.map((assignment) => {
       // Find user details from dashboard users
       const userDetails = dashboardUsers?.find(
-        (user) => user.id === assignment.user_id
+        (user) => user.id === assignment.user_id,
       );
 
       return {
@@ -281,18 +281,18 @@ const AdminFacilityDetailPage = () => {
                 value === "admin"
                   ? "#FFE5E5"
                   : value === "team"
-                  ? "#E5F4FF"
-                  : value === "customer"
-                  ? "#E5FFE5"
-                  : "#F5F5F5",
+                    ? "#E5F4FF"
+                    : value === "customer"
+                      ? "#E5FFE5"
+                      : "#F5F5F5",
               color:
                 value === "admin"
                   ? "#D32F2F"
                   : value === "team"
-                  ? "#1976D2"
-                  : value === "customer"
-                  ? "#388E3C"
-                  : "#666",
+                    ? "#1976D2"
+                    : value === "customer"
+                      ? "#388E3C"
+                      : "#666",
               fontSize: "0.85rem",
               fontWeight: 500,
             }}>
@@ -663,7 +663,7 @@ const AdminFacilityDetailPage = () => {
                     color: "#666",
                     fontSize: "14px",
                   }}>
-                  Forms Submitted
+                  Documents Submitted
                 </label>
                 <p style={{ margin: "0", fontWeight: 500, color: "#333" }}>
                   {facility.total_assessments || "0"}

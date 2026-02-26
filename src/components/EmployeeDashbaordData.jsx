@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import MUIDataTable from "mui-datatables";
 import { createPortal } from "react-dom";
+import DateFilter from "./DateFilter";
+import useDateFilter from "./useDateFilter";
 import DynamicModal from "./DynamicModal";
 import CreateEmployeeModal from "./CreateEmployeeModal";
 import { getDashboardUsers } from "../redux/slices/dashboardSlice";
@@ -12,6 +14,9 @@ import { adminUpdateUserProfile, deleteUser } from "../redux/slices/userSlice";
 const EmployeeDashboardData = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // Use date filter hook
+  const { dateFilter, updateFilter, getDateRange } = useDateFilter();
 
   // Get users from Redux store
   const { users, isLoading, error } = useSelector((state) => state.dashboard);
@@ -37,10 +42,23 @@ const EmployeeDashboardData = () => {
   const editModalRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Fetch users on component mount
+  // Fetch users on component mount and when date filters change
   useEffect(() => {
-    dispatch(getDashboardUsers());
-  }, [dispatch]);
+    const dateRange = getDateRange();
+
+    dispatch(
+      getDashboardUsers({
+        from_date: dateRange.from_date,
+        to_date: dateRange.to_date,
+      }),
+    );
+  }, [
+    dispatch,
+    dateFilter.selectedYear,
+    dateFilter.viewType,
+    dateFilter.selectedQuarter,
+    dateFilter.selectedMonth,
+  ]);
 
   useEffect(() => {
     const close = () => setDropdownOpen(null);
@@ -165,8 +183,14 @@ const EmployeeDashboardData = () => {
       )
         .then((action) => {
           if (action.payload?.success) {
-            // Refresh the user list
-            dispatch(getDashboardUsers());
+            // Refresh the user list with current date filters
+            const dateRange = getDateRange();
+            dispatch(
+              getDashboardUsers({
+                from_date: dateRange.from_date,
+                to_date: dateRange.to_date,
+              }),
+            );
             // Close modal
             setShowEditModal(false);
             setEditUserId(null);
@@ -185,8 +209,14 @@ const EmployeeDashboardData = () => {
       dispatch(deleteUser(deleteUserId))
         .then((action) => {
           if (action.payload?.success) {
-            // Refresh the user list
-            dispatch(getDashboardUsers());
+            // Refresh the user list with current date filters
+            const dateRange = getDateRange();
+            dispatch(
+              getDashboardUsers({
+                from_date: dateRange.from_date,
+                to_date: dateRange.to_date,
+              }),
+            );
             setDeleteConfirmOpen(null);
             setDeleteUserId(null);
           }
@@ -279,7 +309,7 @@ const EmployeeDashboardData = () => {
     },
     {
       name: "formsSubmitted",
-      label: "Forms Submitted",
+      label: "Tasks Submitted",
     },
     {
       name: "action",
@@ -319,13 +349,34 @@ const EmployeeDashboardData = () => {
     viewColumns: false,
     filter: false,
     search: true,
-    pagination: false, // Add this line to disable pagination
-    rowsPerPageOptions: [], // Remove rowsPerPageOptions
+    pagination: false,
+    rowsPerPageOptions: [],
     rowsPerPage: employeeData.length,
   };
 
   return (
     <>
+      {/* Date Filter */}
+      <div className="border-bottom">
+        <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+          <div style={{ minWidth: "300px" }}>
+            <DateFilter
+              {...dateFilter}
+              onFilterChange={updateFilter}
+              size="sm"
+            />
+          </div>
+        </div>
+
+        {/* Active filter badges */}
+        <div className="mt-2 d-flex align-items-center gap-2 flex-wrap">
+          <span className="badge bg-light text-dark p-2">
+            <i className="fas fa-calendar-alt me-1"></i>
+            {getDateRange().label}
+          </span>
+        </div>
+      </div>
+
       {isLoading ? (
         <div style={{ textAlign: "center", padding: "40px" }}>
           <div className="spinner-border text-primary" role="status">
@@ -338,7 +389,15 @@ const EmployeeDashboardData = () => {
           <Icon icon="material-symbols:error-outline" width="48" height="48" />
           <p style={{ marginTop: "10px" }}>Error: {error}</p>
           <button
-            onClick={() => dispatch(getDashboardUsers())}
+            onClick={() => {
+              const dateRange = getDateRange();
+              dispatch(
+                getDashboardUsers({
+                  from_date: dateRange.from_date,
+                  to_date: dateRange.to_date,
+                }),
+              );
+            }}
             style={{
               marginTop: "20px",
               padding: "10px 20px",
@@ -353,12 +412,13 @@ const EmployeeDashboardData = () => {
         </div>
       ) : (
         <div>
-          <h2 className="fs-2 mt-24">Employees</h2>
           {employeeData.length === 0 ? (
             <div
               style={{ textAlign: "center", padding: "40px", color: "#666" }}>
               <Icon icon="mdi:account-group" width="48" height="48" />
-              <p style={{ marginTop: "10px" }}>No employee data found.</p>
+              <p style={{ marginTop: "10px" }}>
+                No employee data found for the selected period.
+              </p>
             </div>
           ) : (
             <MUIDataTable

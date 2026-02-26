@@ -69,7 +69,7 @@ const CustomerStatistics = () => {
 
   const chartSeries = [
     {
-      name: "Forms Submitted",
+      name: "Tasks Submitted",
       data: processChartData(),
     },
   ];
@@ -161,7 +161,7 @@ const CustomerStatistics = () => {
         return `
         <div style="padding: 10px; background: #fff; border-radius: 5px; border: 1px solid #ddd;">
           <div style="font-size: 14px; color: #333; font-weight: bold;">This Month</div>
-          <div style="font-size: 16px; color: #8B2885; font-weight: bold;">${value} Forms Submitted</div>
+          <div style="font-size: 16px; color: #8B2885; font-weight: bold;">${value} Tasks Submitted</div>
         </div>
       `;
       },
@@ -207,7 +207,7 @@ const CustomerStatistics = () => {
         <div className="card h-100">
           <div className="card-body">
             <div className="d-flex flex-wrap align-items-center justify-content-start mb-3 mt-20">
-              <h6 className="text-lg mb-0 mt-0">Forms Submitted</h6>
+              <h6 className="text-lg mb-0 mt-0">Tasks Submitted</h6>
             </div>
             <div className="text-center py-4">
               <div className="spinner-border text-primary" role="status">
@@ -228,10 +228,10 @@ const CustomerStatistics = () => {
         <div className="card h-100">
           <div className="card-body">
             <div className="d-flex flex-wrap align-items-center justify-content-start mb-3 mt-20">
-              <h6 className="text-lg mb-0 mt-0">Forms Submitted</h6>
+              <h6 className="text-lg mb-0 mt-0">Tasks Submitted</h6>
             </div>
             <div className="alert alert-danger" role="alert">
-              Error loading form data: {formsError}
+              Error loading task data: {formsError}
             </div>
           </div>
         </div>
@@ -246,10 +246,10 @@ const CustomerStatistics = () => {
         <div className="card h-100">
           <div className="card-body">
             <div className="d-flex flex-wrap align-items-center justify-content-start mb-3 mt-20">
-              <h6 className="text-lg mb-0 mt-0">Forms Submitted</h6>
+              <h6 className="text-lg mb-0 mt-0">Tasks Submitted</h6>
             </div>
             <div className="text-center py-4">
-              <p>No form submission data available.</p>
+              <p>No task submission data available.</p>
             </div>
           </div>
         </div>
@@ -267,11 +267,11 @@ const CustomerStatistics = () => {
       <div className="card h-100">
         <div className="card-body">
           <div className="d-flex flex-wrap align-items-center justify-content-start mb-3 mt-20">
-            <h6 className="text-lg mb-0 mt-0">Forms Submitted</h6>
+            <h6 className="text-lg mb-0 mt-0">Tasks Submitted</h6>
             <ul className="salesList">
               <li className="text-sm fw-semibold">X-axis: Months</li>
               <li className="text-sm fw-semibold">
-                Y-axis: Number of Forms Submitted
+                Y-axis: Number of Tasks Submitted
               </li>
             </ul>
           </div>

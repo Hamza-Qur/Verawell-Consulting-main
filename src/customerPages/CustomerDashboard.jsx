@@ -471,7 +471,7 @@ const CustomerDashboard = () => {
             }}>
             <KitchenScoreGauge
               score={displayedScores.kitchen}
-              title="Total Score"
+              title="Total Average Score"
               subtitle={getGaugeSubtitle("kitchen")}
               strokeGauge="#ffe54fff"
             />
@@ -487,7 +487,7 @@ const CustomerDashboard = () => {
             }}>
             <KitchenScoreGauge
               score={displayedScores.meal}
-              title="Total Score"
+              title="Total Average Score"
               subtitle={getGaugeSubtitle("meal")}
               strokeGauge="#50D4B5"
             />

@@ -16,46 +16,52 @@ const CustomerGroupFilter = ({
   const [inputValue, setInputValue] = useState(selectedGroup || "");
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Fetch users on component mount
+  // Fetch users once
   useEffect(() => {
     dispatch(getAllUsers({ page: 1, perPage: 100 }));
   }, [dispatch]);
 
-  // Update local state when prop changes
+  // Sync external value into input
   useEffect(() => {
     setInputValue(selectedGroup || "");
   }, [selectedGroup]);
 
-  // Extract unique customer group names from users list
+  // Unique customer groups
   const uniqueGroups = useMemo(() => {
-    if (!usersList.data || usersList.data.length === 0) {
-      return [];
-    }
+    if (!usersList.data?.length) return [];
 
-    const groups = usersList.data
-      .map((user) => user.user_group_name)
-      .filter((group) => group && group.trim() !== "");
-
-    return [...new Set(groups)].sort();
+    return [
+      ...new Set(
+        usersList.data
+          .map((user) => user.user_group_name)
+          .filter((g) => g && g.trim() !== ""),
+      ),
+    ].sort();
   }, [usersList.data]);
 
-  // Filter groups based on input
+  // Filter suggestions
   const filteredGroups = useMemo(() => {
     if (!inputValue) return uniqueGroups;
+
     return uniqueGroups.filter((group) =>
       group.toLowerCase().includes(inputValue.toLowerCase()),
     );
   }, [uniqueGroups, inputValue]);
 
+  // Typing = local only (NO API CALLS)
   const handleInputChange = (e) => {
-    const value = e.target.value;
-    setInputValue(value);
-    // Call onGroupChange immediately as user types
-    if (typeof onGroupChange === "function") {
-      onGroupChange(value);
+    setInputValue(e.target.value);
+  };
+
+  // Enter = commit
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && typeof onGroupChange === "function") {
+      onGroupChange(inputValue);
+      setShowDropdown(false);
     }
   };
 
+  // Click suggestion = commit
   const handleGroupSelect = (group) => {
     setInputValue(group);
     if (typeof onGroupChange === "function") {
@@ -79,8 +85,10 @@ const CustomerGroupFilter = ({
             placeholder="Filter by customer group..."
             value={inputValue}
             onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
             onFocus={() => setShowDropdown(true)}
             onBlur={() => {
+              // delay so click can register
               setTimeout(() => setShowDropdown(false), 200);
             }}
             disabled={isLoadingUsers}
@@ -88,7 +96,7 @@ const CustomerGroupFilter = ({
           />
         </div>
 
-        {/* Dropdown suggestions */}
+        {/* Dropdown */}
         {showDropdown && !isLoadingUsers && filteredGroups.length > 0 && (
           <div
             className="position-absolute w-100 mt-1 bg-white border rounded shadow-sm"
@@ -117,8 +125,6 @@ const CustomerGroupFilter = ({
           </div>
         )}
       </div>
-
-
     </div>
   );
 };

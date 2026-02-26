@@ -74,7 +74,7 @@ const SalesStatisticOne = () => {
     if (!safeSubmittedForms || safeSubmittedForms.length === 0) {
       return [
         {
-          name: "Forms Submitted",
+          name: "Tasks Submitted",
           data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         },
       ];
@@ -96,7 +96,7 @@ const SalesStatisticOne = () => {
 
     return [
       {
-        name: "Forms Submitted",
+        name: "Tasks Submitted",
         data: data,
       },
     ];
@@ -111,19 +111,6 @@ const SalesStatisticOne = () => {
     }
     return months;
   }, []);
-
-  // ============ USEEFFECTS ============
-
-  // Debug effect to log customerGroup changes
-  useEffect(() => {
-    console.log("🎯 customerGroup changed to:", customerGroup);
-  }, [customerGroup]);
-
-  // Debug effect to log facilityScores structure
-  useEffect(() => {
-    console.log("📊 facilityScores received:", facilityScores);
-    console.log("📊 safeFacilityScores after processing:", safeFacilityScores);
-  }, [facilityScores, safeFacilityScores]);
 
   // Fetch data based on filters
   useEffect(() => {
@@ -289,7 +276,7 @@ const SalesStatisticOne = () => {
                       <span>${actualScore} (${percentage}%)</span>
                     </div>
                     <div style="font-size: 13px; color: #4a5568; display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; margin-top: 6px; padding-top: 6px;">
-                      <span>Forms Submitted:</span>
+                      <span>Tasks Submitted:</span>
                       <span style="font-weight: 500;">${facility?.total || 0}</span>
                     </div>
                   </div>
@@ -305,7 +292,7 @@ const SalesStatisticOne = () => {
                   ${date.toLocaleString("default", { month: "long", year: "numeric" })}
                 </div>
                 <div style="font-size: 14px; color: #8B2885; font-weight: 600;">
-                  ${value} Form${value !== 1 ? "s" : ""} Submitted
+                  ${value} Task${value !== 1 ? "s" : ""} Submitted
                 </div>
               </div>
             `;
@@ -373,7 +360,7 @@ const SalesStatisticOne = () => {
               <button
                 className={`nav-link ${activeTab === "tab1" ? "active" : ""}`}
                 onClick={() => setActiveTab("tab1")}>
-                Forms Submitted
+                Tasks Submitted
               </button>
             </li>
           </ul>
@@ -436,13 +423,13 @@ const SalesStatisticOne = () => {
               {activeTab === "tab1" && (
                 <>
                   <div className="d-flex flex-wrap align-items-center justify-content-start mb-3 mt-20">
-                    <h6 className="text-lg mb-0 mt-0">Forms Submitted</h6>
+                    <h6 className="text-lg mb-0 mt-0">Tasks Submitted</h6>
                     <ul className="salesList">
                       <li className="text-sm fw-semibold">
                         X-axis: Last 12 Months
                       </li>
                       <li className="text-sm fw-semibold">
-                        Y-axis: Number of Forms Submitted
+                        Y-axis: Number of Tasks Submitted
                       </li>
                     </ul>
                   </div>

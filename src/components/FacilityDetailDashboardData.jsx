@@ -316,7 +316,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
 
   const employeeColumns = [
     { name: "facility", label: "Facility Name" },
-    { name: "formName", label: "Form Name" },
+    { name: "formName", label: "Task Name" },
     { name: "customergroup", label: "Group Name" },
     {
       name: "time",
@@ -365,7 +365,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
     },
     {
       name: "formStatus",
-      label: "Form Status",
+      label: "Task Status",
       options: {
         customBodyRender: (value) => {
           const style = {

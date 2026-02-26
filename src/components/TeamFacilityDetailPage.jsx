@@ -179,7 +179,7 @@ const TeamFacilityDetailPage = () => {
   const assessmentColumns = [
     {
       name: "formName",
-      label: "Form Name",
+      label: "Task Name",
       options: {
         customBodyRender: (value) => (
           <span style={{ fontWeight: 500, color: "#333" }}>{value}</span>
@@ -233,7 +233,7 @@ const TeamFacilityDetailPage = () => {
     },
     {
       name: "formStatus",
-      label: "Form Status",
+      label: "Task Status",
       options: {
         customBodyRender: (value) => {
           const style = {
@@ -500,7 +500,7 @@ const TeamFacilityDetailPage = () => {
                     color: "#666",
                     fontSize: "14px",
                   }}>
-                  Forms Submitted
+                  Documents Submitted
                 </label>
                 <p style={{ margin: "0", fontWeight: 500, color: "#333" }}>
                   {facility.total_assessments || "0"}

@@ -91,7 +91,7 @@ const DateFilter = ({
       {showYearSelector && (
         <div className="position-relative">
           <select
-            className="form-select border-0 bg-light bg-opacity-75 rounded-3 py-2 px-3 fw-semibold"
+            className="form-select text-light border-0 bg-light bg-opacity-75 rounded-3 py-2 px-3 fw-semibold"
             value={localFilter.selectedYear}
             onChange={handleYearChange}
             style={{
@@ -113,7 +113,7 @@ const DateFilter = ({
       {showQuarterSelector && localFilter.viewType === "quarterly" && (
         <div className="position-relative">
           <select
-            className="form-select border-0 bg-light bg-opacity-75 rounded-3 py-2 px-3 fw-semibold"
+            className="form-select text-light border-0 bg-light bg-opacity-75 rounded-3 py-2 px-3 fw-semibold"
             value={localFilter.selectedQuarter}
             onChange={handleQuarterChange}
             style={{
@@ -134,7 +134,7 @@ const DateFilter = ({
       {showMonthSelector && localFilter.viewType === "monthly" && (
         <div className="position-relative">
           <select
-            className="form-select border-0 bg-light bg-opacity-75 rounded-3 py-2 px-3 fw-semibold"
+            className="form-select text-light border-0 bg-light bg-opacity-75 rounded-3 py-2 px-3 fw-semibold"
             value={localFilter.selectedMonth}
             onChange={handleMonthChange}
             style={{

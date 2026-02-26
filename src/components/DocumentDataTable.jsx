@@ -13,6 +13,9 @@ import {
 } from "../redux/slices/documentSlice";
 import PDFIcon from "../otherImages/pdf-icon.svg";
 import Toast from "../components/Toast";
+import CustomerGroupFilter from "./CustomerGroupFilter";
+import DateFilter from "./DateFilter"; // Import DateFilter
+import useDateFilter from "./useDateFilter"; // Import useDateFilter hook
 
 const DocumentDataTable = () => {
   const navigate = useNavigate();
@@ -29,15 +32,39 @@ const DocumentDataTable = () => {
     successMessage,
   } = useSelector((state) => state.document);
 
+  // Use date filter hook - exactly like FacilityDataTable
+  const { dateFilter, updateFilter, getDateRange } = useDateFilter();
+
+  // Add state for customer group filter
+  const [customerGroup, setCustomerGroup] = useState("");
+
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
+  const [currentPage, setCurrentPage] = useState(1);
   const buttonRefs = useRef([]);
 
-  // Fetch assessments on component mount
+  // Fetch assessments with date filters and customer group filter - exactly like FacilityDataTable
   useEffect(() => {
-    dispatch(getAssessments(1));
-  }, [dispatch]);
+    const dateRange = getDateRange();
+
+    dispatch(
+      getAssessments({
+        page: currentPage,
+        from_date: dateRange.from_date,
+        to_date: dateRange.to_date,
+        customer_group_name: customerGroup || undefined,
+      }),
+    );
+  }, [
+    dispatch,
+    currentPage,
+    dateFilter.selectedYear,
+    dateFilter.viewType,
+    dateFilter.selectedQuarter,
+    dateFilter.selectedMonth,
+    customerGroup,
+  ]);
 
   // Show toast messages
   useEffect(() => {
@@ -66,10 +93,16 @@ const DocumentDataTable = () => {
     }, 3000);
   };
 
+  // Handle customer group filter change
+  const handleGroupChange = (group) => {
+    setCustomerGroup(group);
+    // Reset to first page when filter changes
+    setCurrentPage(1);
+  };
+
   // Function to download PDF using Redux thunk
   const handleDownload = async (assessment) => {
     try {
-      // Get the assessment_id from the assessment data
       const assessmentId =
         assessment.assessmentId ||
         assessment.originalData?.assessment_id ||
@@ -80,7 +113,6 @@ const DocumentDataTable = () => {
         return;
       }
 
-      // Dispatch the download thunk
       dispatch(downloadAssessmentPDF(assessmentId)).then((result) => {
         if (result.payload?.success) {
           showToast("PDF downloaded successfully", "success");
@@ -121,7 +153,6 @@ const DocumentDataTable = () => {
   }, []);
 
   const handleDelete = (assessment) => {
-    // Get the assessment_id from the assessment
     const assessmentId =
       assessment.assessmentId ||
       assessment.originalData?.assessment_id ||
@@ -146,13 +177,24 @@ const DocumentDataTable = () => {
             `Document "${assessment.documentName}" deleted successfully`,
             "success",
           );
-          // Refresh the assessments list
-          const currentPage = assessments.current_page || 1;
-          dispatch(getAssessments(currentPage));
+          // Refresh the assessments list with current filters
+          const dateRange = getDateRange();
+          dispatch(
+            getAssessments({
+              page: currentPage,
+              from_date: dateRange.from_date,
+              to_date: dateRange.to_date,
+              customer_group_name: customerGroup || undefined,
+            }),
+          );
         }
       });
     }
     setDropdownOpen(null);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
   // Format date function
@@ -187,12 +229,11 @@ const DocumentDataTable = () => {
     }
   };
 
-  // Transform API data to match table structure - USING assessment_id
+  // Transform API data to match table structure
   const transformAssessmentData = (apiData) => {
     if (!apiData || !Array.isArray(apiData)) return [];
 
     return apiData.map((assessment) => {
-      // Create document name by combining facility_name and category_name
       let documentName = "";
       if (assessment.facility_name && assessment.category_name) {
         documentName = `${assessment.facility_name} - ${assessment.category_name}`;
@@ -216,6 +257,7 @@ const DocumentDataTable = () => {
         pdf_url: assessment.pdf_url || assessment.file_url,
         facility_name: assessment.facility_name || "Unknown Facility",
         category_name: assessment.category_name || "Uncategorized",
+        customer_group_name: assessment.customer_group_name || "N/A",
         originalData: assessment,
       };
     });
@@ -231,6 +273,10 @@ const DocumentDataTable = () => {
     {
       name: "facility_name",
       label: "Facility Name",
+    },
+    {
+      name: "customer_group_name",
+      label: "Customer Group",
     },
     {
       name: "documentName",
@@ -260,17 +306,6 @@ const DocumentDataTable = () => {
                     Assessment ID: {rowData.assessmentId}
                   </div>
                 )}
-                {/* Optional: Show facility and category separately if needed */}
-                {/* <div
-                  style={{
-                    fontSize: "10px",
-                    color: "#666",
-                    marginTop: "2px",
-                  }}>
-                  {rowData?.facility_name && rowData?.category_name && (
-                    <span>{rowData.facility_name} • {rowData.category_name}</span>
-                  )}
-                </div> */}
               </div>
             </div>
           );
@@ -335,14 +370,36 @@ const DocumentDataTable = () => {
     viewColumns: false,
     filter: false,
     search: true,
+    serverSide: false,
     searchPlaceholder: "Search documents...",
-    pagination: false, // REMOVED PAGINATION
+    pagination: false,
     tableBodyHeight: "auto",
+    count: assessments.total || 0,
+    rowsPerPage: assessments.per_page || 10,
+    rowsPerPageOptions: [5, 10, 25, 50],
+    page: currentPage - 1,
+    onPageChange: (page) => handlePageChange(page + 1),
+    onTableChange: (action, tableState) => {
+      switch (action) {
+        case "changePage":
+          handlePageChange(tableState.page + 1);
+          break;
+        default:
+          break;
+      }
+    },
     setRowProps: (row, dataIndex) => ({
       style: {
         backgroundColor: dataIndex % 2 === 0 ? "#f9f9f9" : "white",
       },
     }),
+    textLabels: {
+      body: {
+        noMatch: isLoading
+          ? "Loading..."
+          : "No documents found for selected period",
+      },
+    },
   };
 
   // Loading state
@@ -364,7 +421,17 @@ const DocumentDataTable = () => {
         <Icon icon="material-symbols:error-outline" width="48" height="48" />
         <p style={{ marginTop: "10px" }}>Error: {error}</p>
         <button
-          onClick={() => dispatch(getAssessments(1))}
+          onClick={() => {
+            const dateRange = getDateRange();
+            dispatch(
+              getAssessments({
+                page: 1,
+                from_date: dateRange.from_date,
+                to_date: dateRange.to_date,
+                customer_group_name: customerGroup || undefined,
+              }),
+            );
+          }}
           style={{
             marginTop: "20px",
             padding: "10px 20px",
@@ -389,9 +456,23 @@ const DocumentDataTable = () => {
           width="48"
           height="48"
         />
-        <p style={{ marginTop: "10px" }}>No documents found.</p>
+        <p style={{ marginTop: "10px" }}>
+          {customerGroup
+            ? `No documents found for customer group "${customerGroup}" in the selected period.`
+            : "No documents found for the selected period."}
+        </p>
         <button
-          onClick={() => dispatch(getAssessments(1))}
+          onClick={() => {
+            const dateRange = getDateRange();
+            dispatch(
+              getAssessments({
+                page: 1,
+                from_date: dateRange.from_date,
+                to_date: dateRange.to_date,
+                customer_group_name: customerGroup || undefined,
+              }),
+            );
+          }}
           style={{
             marginTop: "20px",
             padding: "10px 20px",
@@ -415,6 +496,65 @@ const DocumentDataTable = () => {
         type={toast.type}
         onClose={() => setToast({ show: false, message: "", type: "" })}
       />
+
+      {/* Date Filter and Customer Group Filter - exactly like FacilityDataTable */}
+      <div className="mb-4 pb-2 border-bottom">
+        <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+          <div style={{ minWidth: "300px" }}>
+            <DateFilter
+              {...dateFilter}
+              onFilterChange={updateFilter}
+              size="sm"
+            />
+          </div>
+
+          <div className="flex-grow-1">
+            <CustomerGroupFilter
+              selectedGroup={customerGroup}
+              onGroupChange={handleGroupChange}
+              size="sm"
+            />
+          </div>
+        </div>
+
+        {/* Active filter badges */}
+        <div className="mt-2 d-flex align-items-center gap-2 flex-wrap">
+          <span className="badge bg-light">
+            <i className="fas fa-calendar-alt me-1"></i>
+            {getDateRange().label}
+          </span>
+
+          {customerGroup && (
+            <span className="badge bg-info">
+              <i className="fas fa-tag me-1"></i>
+              Group: {customerGroup}
+              <button
+                onClick={() => {
+                  setCustomerGroup("");
+                  setCurrentPage(1);
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "white",
+                  marginLeft: "8px",
+                  padding: "0 4px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}>
+                ×
+              </button>
+            </span>
+          )}
+
+          {assessments.total > 0 && (
+            <span className="badge bg-success">
+              <i className="fas fa-file-pdf me-1"></i>
+              {assessments.total} Documents
+            </span>
+          )}
+        </div>
+      </div>
 
       <div className="basic-data-table">
         <MUIDataTable

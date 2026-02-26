@@ -4,11 +4,28 @@ import { BASE_URL } from "../services/endpoint";
 
 export const getDashboardUsers = createAsyncThunk(
   "dashboard/getUsers",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(`${BASE_URL}/api/dashboard/get-user`, {
+      // Build URL with query parameters
+      let url = `${BASE_URL}/api/dashboard/get-user`;
+      const queryParams = new URLSearchParams();
+
+      // Add date parameters if they exist
+      if (params.from_date) {
+        queryParams.append("from_date", params.from_date);
+      }
+      if (params.to_date) {
+        queryParams.append("to_date", params.to_date);
+      }
+
+      // Append query parameters to URL if they exist
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`;
+      }
+
+      const response = await fetch(url, {
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
@@ -31,19 +48,29 @@ export const getDashboardUsers = createAsyncThunk(
 // Get Customer Stats
 export const getCustomerStats = createAsyncThunk(
   "dashboard/getCustomerStats",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(
-        `${BASE_URL}/api/dashboard/get-customer-stats`,
-        {
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+      // Build URL with query parameters
+      let url = `${BASE_URL}/api/dashboard/get-customer-stats`;
+      const queryParams = new URLSearchParams();
+
+      // Add date parameters if they exist
+      if (params.from_date) queryParams.append("from_date", params.from_date);
+      if (params.to_date) queryParams.append("to_date", params.to_date);
+
+      // Append query parameters to URL if they exist
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       const data = await response.json();
 
@@ -108,19 +135,29 @@ export const downloadUsersCSV = createAsyncThunk(
 
 export const getAdminStats = createAsyncThunk(
   "dashboard/getAdminStats",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(
-        `${BASE_URL}/api/dashboard/get-admin-stats`,
-        {
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+      // Build URL with query parameters
+      let url = `${BASE_URL}/api/dashboard/get-admin-stats`;
+      const queryParams = new URLSearchParams();
+
+      // Add date parameters if they exist
+      if (params.from_date) queryParams.append("from_date", params.from_date);
+      if (params.to_date) queryParams.append("to_date", params.to_date);
+
+      // Append query parameters to URL if they exist
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       const data = await response.json();
 
@@ -284,11 +321,24 @@ export const getTeamTaskGraph = createAsyncThunk(
 // Get Team Stats
 export const getTeamStats = createAsyncThunk(
   "dashboard/getTeamStats",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(`${BASE_URL}/api/dashboard/get-team-stats`, {
+      // Build URL with query parameters
+      let url = `${BASE_URL}/api/dashboard/get-team-stats`;
+      const queryParams = new URLSearchParams();
+
+      // Add date parameters if they exist
+      if (params.from_date) queryParams.append("from_date", params.from_date);
+      if (params.to_date) queryParams.append("to_date", params.to_date);
+
+      // Append query parameters to URL if they exist
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`;
+      }
+
+      const response = await fetch(url, {
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,

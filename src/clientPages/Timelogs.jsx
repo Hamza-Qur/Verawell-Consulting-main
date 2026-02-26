@@ -1,3 +1,4 @@
+// src/components/Timelogs.jsx
 import { Icon } from "@iconify/react";
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -8,8 +9,9 @@ import {
   getMyTasks,
   updateTask,
   deleteAttendance,
-  addTask, // Make sure this is imported
+  addTask,
 } from "../redux/slices/attendanceSlice";
+import { getMyFacilities } from "../redux/slices/facilitySlice"; // Import facility slice
 
 const DAYS = [
   "Monday",
@@ -29,11 +31,17 @@ const Timelogs = () => {
     (state) => state.attendance,
   );
 
+  // Get facilities from facility slice
+  const {
+    myFacilities = { data: [] },
+    isLoading: isLoadingFacilities = false,
+  } = useSelector((state) => state.facility || {});
+
   const [tasks, setTasks] = useState([]);
   const [activeModal, setActiveModal] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [showAddOtherTaskModal, setShowAddOtherTaskModal] = useState(false); // New state for add other task modal
+  const [showAddOtherTaskModal, setShowAddOtherTaskModal] = useState(false);
 
   // Toast state
   const [toast, setToast] = useState({
@@ -41,6 +49,11 @@ const Timelogs = () => {
     message: "",
     type: "info",
   });
+
+  // Fetch facilities on component mount
+  useEffect(() => {
+    dispatch(getMyFacilities(1));
+  }, [dispatch]);
 
   // Show toast function
   const showToast = (message, type = "info") => {
@@ -200,7 +213,7 @@ const Timelogs = () => {
       });
   };
 
-  // NEW: Handle adding other task (without assigned_assessment_id)
+  // Handle adding other task with facility
   const handleAddOtherTask = (taskData) => {
     const apiTaskData = {
       title: taskData.title,
@@ -208,6 +221,7 @@ const Timelogs = () => {
       start_time: taskData.startDateTime.split("T")[0],
       end_time: taskData.endDateTime.split("T")[0],
       assigned_assessment_id: null, // Explicitly set to null for other tasks
+      facility_id: taskData.facility_id || null, // Add facility_id to the task data
     };
 
     dispatch(addTask(apiTaskData)).then((action) => {
@@ -286,7 +300,7 @@ const Timelogs = () => {
               marginBottom: "30px",
             }}>
             <h2 style={{ fontSize: "24px", fontWeight: "700", margin: 0 }}>
-              Timelogs - Form Completion Tracking
+              Timelogs - Task Completion Tracking
             </h2>
           </div>
           <div
@@ -362,7 +376,7 @@ const Timelogs = () => {
             Timelogs - Form Completion Tracking
           </h2>
 
-          {/* NEW: Add Other Task Button */}
+          {/* Add Other Task Button */}
           <button
             onClick={() => setShowAddOtherTaskModal(true)}
             style={{
@@ -587,7 +601,7 @@ const Timelogs = () => {
           }
         />
 
-        {/* NEW: Add Other Task Modal */}
+        {/* Add Other Task Modal with Facility Dropdown */}
         <DynamicModal
           show={showAddOtherTaskModal}
           handleClose={closeModals}
@@ -598,6 +612,8 @@ const Timelogs = () => {
               onSave={handleAddOtherTask}
               isSaving={isAddingTask}
               onClose={closeModals}
+              facilities={myFacilities.data || []}
+              isLoadingFacilities={isLoadingFacilities}
             />
           }
         />
@@ -606,8 +622,14 @@ const Timelogs = () => {
   );
 };
 
-// NEW: Add Other Task Form Component
-const AddOtherTaskForm = ({ onSave, isSaving, onClose }) => {
+// Updated Add Other Task Form Component with Facility Dropdown
+const AddOtherTaskForm = ({
+  onSave,
+  isSaving,
+  onClose,
+  facilities = [],
+  isLoadingFacilities = false,
+}) => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -615,6 +637,7 @@ const AddOtherTaskForm = ({ onSave, isSaving, onClose }) => {
     endDateTime: new Date(new Date().getTime() + 60 * 60 * 1000)
       .toISOString()
       .slice(0, 16),
+    facility_id: "", // Add facility_id field
   });
 
   const inputStyle = {
@@ -650,11 +673,46 @@ const AddOtherTaskForm = ({ onSave, isSaving, onClose }) => {
       return;
     }
 
+    // Validate facility selection if needed
+    if (!formData.facility_id) {
+      alert("Please select a facility");
+      return;
+    }
+
     onSave(formData);
   };
 
   return (
     <div>
+      {/* Facility Dropdown - Like in AssignFacilityModal */}
+      <label>Facility *</label>
+      <select
+        value={formData.facility_id}
+        onChange={(e) =>
+          setFormData({ ...formData, facility_id: e.target.value })
+        }
+        style={inputStyle}
+        disabled={isSaving || isLoadingFacilities}
+        required>
+        <option value="">Select Facility</option>
+        {isLoadingFacilities ? (
+          <option disabled>Loading facilities...</option>
+        ) : facilities && facilities.length > 0 ? (
+          facilities.map((facility) => (
+            <option
+              key={facility.id || facility.facility_id}
+              value={facility.id || facility.facility_id}>
+              {facility.facility_name || facility.name}
+              {facility.facility_address
+                ? ` - ${facility.facility_address}`
+                : ""}
+            </option>
+          ))
+        ) : (
+          <option disabled>No facilities found</option>
+        )}
+      </select>
+
       <label>Title *</label>
       <input
         value={formData.title}

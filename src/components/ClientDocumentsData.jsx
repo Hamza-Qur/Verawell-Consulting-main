@@ -13,6 +13,9 @@ import {
 } from "../redux/slices/documentSlice";
 import PDFIcon from "../otherImages/pdf-icon.svg";
 import Toast from "../components/Toast";
+import CustomerGroupFilter from "./CustomerGroupFilter";
+import DateFilter from "./DateFilter"; // Import DateFilter
+import useDateFilter from "./useDateFilter"; // Import useDateFilter hook
 
 const ClientDocumentsData = () => {
   const navigate = useNavigate();
@@ -29,15 +32,39 @@ const ClientDocumentsData = () => {
     successMessage,
   } = useSelector((state) => state.document);
 
+  // Use date filter hook - exactly like FacilityDataTable
+  const { dateFilter, updateFilter, getDateRange } = useDateFilter();
+
+  // Add state for customer group filter
+  const [customerGroup, setCustomerGroup] = useState("");
+
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
+  const [currentPage, setCurrentPage] = useState(1);
   const buttonRefs = useRef([]);
 
-  // Fetch assessments on component mount
+  // Fetch assessments with date filters and customer group filter - exactly like FacilityDataTable
   useEffect(() => {
-    dispatch(getAssessments(1));
-  }, [dispatch]);
+    const dateRange = getDateRange();
+
+    dispatch(
+      getAssessments({
+        page: currentPage,
+        from_date: dateRange.from_date,
+        to_date: dateRange.to_date,
+        customer_group_name: customerGroup || undefined,
+      }),
+    );
+  }, [
+    dispatch,
+    currentPage,
+    dateFilter.selectedYear,
+    dateFilter.viewType,
+    dateFilter.selectedQuarter,
+    dateFilter.selectedMonth,
+    customerGroup,
+  ]);
 
   // Show toast messages
   useEffect(() => {
@@ -66,10 +93,16 @@ const ClientDocumentsData = () => {
     }, 3000);
   };
 
+  // Handle customer group filter change
+  const handleGroupChange = (group) => {
+    setCustomerGroup(group);
+    // Reset to first page when filter changes
+    setCurrentPage(1);
+  };
+
   // Function to download PDF using Redux thunk
   const handleDownload = async (assessment) => {
     try {
-      // Get the assessment_id from the assessment data
       const assessmentId =
         assessment.assessmentId ||
         assessment.originalData?.assessment_id ||
@@ -80,7 +113,6 @@ const ClientDocumentsData = () => {
         return;
       }
 
-      // Dispatch the download thunk
       dispatch(downloadAssessmentPDF(assessmentId)).then((result) => {
         if (result.payload?.success) {
           showToast("PDF downloaded successfully", "success");
@@ -121,7 +153,6 @@ const ClientDocumentsData = () => {
   }, []);
 
   const handleDelete = (assessment) => {
-    // Get the assessment_id from the assessment
     const assessmentId =
       assessment.assessmentId ||
       assessment.originalData?.assessment_id ||
@@ -146,13 +177,24 @@ const ClientDocumentsData = () => {
             `Document "${assessment.documentName}" deleted successfully`,
             "success",
           );
-          // Refresh the assessments list
-          const currentPage = assessments.current_page || 1;
-          dispatch(getAssessments(currentPage));
+          // Refresh the assessments list with current filters
+          const dateRange = getDateRange();
+          dispatch(
+            getAssessments({
+              page: currentPage,
+              from_date: dateRange.from_date,
+              to_date: dateRange.to_date,
+              customer_group_name: customerGroup || undefined,
+            }),
+          );
         }
       });
     }
     setDropdownOpen(null);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
 
   // Format date function
@@ -192,14 +234,20 @@ const ClientDocumentsData = () => {
     if (!apiData || !Array.isArray(apiData)) return [];
 
     return apiData.map((assessment) => {
-      // Document name is now the category name
-      const documentName = assessment.category_name || "Uncategorized";
+      let documentName = "";
+      if (assessment.facility_name && assessment.category_name) {
+        documentName = `${assessment.facility_name} - ${assessment.category_name}`;
+      } else if (assessment.facility_name) {
+        documentName = `${assessment.facility_name} - Assessment`;
+      } else if (assessment.category_name) {
+        documentName = assessment.category_name;
+      } else {
+        documentName = "Unnamed Document";
+      }
 
       return {
         id: assessment.id,
         assessmentId: assessment.assessment_id || assessment.id,
-        documentName: documentName, // This is now category_name
-        facilityName: assessment.facility_name || "Unknown Facility",
         uploadedBy:
           assessment.user_name || assessment.user?.name || "Unknown User",
         userId: assessment.user_id || assessment.user?.id || "N/A",
@@ -207,6 +255,9 @@ const ClientDocumentsData = () => {
         uploadTime: formatTime(assessment.created_at || assessment.upload_date),
         description: assessment.description || "",
         pdf_url: assessment.pdf_url || assessment.file_url,
+        facility_name: assessment.facility_name || "Unknown Facility",
+        category_name: assessment.category_name || "Uncategorized",
+        customer_group_name: assessment.customer_group_name || "N/A",
         originalData: assessment,
       };
     });
@@ -220,19 +271,16 @@ const ClientDocumentsData = () => {
 
   const columns = [
     {
-      name: "facilityName",
-      label: "Facility",
-      options: {
-        customBodyRender: (value) => {
-          return (
-            <div style={{ color: "#000000", fontWeight: "400" }}>{value}</div>
-          );
-        },
-      },
+      name: "facility_name",
+      label: "Facility Name",
+    },
+    {
+      name: "customer_group_name",
+      label: "Customer Group",
     },
     {
       name: "documentName",
-      label: "Document Name", // This is now Category Name
+      label: "Document Name",
       options: {
         customBodyRender: (value, tableMeta) => {
           const rowData = documentData[tableMeta.rowIndex];
@@ -244,24 +292,18 @@ const ClientDocumentsData = () => {
                 alt="pdfImage"
               />
               <div>
-                <div style={{ fontWeight: "500", color: "#000000" }}>
-                  {value}
-                </div>
-                <div style={{ fontSize: "12px", color: "#666666" }}>
-                  {rowData?.description
-                    ? rowData.description.length > 50
-                      ? `${rowData.description.substring(0, 50)}...`
-                      : rowData.description
-                    : "PDF Document"}
+                <div style={{ fontWeight: "500" }}>{value}</div>
+                <div style={{ fontSize: "14px", color: "#666" }}>
+                  {rowData?.category_name}
                 </div>
                 {rowData?.assessmentId && (
                   <div
                     style={{
                       fontSize: "10px",
-                      color: "#999999",
+                      color: "#999",
                       marginTop: "2px",
                     }}>
-                    ID: {rowData.assessmentId}
+                    Assessment ID: {rowData.assessmentId}
                   </div>
                 )}
               </div>
@@ -273,42 +315,14 @@ const ClientDocumentsData = () => {
     {
       name: "uploadedBy",
       label: "Uploaded By",
-      options: {
-        customBodyRender: (value) => {
-          return <div style={{ color: "#000000" }}>{value}</div>;
-        },
-      },
     },
-    // {
-    //   name: "userId",
-    //   label: "User ID",
-    //   options: {
-    //     customBodyRender: (value) => {
-    //       return (
-    //         <div style={{ color: "#8B2885", fontWeight: "500" }}>
-    //           ID: {value}
-    //         </div>
-    //       );
-    //     },
-    //   },
-    // },
     {
       name: "uploadDate",
       label: "Uploaded Date",
-      options: {
-        customBodyRender: (value) => {
-          return <div style={{ color: "#000000" }}>{value}</div>;
-        },
-      },
     },
     {
       name: "uploadTime",
       label: "Uploaded Time",
-      options: {
-        customBodyRender: (value) => {
-          return <div style={{ color: "#000000" }}>{value}</div>;
-        },
-      },
     },
     {
       name: "action",
@@ -329,7 +343,6 @@ const ClientDocumentsData = () => {
                 disabled={isDeleting || isDownloadingPDF}
                 style={{
                   background: "none",
-                  border: "1px solid #E0E0E0",
                   borderRadius: "4px",
                   cursor:
                     isDeleting || isDownloadingPDF ? "not-allowed" : "pointer",
@@ -339,12 +352,7 @@ const ClientDocumentsData = () => {
                   alignItems: "center",
                   justifyContent: "center",
                 }}>
-                <Icon
-                  icon="mdi:dots-horizontal"
-                  width="20"
-                  height="20"
-                  color="#000000"
-                />
+                <Icon icon="mdi:dots-horizontal" width="20" height="20" />
               </button>
             </div>
           );
@@ -362,18 +370,34 @@ const ClientDocumentsData = () => {
     viewColumns: false,
     filter: false,
     search: true,
+    serverSide: false,
     searchPlaceholder: "Search documents...",
     pagination: false,
     tableBodyHeight: "auto",
+    count: assessments.total || 0,
+    rowsPerPage: assessments.per_page || 10,
+    rowsPerPageOptions: [5, 10, 25, 50],
+    page: currentPage - 1,
+    onPageChange: (page) => handlePageChange(page + 1),
+    onTableChange: (action, tableState) => {
+      switch (action) {
+        case "changePage":
+          handlePageChange(tableState.page + 1);
+          break;
+        default:
+          break;
+      }
+    },
     setRowProps: (row, dataIndex) => ({
       style: {
         backgroundColor: dataIndex % 2 === 0 ? "#f9f9f9" : "white",
       },
     }),
-    // Remove any custom styling that adds colors
     textLabels: {
       body: {
-        noMatch: "No documents found",
+        noMatch: isLoading
+          ? "Loading..."
+          : "No documents found for selected period",
       },
     },
   };
@@ -385,9 +409,7 @@ const ClientDocumentsData = () => {
         <div className="spinner-border text-primary" role="status">
           <span className="visually-hidden">Loading...</span>
         </div>
-        <p style={{ marginTop: "10px", color: "#000000" }}>
-          Loading documents...
-        </p>
+        <p style={{ marginTop: "10px" }}>Loading documents...</p>
       </div>
     );
   }
@@ -399,7 +421,17 @@ const ClientDocumentsData = () => {
         <Icon icon="material-symbols:error-outline" width="48" height="48" />
         <p style={{ marginTop: "10px" }}>Error: {error}</p>
         <button
-          onClick={() => dispatch(getAssessments(1))}
+          onClick={() => {
+            const dateRange = getDateRange();
+            dispatch(
+              getAssessments({
+                page: 1,
+                from_date: dateRange.from_date,
+                to_date: dateRange.to_date,
+                customer_group_name: customerGroup || undefined,
+              }),
+            );
+          }}
           style={{
             marginTop: "20px",
             padding: "10px 20px",
@@ -418,15 +450,29 @@ const ClientDocumentsData = () => {
   // No data state
   if (!documentData.length && !isLoading) {
     return (
-      <div style={{ textAlign: "center", padding: "40px", color: "#666666" }}>
+      <div style={{ textAlign: "center", padding: "40px", color: "#666" }}>
         <Icon
           icon="material-symbols:description-outline"
           width="48"
           height="48"
         />
-        <p style={{ marginTop: "10px" }}>No documents found.</p>
+        <p style={{ marginTop: "10px" }}>
+          {customerGroup
+            ? `No documents found for customer group "${customerGroup}" in the selected period.`
+            : "No documents found for the selected period."}
+        </p>
         <button
-          onClick={() => dispatch(getAssessments(1))}
+          onClick={() => {
+            const dateRange = getDateRange();
+            dispatch(
+              getAssessments({
+                page: 1,
+                from_date: dateRange.from_date,
+                to_date: dateRange.to_date,
+                customer_group_name: customerGroup || undefined,
+              }),
+            );
+          }}
           style={{
             marginTop: "20px",
             padding: "10px 20px",
@@ -450,6 +496,65 @@ const ClientDocumentsData = () => {
         type={toast.type}
         onClose={() => setToast({ show: false, message: "", type: "" })}
       />
+
+      {/* Date Filter and Customer Group Filter - exactly like FacilityDataTable */}
+      <div className="mb-4 pb-2 border-bottom">
+        <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+          <div style={{ minWidth: "300px" }}>
+            <DateFilter
+              {...dateFilter}
+              onFilterChange={updateFilter}
+              size="sm"
+            />
+          </div>
+
+          <div className="flex-grow-1">
+            <CustomerGroupFilter
+              selectedGroup={customerGroup}
+              onGroupChange={handleGroupChange}
+              size="sm"
+            />
+          </div>
+        </div>
+
+        {/* Active filter badges */}
+        <div className="mt-2 d-flex align-items-center gap-2 flex-wrap">
+          <span className="badge bg-light">
+            <i className="fas fa-calendar-alt me-1"></i>
+            {getDateRange().label}
+          </span>
+
+          {customerGroup && (
+            <span className="badge bg-info">
+              <i className="fas fa-tag me-1"></i>
+              Group: {customerGroup}
+              <button
+                onClick={() => {
+                  setCustomerGroup("");
+                  setCurrentPage(1);
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "white",
+                  marginLeft: "8px",
+                  padding: "0 4px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}>
+                ×
+              </button>
+            </span>
+          )}
+
+          {assessments.total > 0 && (
+            <span className="badge bg-success">
+              <i className="fas fa-file-pdf me-1"></i>
+              {assessments.total} Documents
+            </span>
+          )}
+        </div>
+      </div>
 
       <div className="basic-data-table">
         <MUIDataTable

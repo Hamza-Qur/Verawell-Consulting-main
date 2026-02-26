@@ -12,7 +12,7 @@ const ManageFacilities = () => {
 
   // Get download states from Redux
   const { isDownloadingCSV, downloadCSVError, successMessage } = useSelector(
-    (state) => state.facility
+    (state) => state.facility,
   );
 
   const handleDownloadCSV = () => {

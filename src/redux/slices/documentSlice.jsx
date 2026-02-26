@@ -2,23 +2,54 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { BASE_URL } from "../services/endpoint";
 
-// Get assessments list
+// Get assessments list with query parameters support
 export const getAssessments = createAsyncThunk(
   "document/getAssessments",
-  async (page = 1, { rejectWithValue }) => {
+  async (params = { page: 1 }, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(
-        `${BASE_URL}/api/assessment/get-list?page=${page}`,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // Build URL with query parameters
+      let url = `${BASE_URL}/api/assessment/get-list`;
+      const queryParams = new URLSearchParams();
+
+      // page parameter
+      if (params.page) queryParams.append("page", params.page);
+
+      // date parameters if they exist
+      if (params.from_date) queryParams.append("from_date", params.from_date);
+      if (params.to_date) queryParams.append("to_date", params.to_date);
+
+      // customer_group_name parameter if it exists
+      if (params.customer_group_name) {
+        queryParams.append("customer_group_name", params.customer_group_name);
+      }
+
+      // Add any other filters that might be needed
+      if (params.facility_id) {
+        queryParams.append("facility_id", params.facility_id);
+      }
+
+      if (params.category_id) {
+        queryParams.append("category_id", params.category_id);
+      }
+
+      if (params.user_id) {
+        queryParams.append("user_id", params.user_id);
+      }
+
+      // Append query parameters to URL if they exist
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`;
+      }
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       const data = await response.json();
 

@@ -2715,3 +2715,13 @@ p.MuiTablePagination-displayedRows {
     100% 14px;
   background-attachment: local, local, scroll, scroll;
 }
+
+.bg-info {
+  background-color: #8b2885 !important;
+}
+
+.badge {
+  background-color: #8b2885 !important;
+  color: white !important;
+  padding: 4px !important;
+}

@@ -17,6 +17,10 @@ export const getAttendance = createAsyncThunk(
       if (params.from_date) queryParams.append("from_date", params.from_date);
       if (params.to_date) queryParams.append("to_date", params.to_date);
 
+      if (params.customer_group_name) {
+        queryParams.append("customer_group_name", params.customer_group_name);
+      }
+
       if (queryParams.toString()) {
         url += `?${queryParams.toString()}`;
       }

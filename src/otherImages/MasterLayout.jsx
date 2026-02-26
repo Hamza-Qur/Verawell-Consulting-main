@@ -276,7 +276,7 @@ const MasterLayout = ({ children, Chain }) => {
                       width="24"
                       height="24"
                     />
-                    <span>Forms</span>
+                    <span>Tasks</span>
                   </NavLink>
                 </li>
                 <li>
@@ -371,7 +371,7 @@ const MasterLayout = ({ children, Chain }) => {
                       width="24"
                       height="24"
                     />
-                    <span>Forms</span>
+                    <span>Tasks</span>
                   </NavLink>
                 </li>
                 <li>

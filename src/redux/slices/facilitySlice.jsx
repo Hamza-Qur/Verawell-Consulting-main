@@ -52,6 +52,11 @@ export const getMyFacilities = createAsyncThunk(
       //user_id parameter if it exists
       if (params.user_id) queryParams.append("user_id", params.user_id);
 
+      // customer_group_name parameter if it exists
+       if (params.customer_group_name) {
+        queryParams.append("customer_group_name", params.customer_group_name);
+      }
+
       if (queryParams.toString()) {
         url += `?${queryParams.toString()}`;
       }
