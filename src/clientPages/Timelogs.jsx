@@ -406,7 +406,7 @@ const Timelogs = () => {
               marginBottom: "30px",
             }}>
             <h2 style={{ fontSize: "24px", fontWeight: "700", margin: 0 }}>
-              Timelogs - Form Completion Tracking
+              Timelogs - Task Completion Tracking
             </h2>
           </div>
           <div className="alert alert-danger" role="alert">
@@ -496,15 +496,6 @@ const Timelogs = () => {
 
             {/* Facility Filter */}
             <div style={{ minWidth: "250px" }}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "5px",
-                  fontWeight: "500",
-                  fontSize: "14px",
-                }}>
-                Facility
-              </label>
               <select
                 value={selectedFacility}
                 onChange={(e) => handleFacilityChange(e.target.value)}
