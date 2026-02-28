@@ -45,14 +45,31 @@ export const getAttendance = createAsyncThunk(
     }
   },
 );
+
 // Get my tasks (team member - specific to logged in user)
 export const getMyTasks = createAsyncThunk(
   "attendance/getMyTasks",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch(`${BASE_URL}/api/task/get-my`, {
+      // Build URL with query parameters
+      let url = `${BASE_URL}/api/task/get-my`;
+      const queryParams = new URLSearchParams();
+
+      // Add facility_id parameter if it exists
+      if (params.facility_id)
+        queryParams.append("facility_id", params.facility_id);
+
+      // Add date parameters if needed in the future
+      if (params.from_date) queryParams.append("from_date", params.from_date);
+      if (params.to_date) queryParams.append("to_date", params.to_date);
+
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`;
+      }
+
+      const response = await fetch(url, {
         method: "GET",
         headers: {
           Accept: "application/json",

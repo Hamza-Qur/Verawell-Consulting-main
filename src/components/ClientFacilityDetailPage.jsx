@@ -169,17 +169,23 @@ const ClientFacilityDetailPage = () => {
         hoursWorked: hoursWorked,
         formStatus: formStatusInfo.isCompleted,
         facility: assessment.facility_name || facility?.facility_name || "N/A",
-        // Original API data for reference
-        originalData: assessment,
+        // Original API data for reference (needed for navigation)
+        originalData: {
+          id: assessment.id,
+          submitted_assessment_id: assessment.submitted_assessment_id,
+          category_id: assessment.category_id,
+          category_name: assessment.category_name,
+          // Include any other fields you might need
+        },
       };
     });
   };
 
-  // Columns for assessments table (without action column)
+  // Columns for assessments table (with action column - only View button)
   const assessmentColumns = [
     {
       name: "formName",
-      label: "Form Name",
+      label: "Task Name",
       options: {
         customBodyRender: (value) => (
           <span style={{ fontWeight: 500, color: "#333" }}>{value}</span>
@@ -233,7 +239,7 @@ const ClientFacilityDetailPage = () => {
     },
     {
       name: "formStatus",
-      label: "Form Status",
+      label: "Task Status",
       options: {
         customBodyRender: (value) => {
           const style = {
@@ -249,6 +255,75 @@ const ClientFacilityDetailPage = () => {
           };
           return (
             <span style={style}>{value ? "Completed" : "In-Process"}</span>
+          );
+        },
+      },
+    },
+    {
+      name: "action",
+      label: "Action",
+      options: {
+        filter: false,
+        sort: false,
+        customBodyRenderLite: (dataIndex) => {
+          const row = facilityAssessments[dataIndex];
+
+          // Only show View button if form is completed
+          if (!row.formStatus) {
+            return (
+              <span style={{ color: "#999", fontSize: "0.9rem" }}>
+                Not available
+              </span>
+            );
+          }
+
+          const handleViewClick = () => {
+            const assessmentId = row.originalData?.submitted_assessment_id;
+
+            if (!assessmentId) {
+              showToast("Cannot view: No assessment ID found", "error");
+              return;
+            }
+
+            const categoryId = row.originalData?.category_id;
+            const categoryName =
+              row.originalData?.category_name || "Assessment";
+
+            navigate(`/view-form/${assessmentId}`, {
+              state: {
+                form: row,
+                assessmentId: assessmentId,
+                category_id: categoryId,
+                category_name: categoryName,
+                isCompleted: true,
+              },
+            });
+          };
+
+          return (
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <button
+                onClick={handleViewClick}
+                style={{
+                  background: "#8B2885",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "5px 12px",
+                  color: "white",
+                  borderRadius: "7px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+                title="View completed form">
+                <Icon
+                  icon="ic:baseline-remove-red-eye"
+                  width="17"
+                  height="20"
+                />
+                View
+              </button>
+            </div>
           );
         },
       },
@@ -500,7 +575,7 @@ const ClientFacilityDetailPage = () => {
                     color: "#666",
                     fontSize: "14px",
                   }}>
-                  Forms Submitted
+                  Documents Submitted
                 </label>
                 <p style={{ margin: "0", fontWeight: 500, color: "#333" }}>
                   {facility.total_assessments || "0"}

@@ -5,13 +5,15 @@ import { useDispatch, useSelector } from "react-redux";
 import MasterLayout from "../otherImages/MasterLayout";
 import DynamicModal from "../components/DynamicModal";
 import Toast from "../components/Toast";
+import DateFilter from "../components/DateFilter";
+import useDateFilter from "../components/useDateFilter";
 import {
   getMyTasks,
   updateTask,
   deleteAttendance,
   addTask,
 } from "../redux/slices/attendanceSlice";
-import { getMyFacilities } from "../redux/slices/facilitySlice"; // Import facility slice
+import { getMyFacilities } from "../redux/slices/facilitySlice";
 
 const DAYS = [
   "Monday",
@@ -25,6 +27,9 @@ const DAYS = [
 
 const Timelogs = () => {
   const dispatch = useDispatch();
+
+  // Use date filter hook
+  const { dateFilter, updateFilter, getDateRange } = useDateFilter();
 
   // Get my tasks from Redux store
   const { myTasks, isMyTasksLoading, myTasksError, isAddingTask } = useSelector(
@@ -43,6 +48,10 @@ const Timelogs = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showAddOtherTaskModal, setShowAddOtherTaskModal] = useState(false);
 
+  // Facility filter state
+  const [selectedFacility, setSelectedFacility] = useState("");
+  const [facilities, setFacilities] = useState([]);
+
   // Toast state
   const [toast, setToast] = useState({
     show: false,
@@ -54,6 +63,18 @@ const Timelogs = () => {
   useEffect(() => {
     dispatch(getMyFacilities(1));
   }, [dispatch]);
+
+  // Process facilities when they load
+  useEffect(() => {
+    if (myFacilities.data && myFacilities.data.length > 0) {
+      const facilityList = myFacilities.data.map((facility) => ({
+        id: facility.id || facility.facility_id,
+        name: facility.facility_name || facility.name,
+        address: facility.facility_address,
+      }));
+      setFacilities(facilityList);
+    }
+  }, [myFacilities]);
 
   // Show toast function
   const showToast = (message, type = "info") => {
@@ -80,10 +101,27 @@ const Timelogs = () => {
 
   const [baseDate, setBaseDate] = useState(getCurrentWeekMonday());
 
-  // Fetch tasks on component mount
+  // Fetch tasks when component mounts or filters change
   useEffect(() => {
-    dispatch(getMyTasks());
-  }, [dispatch]);
+    const dateRange = getDateRange();
+    const params = {
+      from_date: dateRange.from_date,
+      to_date: dateRange.to_date,
+    };
+
+    if (selectedFacility) {
+      params.facility_id = selectedFacility;
+    }
+
+    dispatch(getMyTasks(params));
+  }, [
+    dispatch,
+    selectedFacility,
+    dateFilter.selectedYear,
+    dateFilter.viewType,
+    dateFilter.selectedQuarter,
+    dateFilter.selectedMonth,
+  ]);
 
   // Transform API data to match the UI format when data loads
   useEffect(() => {
@@ -127,6 +165,8 @@ const Timelogs = () => {
             hour: "2-digit",
             minute: "2-digit",
           }),
+          facility_id: task.facility_id,
+          facility_name: task.facility_name,
         };
       });
       setTasks(transformedTasks);
@@ -134,6 +174,16 @@ const Timelogs = () => {
       setTasks([]);
     }
   }, [myTasks]);
+
+  // Handle facility filter change
+  const handleFacilityChange = (facilityId) => {
+    setSelectedFacility(facilityId);
+  };
+
+  // Clear facility filter
+  const clearFacilityFilter = () => {
+    setSelectedFacility("");
+  };
 
   const getMondayOfWeek = (date) => {
     const d = new Date(date);
@@ -197,7 +247,15 @@ const Timelogs = () => {
 
         if (action.payload?.success) {
           showToast("Task updated successfully!", "success");
-          dispatch(getMyTasks());
+          const dateRange = getDateRange();
+          const params = {
+            from_date: dateRange.from_date,
+            to_date: dateRange.to_date,
+          };
+          if (selectedFacility) {
+            params.facility_id = selectedFacility;
+          }
+          dispatch(getMyTasks(params));
           closeModals();
         } else {
           showToast(
@@ -220,15 +278,23 @@ const Timelogs = () => {
       description: taskData.description || "",
       start_time: taskData.startDateTime.split("T")[0],
       end_time: taskData.endDateTime.split("T")[0],
-      assigned_assessment_id: null, // Explicitly set to null for other tasks
-      facility_id: taskData.facility_id || null, // Add facility_id to the task data
+      assigned_assessment_id: null,
+      facility_id: taskData.facility_id || null,
     };
 
     dispatch(addTask(apiTaskData)).then((action) => {
       if (action.payload?.success) {
         showToast("Task added to timelogs successfully!", "success");
         setShowAddOtherTaskModal(false);
-        dispatch(getMyTasks()); // Refresh the task list
+        const dateRange = getDateRange();
+        const params = {
+          from_date: dateRange.from_date,
+          to_date: dateRange.to_date,
+        };
+        if (selectedFacility) {
+          params.facility_id = selectedFacility;
+        }
+        dispatch(getMyTasks(params));
       } else {
         showToast(action.payload?.message || "Failed to add task", "error");
       }
@@ -240,7 +306,15 @@ const Timelogs = () => {
       dispatch(deleteAttendance(taskId)).then((action) => {
         if (action.payload?.success) {
           showToast("Task deleted successfully!", "success");
-          dispatch(getMyTasks());
+          const dateRange = getDateRange();
+          const params = {
+            from_date: dateRange.from_date,
+            to_date: dateRange.to_date,
+          };
+          if (selectedFacility) {
+            params.facility_id = selectedFacility;
+          }
+          dispatch(getMyTasks(params));
           closeModals();
         } else {
           showToast(
@@ -339,7 +413,17 @@ const Timelogs = () => {
             Error loading tasks: {myTasksError}
             <button
               className="btn btn-sm btn-outline-danger ms-3"
-              onClick={() => dispatch(getMyTasks())}>
+              onClick={() => {
+                const dateRange = getDateRange();
+                const params = {
+                  from_date: dateRange.from_date,
+                  to_date: dateRange.to_date,
+                };
+                if (selectedFacility) {
+                  params.facility_id = selectedFacility;
+                }
+                dispatch(getMyTasks(params));
+              }}>
               Retry
             </button>
           </div>
@@ -370,7 +454,7 @@ const Timelogs = () => {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "30px",
+            marginBottom: "20px",
           }}>
           <h2 style={{ fontSize: "24px", fontWeight: "700", margin: 0 }}>
             Timelogs - Form Completion Tracking
@@ -396,6 +480,92 @@ const Timelogs = () => {
             <Icon icon="mdi:plus-circle-outline" width={20} height={20} />
             Add Other Task
           </button>
+        </div>
+
+        {/* Filter Section */}
+        <div className="mb-4 pb-2 border-bottom">
+          <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+            {/* Date Filter */}
+            <div style={{ minWidth: "300px" }}>
+              <DateFilter
+                {...dateFilter}
+                onFilterChange={updateFilter}
+                size="sm"
+              />
+            </div>
+
+            {/* Facility Filter */}
+            <div style={{ minWidth: "250px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "5px",
+                  fontWeight: "500",
+                  fontSize: "14px",
+                }}>
+                Facility
+              </label>
+              <select
+                value={selectedFacility}
+                onChange={(e) => handleFacilityChange(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid #e2e8f0",
+                  fontSize: "14px",
+                  backgroundColor: "white",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                }}>
+                <option value="">All Facilities</option>
+                {facilities.map((facility) => (
+                  <option key={facility.id} value={facility.id}>
+                    {facility.name}{" "}
+                    {facility.address ? `- ${facility.address}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Active filter badges */}
+          <div className="mt-2 d-flex align-items-center gap-2 flex-wrap">
+            <span className="badge bg-light text-dark p-2">
+              <i className="fas fa-calendar-alt me-1"></i>
+              {getDateRange().label}
+            </span>
+
+            {selectedFacility && (
+              <span className="badge bg-info text-white p-2">
+                <i className="fas fa-building me-1"></i>
+                Facility:{" "}
+                {facilities.find((f) => f.id === selectedFacility)?.name ||
+                  selectedFacility}
+                <button
+                  onClick={() => {
+                    setSelectedFacility("");
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "white",
+                    marginLeft: "8px",
+                    padding: "0 4px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                  }}>
+                  ×
+                </button>
+              </span>
+            )}
+
+            {tasks.length > 0 && (
+              <span className="badge bg-success p-2">
+                <i className="fas fa-tasks me-1"></i>
+                {tasks.length} Tasks
+              </span>
+            )}
+          </div>
         </div>
 
         <div
@@ -563,6 +733,16 @@ const Timelogs = () => {
                         <div style={{ fontSize: "11px", color: "#666" }}>
                           {task.startDateStr} - {task.endDateStr}
                         </div>
+                        {task.facility_name && (
+                          <div
+                            style={{
+                              fontSize: "10px",
+                              color: "#8B2885",
+                              marginTop: "4px",
+                            }}>
+                            📍 {task.facility_name}
+                          </div>
+                        )}
                       </div>
                     ))
                   )}
@@ -622,7 +802,7 @@ const Timelogs = () => {
   );
 };
 
-// Updated Add Other Task Form Component with Facility Dropdown
+// AddOtherTaskForm component remains the same...
 const AddOtherTaskForm = ({
   onSave,
   isSaving,
@@ -637,7 +817,7 @@ const AddOtherTaskForm = ({
     endDateTime: new Date(new Date().getTime() + 60 * 60 * 1000)
       .toISOString()
       .slice(0, 16),
-    facility_id: "", // Add facility_id field
+    facility_id: "",
   });
 
   const inputStyle = {
@@ -673,7 +853,6 @@ const AddOtherTaskForm = ({
       return;
     }
 
-    // Validate facility selection if needed
     if (!formData.facility_id) {
       alert("Please select a facility");
       return;
@@ -684,7 +863,6 @@ const AddOtherTaskForm = ({
 
   return (
     <div>
-      {/* Facility Dropdown - Like in AssignFacilityModal */}
       <label>Facility *</label>
       <select
         value={formData.facility_id}
@@ -819,7 +997,7 @@ const AddOtherTaskForm = ({
   );
 };
 
-// TaskForm component (unchanged)
+// TaskForm component remains the same...
 const TaskForm = ({ initialData, onSave, isSaving }) => {
   const prepareInitialData = () => {
     if (initialData) {
@@ -999,7 +1177,7 @@ const TaskForm = ({ initialData, onSave, isSaving }) => {
   );
 };
 
-// TaskView component (unchanged)
+// TaskView component remains the same...
 const TaskView = ({ task, onEdit, onDelete, close }) => {
   if (!task) return null;
 
@@ -1044,6 +1222,16 @@ const TaskView = ({ task, onEdit, onDelete, close }) => {
           <br />
           End: {formatDateTime(task.endDate)}
         </p>
+        {task.facility_name && (
+          <p
+            style={{
+              fontSize: "14px",
+              color: "#8B2885",
+              marginBottom: "10px",
+            }}>
+            <strong>Facility:</strong> {task.facility_name}
+          </p>
+        )}
         <p
           style={{
             marginTop: "15px",

@@ -5,10 +5,15 @@ import MUIDataTable from "mui-datatables";
 import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { getTeamAssignedFacilities } from "../redux/slices/dashboardSlice";
+import DateFilter from "./DateFilter";
+import useDateFilter from "./useDateFilter";
 
 const CustomerDashboardData = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // Use date filter hook
+  const { dateFilter, updateFilter, getDateRange } = useDateFilter();
 
   // Get team assigned facilities from Redux store
   const {
@@ -19,10 +24,24 @@ const CustomerDashboardData = () => {
 
   const [searchText, setSearchText] = useState("");
 
-  // Fetch team assigned facilities on component mount
+  // Fetch team assigned facilities on component mount and when date filters change
   useEffect(() => {
-    dispatch(getTeamAssignedFacilities(1));
-  }, [dispatch]);
+    const dateRange = getDateRange();
+
+    dispatch(
+      getTeamAssignedFacilities({
+        page: 1,
+        from_date: dateRange.from_date,
+        to_date: dateRange.to_date,
+      }),
+    );
+  }, [
+    dispatch,
+    dateFilter.selectedYear,
+    dateFilter.viewType,
+    dateFilter.selectedQuarter,
+    dateFilter.selectedMonth,
+  ]);
 
   const handleClick = (rowData) => {
     // Navigate to the correct route with facility ID in the URL
@@ -157,10 +176,29 @@ const CustomerDashboardData = () => {
   };
 
   // Show loading state
-  if (isTeamAssignedFacilitiesLoading && !teamAssignedFacilities.data.length) {
+  if (isTeamAssignedFacilitiesLoading && !teamAssignedFacilities.data?.length) {
     return (
       <div className="mt-40">
-        <h2 className="fs-2">Recent Activity</h2>
+        <h2 className="fs-2">Facilities</h2>
+
+        {/* Date Filter Skeleton */}
+        <div className="mb-4 pb-2 border-bottom">
+          <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+            <div style={{ minWidth: "300px" }}>
+              <div className="placeholder-glow">
+                <span
+                  className="placeholder col-6"
+                  style={{ height: "38px" }}></span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-2">
+            <span className="badge bg-light text-dark p-2 placeholder-glow">
+              <span className="placeholder col-4"></span>
+            </span>
+          </div>
+        </div>
+
         <div
           className="d-flex justify-content-center align-items-center"
           style={{ minHeight: "200px" }}>
@@ -173,15 +211,44 @@ const CustomerDashboardData = () => {
   }
 
   // Show error state
-  if (teamAssignedFacilitiesError && !teamAssignedFacilities.data.length) {
+  if (teamAssignedFacilitiesError && !teamAssignedFacilities.data?.length) {
     return (
       <div className="mt-40">
-        <h2 className="fs-2">Recent Activity</h2>
+        <h2 className="fs-2">Facilities</h2>
+
+        {/* Date Filter (still show even in error state) */}
+        <div className="mb-4 pb-2 border-bottom">
+          <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+            <div style={{ minWidth: "300px" }}>
+              <DateFilter
+                {...dateFilter}
+                onFilterChange={updateFilter}
+                size="sm"
+              />
+            </div>
+          </div>
+          <div className="mt-2 d-flex align-items-center gap-2 flex-wrap">
+            <span className="badge bg-light text-dark p-2">
+              <i className="fas fa-calendar-alt me-1"></i>
+              {getDateRange().label}
+            </span>
+          </div>
+        </div>
+
         <div className="alert alert-danger" role="alert">
           Error loading facilities: {teamAssignedFacilitiesError}
           <button
             className="btn btn-sm btn-outline-danger ms-3"
-            onClick={() => dispatch(getTeamAssignedFacilities(1))}>
+            onClick={() => {
+              const dateRange = getDateRange();
+              dispatch(
+                getTeamAssignedFacilities({
+                  page: 1,
+                  from_date: dateRange.from_date,
+                  to_date: dateRange.to_date,
+                }),
+              );
+            }}>
             Retry
           </button>
         </div>
@@ -194,10 +261,31 @@ const CustomerDashboardData = () => {
       <div className="mt-40">
         <h2 className="fs-2">Facilities</h2>
 
+        {/* Date Filter */}
+        <div className="mb-4 pb-2 border-bottom">
+          <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+            <div style={{ minWidth: "300px" }}>
+              <DateFilter
+                {...dateFilter}
+                onFilterChange={updateFilter}
+                size="sm"
+              />
+            </div>
+          </div>
+
+          {/* Active filter badges */}
+          <div className="mt-2 d-flex align-items-center gap-2 flex-wrap">
+            <span className="badge bg-light text-dark p-2">
+              <i className="fas fa-calendar-alt me-1"></i>
+              {getDateRange().label}
+            </span>
+          </div>
+        </div>
+
         {teamAssignedFacilities?.data?.length === 0 &&
         !isTeamAssignedFacilitiesLoading ? (
           <div className="alert alert-info" role="alert">
-            No facilities assigned to your team yet.
+            No facilities found for {getDateRange().label}.
           </div>
         ) : (
           <MUIDataTable
@@ -211,7 +299,8 @@ const CustomerDashboardData = () => {
         {/* Stats summary (optional) */}
         <div className="mt-3 text-muted small">
           Showing {transformFacilityData().length} of{" "}
-          {teamAssignedFacilities?.total || 0} facilities
+          {teamAssignedFacilities?.total || 0} facilities for{" "}
+          {getDateRange().label}
         </div>
       </div>
     </>

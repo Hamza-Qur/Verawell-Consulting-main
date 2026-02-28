@@ -10,10 +10,11 @@ import EditAttendanceModal from "./EditAttendanceModal";
 import {
   getAttendance,
   deleteAttendance,
+  updateTask,
 } from "../redux/slices/attendanceSlice";
 import DateFilter from "./DateFilter";
 import useDateFilter from "./useDateFilter";
-import CustomerGroupFilter from "./CustomerGroupFilter"; // Import CustomerGroupFilter
+import CustomerGroupFilter from "./CustomerGroupFilter";
 
 const AttendanceDataTable = () => {
   const navigate = useNavigate();
@@ -33,8 +34,33 @@ const AttendanceDataTable = () => {
   const [buttonPosition, setButtonPosition] = useState({ top: 0, left: 0 });
   const [selectedFacility, setSelectedFacility] = useState("All");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedAttendance, setSelectedAttendance] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   const buttonRefs = useRef([]);
+
+  // Toast state
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "info",
+  });
+
+  // Show toast function
+  const showToast = (message, type = "info") => {
+    setToast({
+      show: true,
+      message,
+      type,
+    });
+    setTimeout(() => {
+      setToast({ ...toast, show: false });
+    }, 3000);
+  };
+
+  const hideToast = () => {
+    setToast({ ...toast, show: false });
+  };
 
   // Fetch attendance with date filters and customer group filter
   useEffect(() => {
@@ -53,7 +79,7 @@ const AttendanceDataTable = () => {
     dateFilter.viewType,
     dateFilter.selectedQuarter,
     dateFilter.selectedMonth,
-    customerGroup, // Add customerGroup as dependency
+    customerGroup,
   ]);
 
   // Handle customer group filter change
@@ -79,10 +105,21 @@ const AttendanceDataTable = () => {
     setDropdownOpen(dropdownOpen === index ? null : index);
   };
 
+  const handleViewDetails = (rowData) => {
+    setSelectedAttendance(rowData);
+    setShowViewModal(true);
+    setDropdownOpen(null);
+  };
+
   const handleEdit = (rowData) => {
     setSelectedAttendance(rowData);
     setShowEditModal(true);
     setDropdownOpen(null);
+  };
+
+  const handleCloseViewModal = () => {
+    setShowViewModal(false);
+    setSelectedAttendance(null);
   };
 
   const handleCloseEditModal = () => {
@@ -98,6 +135,7 @@ const AttendanceDataTable = () => {
     ) {
       dispatch(deleteAttendance(rowData.id)).then((result) => {
         if (result.payload?.success) {
+          showToast("Attendance record deleted successfully!", "success");
           const dateRange = getDateRange();
           dispatch(
             getAttendance({
@@ -110,6 +148,65 @@ const AttendanceDataTable = () => {
       });
     }
     setDropdownOpen(null);
+  };
+
+  const handleSaveTask = (taskData) => {
+    setIsSaving(true);
+
+    // Parse the datetime-local string (format: YYYY-MM-DDTHH:MM)
+    const parseDateTimeLocal = (dateTimeStr) => {
+      const [datePart, timePart] = dateTimeStr.split("T");
+      const [year, month, day] = datePart.split("-");
+      const [hours, minutes] = timePart.split(":");
+
+      return {
+        year,
+        month,
+        day,
+        hours,
+        minutes: minutes || "00",
+      };
+    };
+
+    const startParts = parseDateTimeLocal(taskData.startDateTime);
+    const endParts = parseDateTimeLocal(taskData.endDateTime);
+
+    const updateData = {
+      id: selectedAttendance.id,
+      title: taskData.title,
+      description: taskData.description || "",
+      start_time: `${startParts.year}-${startParts.month}-${startParts.day} ${startParts.hours}:${startParts.minutes}:00`,
+      end_time: `${endParts.year}-${endParts.month}-${endParts.day} ${endParts.hours}:${endParts.minutes}:00`,
+    };
+
+    dispatch(updateTask(updateData))
+      .then((action) => {
+        setIsSaving(false);
+
+        if (action.payload?.success) {
+          showToast("Attendance record updated successfully!", "success");
+          handleCloseEditModal();
+          handleCloseViewModal();
+          const dateRange = getDateRange();
+          dispatch(
+            getAttendance({
+              from_date: dateRange.from_date,
+              to_date: dateRange.to_date,
+              customer_group_name: customerGroup || undefined,
+            }),
+          );
+        } else {
+          showToast(
+            action.payload?.message || "Failed to update attendance record",
+            "error",
+          );
+        }
+      })
+      .catch((error) => {
+        setIsSaving(false);
+        showToast("An error occurred while saving", "error");
+        console.error("Save error:", error);
+      });
   };
 
   useEffect(() => {
@@ -341,6 +438,136 @@ const AttendanceDataTable = () => {
     },
   };
 
+  // View Attendance Modal Component
+  const ViewAttendanceModal = ({ attendance, onClose, onEdit, onDelete }) => {
+    if (!attendance) return null;
+
+    const formatDateTime = (dateTimeStr) => {
+      if (!dateTimeStr || dateTimeStr === "N/A") return "N/A";
+      try {
+        const date = new Date(dateTimeStr);
+        return date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      } catch (error) {
+        return dateTimeStr;
+      }
+    };
+
+    return (
+      <div>
+        <div
+          style={{
+            background: "#F7F8FA",
+            padding: "20px",
+            borderRadius: "16px",
+            marginBottom: "20px",
+            wordBreak: "break-word",
+            overflowWrap: "break-word",
+          }}>
+          <h3
+            style={{
+              margin: "0 0 10px 0",
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+              color: "#8B2885",
+            }}>
+            {attendance.title}
+          </h3>
+
+          <div style={{ marginBottom: "15px" }}>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#666",
+                margin: "5px 0",
+              }}>
+              <strong>Employee:</strong> {attendance.employeeName}
+            </p>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#666",
+                margin: "5px 0",
+              }}>
+              <strong>Email:</strong> {attendance.employeeEmail}
+            </p>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#666",
+                margin: "5px 0",
+              }}>
+              <strong>Facility:</strong> {attendance.facility}
+            </p>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#666",
+                margin: "5px 0",
+              }}>
+              <strong>Group:</strong> {attendance.customergroupname}
+            </p>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#666",
+                margin: "5px 0",
+              }}>
+              <strong>Check-In:</strong>{" "}
+              {formatDateTime(attendance.originalData?.start_time)}
+            </p>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#666",
+                margin: "5px 0",
+              }}>
+              <strong>Check-Out:</strong>{" "}
+              {formatDateTime(attendance.originalData?.end_time)}
+            </p>
+            <p
+              style={{
+                fontSize: "14px",
+                color: "#666",
+                margin: "5px 0",
+              }}>
+              <strong>Hours Worked:</strong>{" "}
+              {attendance.hoursWorked !== "N/A"
+                ? `${attendance.hoursWorked} hours`
+                : "N/A"}
+            </p>
+          </div>
+
+          <div style={{ marginTop: "20px" }}>
+            <strong style={{ display: "block", marginBottom: "8px" }}>
+              Description:
+            </strong>
+            <p
+              style={{
+                margin: "0",
+                whiteSpace: "pre-wrap",
+                overflowWrap: "break-word",
+                wordBreak: "break-word",
+                maxWidth: "100%",
+                fontSize: "14px",
+                lineHeight: "1.5",
+                background: "white",
+                padding: "15px",
+                borderRadius: "12px",
+              }}>
+              {attendance.description || "No description provided."}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* Date Filter and Customer Group Filter */}
@@ -463,29 +690,42 @@ const AttendanceDataTable = () => {
         </>
       )}
 
+      {/* View Modal */}
+      <DynamicModal
+        show={showViewModal}
+        handleClose={handleCloseViewModal}
+        title="Attendance Details"
+        modalWidth="500px"
+        content={
+          <ViewAttendanceModal
+            attendance={selectedAttendance}
+            onClose={handleCloseViewModal}
+            onEdit={(attendance) => {
+              setSelectedAttendance(attendance);
+              setShowEditModal(true);
+            }}
+            onDelete={(attendance) => {
+              handleDelete(attendance);
+            }}
+          />
+        }
+      />
+
+      {/* Edit Modal */}
       <DynamicModal
         show={showEditModal}
         handleClose={handleCloseEditModal}
         title={`Edit Attendance - ${selectedAttendance?.title || ""}`}
+        modalWidth="500px"
         content={
           <EditAttendanceModal
             attendanceData={selectedAttendance}
             isEditMode={true}
             onClose={handleCloseEditModal}
-            onSuccess={() => {
-              handleCloseEditModal();
-              const dateRange = getDateRange();
-              dispatch(
-                getAttendance({
-                  from_date: dateRange.from_date,
-                  to_date: dateRange.to_date,
-                  customer_group_name: customerGroup || undefined,
-                }),
-              );
-            }}
+            onSave={handleSaveTask}
+            isSaving={isSaving}
           />
         }
-        modalWidth="50%"
       />
 
       {dropdownOpen !== null &&
@@ -512,6 +752,33 @@ const AttendanceDataTable = () => {
                 gap: "10px",
                 fontSize: "14px",
                 color: "#333",
+                transition: "background-color 0.2s",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#F5F5F5")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "transparent")
+              }
+              onClick={() => handleViewDetails(filteredData[dropdownOpen])}>
+              <Icon
+                icon="mdi:eye-outline"
+                width="18"
+                height="18"
+                color="#2196F3"
+              />
+              <span>View Details</span>
+            </div>
+            <div
+              style={{
+                padding: "10px 16px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                fontSize: "14px",
+                color: "#333",
+                borderTop: "1px solid #F0F0F0",
                 transition: "background-color 0.2s",
               }}
               onMouseEnter={(e) =>

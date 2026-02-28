@@ -239,14 +239,6 @@ const FacilityDataTable = () => {
       options: {
         filter: true,
         sort: true,
-      },
-    },
-    {
-      name: "customerName",
-      label: "Customer Name",
-      options: {
-        filter: true,
-        sort: true,
         customBodyRender: (value, tableMeta) => {
           const rowData = facilityData[tableMeta.rowIndex];
           const customerId = rowData?.customerId;
@@ -280,6 +272,14 @@ const FacilityDataTable = () => {
             </span>
           );
         },
+      },
+    },
+    {
+      name: "customerName",
+      label: "Customer Name",
+      options: {
+        filter: true,
+        sort: true,
       },
     },
     {
