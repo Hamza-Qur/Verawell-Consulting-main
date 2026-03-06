@@ -75,14 +75,6 @@ const FacilityDetailDashboardData = ({ rows }) => {
     }
   }, [successMessage, addTaskError]);
 
-  // Clear success messages after showing (prevents showing on component re-render)
-  useEffect(() => {
-    return () => {
-      // You might want to clear the successMessage when component unmounts
-      // This depends on your Redux setup
-    };
-  }, []);
-
   const getUniqueFacilities = () => {
     if (!assignedAssessments.data || assignedAssessments.data.length === 0) {
       return ["All"];
@@ -251,6 +243,33 @@ const FacilityDetailDashboardData = ({ rows }) => {
     }
   };
 
+  // Helper function to format date as MM/DD/YYYY
+  const formatDateMMDDYYYY = (dateString) => {
+    if (!dateString || dateString === "N/A") return "N/A";
+    try {
+      const date = new Date(dateString);
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${month}/${day}/${year}`;
+    } catch (error) {
+      return "N/A";
+    }
+  };
+
+  // Helper function to format time as HH:MM
+  const formatTimeHHMM = (dateString) => {
+    if (!dateString || dateString === "N/A") return "N/A";
+    try {
+      const date = new Date(dateString);
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      return `${hours}:${minutes}`;
+    } catch (error) {
+      return "N/A";
+    }
+  };
+
   const transformAssessmentData = () => {
     if (!assignedAssessments.data || assignedAssessments.data.length === 0) {
       return [];
@@ -266,17 +285,30 @@ const FacilityDetailDashboardData = ({ rows }) => {
         ? new Date(assessment.end_time)
         : new Date();
 
-      const timeStr = assessment.start_time
-        ? startTime.toTimeString().split(" ")[0]
+      // Format date as MM/DD/YYYY
+      const dateStr = assessment.start_time
+        ? formatDateMMDDYYYY(assessment.start_time)
         : "N/A";
 
-      const dateStr = assessment.start_time
-        ? startTime.toLocaleDateString("en-US", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })
+      // Format time as HH:MM
+      const timeStr = assessment.start_time
+        ? formatTimeHHMM(assessment.start_time)
         : "N/A";
+
+      // Combined date and time for display (vertical stack to save space)
+      const dateTimeDisplay = assessment.start_time ? (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            lineHeight: "1.3",
+          }}>
+          <span style={{ fontWeight: 500, color: "#333" }}>{dateStr}</span>
+          <span style={{ fontSize: "0.8rem", color: "#666" }}>{timeStr}</span>
+        </div>
+      ) : (
+        "N/A"
+      );
 
       let hoursWorked = "N/A";
       if (assessment.start_time && assessment.end_time) {
@@ -291,8 +323,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
       return {
         id: assessment.id,
         formName: formName,
-        time: timeStr,
-        date: dateStr,
+        dateTimeDisplay: dateTimeDisplay,
         hoursWorked: hoursWorked,
         customergroup: assessment.customer_group_name || "N/A",
         formStatus: formStatusInfo.isCompleted,
@@ -303,9 +334,26 @@ const FacilityDetailDashboardData = ({ rows }) => {
         taskButtonStyle: formStatusInfo.taskButtonStyle,
         fillFormText: formStatusInfo.fillFormText,
         fillFormIcon: formStatusInfo.fillFormIcon,
+        assessmentScore: assessment.assessment_score || 0,
+        assessmentMaxScore: assessment.assessment_max_score || 0,
+        scorePercentage:
+          assessment.assessment_max_score > 0
+            ? Math.round(
+                (assessment.assessment_score /
+                  assessment.assessment_max_score) *
+                  100,
+              )
+            : 0,
         originalData: assessment,
       };
     });
+  };
+
+  const getScoreColor = (percentage) => {
+    if (percentage < 0) return "#dc3545"; // Negative - Red
+    if (percentage < 40) return "#dc3545"; // Below 40% - Red
+    if (percentage < 70) return "#fd7e14"; // 40-69% - Orange
+    return "#28a745"; // 70% and above - Green
   };
 
   const transformedData = transformAssessmentData();
@@ -317,35 +365,51 @@ const FacilityDetailDashboardData = ({ rows }) => {
   const employeeColumns = [
     { name: "facility", label: "Facility Name" },
     { name: "formName", label: "Task Name" },
-    { name: "customergroup", label: "Group Name" },
     {
-      name: "time",
-      label: "Time",
+      name: "scorePercentage",
+      label: "Score",
       options: {
-        customBodyRender: (value) => (
-          <span
-            style={{
-              color: value === "N/A" ? "#999999" : "#29BF5A",
-              fontWeight: value === "N/A" ? 400 : 500,
-            }}>
-            {value}
-          </span>
-        ),
+        customBodyRender: (value, tableMeta) => {
+          const rowIndex = tableMeta.rowIndex;
+          const row = filteredData[rowIndex];
+          const score = row.assessmentScore;
+          const maxScore = row.assessmentMaxScore;
+          const percentage = row.scorePercentage;
+
+          const scoreColor = getScoreColor(percentage);
+
+          return (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: scoreColor,
+                  fontSize: "1rem",
+                }}>
+                {percentage}%
+              </span>
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  color: "#666",
+                  marginTop: "2px",
+                }}>
+                ({score} / {maxScore})
+              </span>
+            </div>
+          );
+        },
       },
     },
+    { name: "customergroup", label: "Group Name" },
     {
-      name: "date",
-      label: "Date",
+      name: "dateTimeDisplay",
+      label: "Date & Time",
       options: {
-        customBodyRender: (value) => (
-          <span
-            style={{
-              color: value === "N/A" ? "#999999" : "#8B2885",
-              fontWeight: value === "N/A" ? 400 : 500,
-            }}>
-            {value}
-          </span>
-        ),
+        filter: false,
+        sort: true,
+        sortThirdClickReset: true,
+        customBodyRender: (value) => value,
       },
     },
     {
@@ -365,22 +429,47 @@ const FacilityDetailDashboardData = ({ rows }) => {
     },
     {
       name: "formStatus",
-      label: "Task Status",
+      label: "Status",
       options: {
+        filter: true,
+        sort: true,
         customBodyRender: (value) => {
-          const style = {
-            padding: "4px 8px",
-            borderRadius: "12px",
-            color: value ? "#28a745" : "#FF8104",
-            fontWeight: 500,
-            fontSize: "0.85rem",
-            display: "inline-block",
-            textAlign: "center",
-            backgroundColor: value ? "#28a74563" : "#ff810430",
-            border: value ? "solid 2px #28a745" : "solid 2px #FF8104",
-          };
+          // Traffic light indicators
           return (
-            <span style={style}>{value ? "Completed" : "In-Process"}</span>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "start",
+                alignItems: "center",
+              }}>
+              {value ? (
+                // Completed - Green light
+                <div
+                  style={{
+                    width: "20px",
+                    height: "20px",
+                    borderRadius: "50%",
+                    backgroundColor: "#28a745",
+                    boxShadow: "0 0 5px rgba(40, 167, 69, 0.5)",
+                    display: "inline-block",
+                  }}
+                  title="Completed"
+                />
+              ) : (
+                // In-Process - Red light
+                <div
+                  style={{
+                    width: "20px",
+                    height: "20px",
+                    borderRadius: "50%",
+                    backgroundColor: "#dc3545",
+                    boxShadow: "0 0 5px rgba(220, 53, 69, 0.5)",
+                    display: "inline-block",
+                  }}
+                  title="In-Process"
+                />
+              )}
+            </div>
           );
         },
       },
@@ -415,10 +504,29 @@ const FacilityDetailDashboardData = ({ rows }) => {
             const categoryName =
               row.originalData?.category_name || "Assessment";
 
+            // Create a clean version of row data without React elements
+            const cleanRow = {
+              id: row.id,
+              formName: row.formName,
+              hoursWorked: row.hoursWorked,
+              customergroup: row.customergroup,
+              formStatus: row.formStatus,
+              facility: row.facility,
+              canShowTaskButton: row.canShowTaskButton,
+              taskButtonText: row.taskButtonText,
+              taskButtonDisabled: row.taskButtonDisabled,
+              fillFormText: row.fillFormText,
+              fillFormIcon: row.fillFormIcon,
+              assessmentScore: row.assessmentScore,
+              assessmentMaxScore: row.assessmentMaxScore,
+              scorePercentage: row.scorePercentage,
+              // Don't include dateTimeDisplay as it contains JSX
+            };
+
             if (isCompleted) {
               navigate(`/view-form/${assessmentId}`, {
                 state: {
-                  form: row,
+                  form: cleanRow, // Use clean row without JSX
                   assessmentId: assessmentId,
                   category_id: categoryId,
                   category_name: categoryName,
@@ -428,7 +536,7 @@ const FacilityDetailDashboardData = ({ rows }) => {
             } else {
               navigate(`/fill-form/${assessmentId}`, {
                 state: {
-                  form: row,
+                  form: cleanRow, // Use clean row without JSX
                   assessmentId: assessmentId,
                   category_id: categoryId,
                   category_name: categoryName,
