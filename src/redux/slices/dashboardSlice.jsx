@@ -288,20 +288,34 @@ export const getTeamTaskGraph = createAsyncThunk(
     try {
       const token = localStorage.getItem("token");
 
-      // Default to current year if no params provided
-      const currentYear = new Date().getFullYear();
-      const from_date = params.from_date || `${currentYear}-01-01`;
-      const to_date = params.to_date || `${currentYear}-12-31`;
+      // Build URL with query parameters
+      let url = `${BASE_URL}/api/dashboard/get-user-logged-hours`;
+      const queryParams = new URLSearchParams();
 
-      const response = await fetch(
-        `${BASE_URL}/api/task/get-my-graph?from_date=${from_date}&to_date=${to_date}`,
-        {
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+      // Add date parameters if they exist
+      if (params.from_date) {
+        queryParams.append("from_date", params.from_date);
+      }
+      if (params.to_date) {
+        queryParams.append("to_date", params.to_date);
+      }
+
+      // Add facility_id parameter if it exists
+      if (params.facility_id) {
+        queryParams.append("facility_id", params.facility_id);
+      }
+
+      // Append query parameters to URL if they exist
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       const data = await response.json();
 
