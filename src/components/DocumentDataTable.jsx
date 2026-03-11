@@ -258,6 +258,8 @@ const DocumentDataTable = () => {
         facility_name: assessment.facility_name || "Unknown Facility",
         category_name: assessment.category_name || "Uncategorized",
         customer_group_name: assessment.customer_group_name || "N/A",
+        score: assessment.score || 0,
+        max_score: assessment.max_score || 0,
         originalData: assessment,
       };
     });
@@ -277,6 +279,50 @@ const DocumentDataTable = () => {
     {
       name: "customer_group_name",
       label: "Customer Group",
+    },
+    {
+      name: "score",
+      label: "Score",
+      options: {
+        customBodyRender: (value, tableMeta) => {
+          const rowIndex = tableMeta.rowIndex;
+          const row = documentData[rowIndex];
+          const score = row.score || 0;
+          const maxScore = row.max_score || 0;
+          const percentage =
+            maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+
+          const getScoreColor = (percentage) => {
+            if (percentage < 0) return "#dc3545";
+            if (percentage < 40) return "#dc3545";
+            if (percentage < 70) return "#fd7e14";
+            return "#28a745";
+          };
+
+          const scoreColor = getScoreColor(percentage);
+
+          return (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: scoreColor,
+                  fontSize: "1rem",
+                }}>
+                {percentage}%
+              </span>
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  color: "#666",
+                  marginTop: "2px",
+                }}>
+                ({score} / {maxScore})
+              </span>
+            </div>
+          );
+        },
+      },
     },
     {
       name: "documentName",

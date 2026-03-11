@@ -36,6 +36,8 @@ import TeamFacilityDetailPage from "./components/TeamFacilityDetailPage";
 import SocketProvider from "./components/SocketProvider";
 import ClientFacilityDetailPage from "./components/ClientFacilityDetailPage";
 import CustomerGroup from "./components/CustomerGroup";
+import ManageDailyAttendance from "./adminPages/ManageDailyAttendance";
+import DailyAttendance from "./clientPages/DailyAttendance";
 
 function App() {
   return (
@@ -111,6 +113,15 @@ function App() {
             }
           />
           <Route
+            path="/daily-attendance"
+            element={
+              <ProtectedRoute
+                element={ManageDailyAttendance}
+                allowedRole="admin"
+              />
+            }
+          />
+          <Route
             path="/settings"
             element={
               <ProtectedRoute element={EditProfilePage} allowedRole="admin" />
@@ -166,6 +177,15 @@ function App() {
             path="/client-dashboard"
             element={
               <ProtectedRoute element={ClientDashboard} allowedRole="team" />
+            }
+          />
+             <Route
+            path="/my-attendance"
+            element={
+              <ProtectedRoute
+                element={DailyAttendance}
+                allowedRole="team"
+              />
             }
           />
           <Route

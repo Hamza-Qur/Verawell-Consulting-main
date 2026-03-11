@@ -192,6 +192,22 @@ const MasterLayout = ({ children, Chain }) => {
                 </li>
                 <li>
                   <NavLink
+                    to="/daily-attendance"
+                    className={(navData) =>
+                      navData.isActive ? "active-page" : ""
+                    }>
+                    <Icon
+                      icon="ci:calendar-check"
+                      className="menu-icon"
+                      width="23"
+                      height="23"
+                      style={{ marginRight: "10px" }}
+                    />
+                    <span>Daily Attendance</span>
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink
                     to="/settings"
                     className={(navData) =>
                       navData.isActive ? "active-page" : ""
@@ -279,6 +295,22 @@ const MasterLayout = ({ children, Chain }) => {
                     <span>Tasks</span>
                   </NavLink>
                 </li>
+                {/* <li>
+                  <NavLink
+                    to="/my-attendance"
+                    className={(navData) =>
+                      navData.isActive ? "active-page" : ""
+                    }>
+                    <Icon
+                      icon="ci:calendar-check"
+                      className="menu-icon"
+                      width="23"
+                      height="23"
+                      style={{ marginRight: "10px" }}
+                    />
+                    <span>Daily Attendance</span>
+                  </NavLink>
+                </li> */}
                 <li>
                   <NavLink
                     to="/chat"

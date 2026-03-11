@@ -12,6 +12,7 @@ import formReducer from "./slices/formSlice";
 import attendanceReducer from "./slices/attendanceSlice";
 import notificationReducer from "./slices/notificationSlice";
 import chatReducer from "./slices/chatSlice";
+import dailyAttendanceReducer from "./slices/dailyAttendanceSlice";
 
 // Combine all reducers
 const rootReducer = combineReducers({
@@ -24,6 +25,7 @@ const rootReducer = combineReducers({
   attendance: attendanceReducer,
   notification: notificationReducer,
   chat: chatReducer,
+  dailyAttendance: dailyAttendanceReducer,
 });
 
 // Persist configuration - focus on user and auth slices
