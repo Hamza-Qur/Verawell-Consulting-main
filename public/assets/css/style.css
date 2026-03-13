@@ -13528,7 +13528,7 @@ select option {
 }
 
 .apexcharts-yaxis {
-  transform: translateX(10px);
+  transform: translateX(20px);
 }
 
 [data-theme="dark"] .apexcharts-tooltip.apexcharts-theme-light {

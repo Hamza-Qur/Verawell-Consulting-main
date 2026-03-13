@@ -1,4 +1,4 @@
-// src/pages/DailyAttendance.jsx
+// src/pages/DailyAttendance.jsx - UPDATED with ref
 import React, { useState, useRef, useEffect } from "react";
 import MasterLayout from "../otherImages/MasterLayout";
 import DefaultTopBar from "../components/DefaultTopBar";
@@ -17,6 +17,9 @@ import AddDailyAttendanceModal from "../components/AddDailyAttendanceModal";
 const DailyAttendance = () => {
   const dispatch = useDispatch();
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Create a ref to access DailyTeamAttendance methods
+  const teamAttendanceRef = useRef();
 
   // Get states from Redux
   const {
@@ -98,11 +101,22 @@ const DailyAttendance = () => {
   }, []);
 
   const handleDownloadCSV = () => {
-    dispatch(downloadMyAttendanceCSV()).then((result) => {
-      if (result.error) {
-        showToast(result.payload || "Failed to download CSV", "error");
-      }
-    });
+    // Get the current filter parameters from the DailyTeamAttendance component
+    if (teamAttendanceRef.current) {
+      const filterParams = teamAttendanceRef.current.getFilterParams();
+      dispatch(downloadMyAttendanceCSV(filterParams)).then((result) => {
+        if (result.error) {
+          showToast(result.payload || "Failed to download CSV", "error");
+        }
+      });
+    } else {
+      // Fallback: dispatch without params if ref not available
+      dispatch(downloadMyAttendanceCSV()).then((result) => {
+        if (result.error) {
+          showToast(result.payload || "Failed to download CSV", "error");
+        }
+      });
+    }
   };
 
   const handleAddAttendance = () => {
@@ -113,7 +127,6 @@ const DailyAttendance = () => {
     setShowAddModal(false);
   };
 
-  // src/pages/DailyAttendance.jsx (fixed handleSaveAttendance)
   const handleSaveAttendance = (attendanceData) => {
     // Transform the data to match API expected format
     const parseDateTimeForAPI = (dateTimeStr) => {
@@ -133,14 +146,17 @@ const DailyAttendance = () => {
       facility_id: parseInt(attendanceData.facility_id, 10), // This is the actual facility_id (e.g., 3)
     };
 
-    console.log("Sending to API:", apiData); // For debugging
-
     dispatch(addDailyAttendance(apiData)).then((result) => {
       if (result.payload?.success) {
         showToast("Daily attendance added successfully!", "success");
         handleCloseAddModal();
-        // Refresh the list
-        dispatch(getMyDailyAttendance());
+        // Refresh the list with current filters
+        if (teamAttendanceRef.current) {
+          const filterParams = teamAttendanceRef.current.getFilterParams();
+          dispatch(getMyDailyAttendance(filterParams));
+        } else {
+          dispatch(getMyDailyAttendance());
+        }
       } else {
         showToast(
           result.payload?.message || "Failed to add daily attendance",
@@ -165,7 +181,7 @@ const DailyAttendance = () => {
 
       <MasterLayout>
         <DefaultTopBar
-          title="My Daily Attendance"
+          title="Facility Attendance"
           btnText="Add Attendance"
           btnLink="#"
           isApiButton={true}
@@ -180,13 +196,13 @@ const DailyAttendance = () => {
           btn2LoadingText="Downloading..."
         />
 
-        <DailyTeamAttendance />
+        <DailyTeamAttendance ref={teamAttendanceRef} />
 
         {/* Add Attendance Modal */}
         <DynamicModal
           show={showAddModal}
           handleClose={handleCloseAddModal}
-          title="Add Daily Attendance"
+          title="Facility Attendance"
           modalWidth="500px"
           content={
             <AddDailyAttendanceModal

@@ -122,6 +122,14 @@ const TeamFacilityDetailPage = () => {
     }
   };
 
+  // Get score color based on percentage
+  const getScoreColor = (percentage) => {
+    if (percentage < 0) return "#dc3545"; // Negative - Red
+    if (percentage < 40) return "#dc3545"; // Below 40% - Red
+    if (percentage < 70) return "#fd7e14"; // 40-69% - Orange
+    return "#28a745"; // 70% and above - Green
+  };
+
   // Transform API data for current facility assessments
   const transformFacilityAssessments = () => {
     const facilityAssessments = getFacilityAssessments();
@@ -162,6 +170,14 @@ const TeamFacilityDetailPage = () => {
       // Use category_name for form name
       const formName = assessment.category_name || "Assessment";
 
+      // Calculate score percentage
+      const assessmentScore = assessment.assessment_score || 0;
+      const assessmentMaxScore = assessment.assessment_max_score || 0;
+      const scorePercentage =
+        assessmentMaxScore > 0
+          ? Math.round((assessmentScore / assessmentMaxScore) * 100)
+          : 0;
+
       return {
         id: assessment.id,
         formName: formName,
@@ -170,32 +186,99 @@ const TeamFacilityDetailPage = () => {
         hoursWorked: hoursWorked,
         formStatus: formStatusInfo.isCompleted,
         facility: assessment.facility_name || facility?.facility_name || "N/A",
+        // Score fields
+        assessmentScore: assessmentScore,
+        assessmentMaxScore: assessmentMaxScore,
+        scorePercentage: scorePercentage,
         // Original API data for reference (needed for navigation)
         originalData: {
           id: assessment.id,
           submitted_assessment_id: assessment.submitted_assessment_id,
           category_id: assessment.category_id,
           category_name: assessment.category_name,
+          assessment_score: assessment.assessment_score,
+          assessment_max_score: assessment.assessment_max_score,
         },
       };
     });
   };
 
-  // Columns for assessments table with View button only
+  // Custom styling for table headers
+  const getHeaderStyles = () => ({
+    headCell: {
+      backgroundColor: "#f5f5f5",
+      color: "#333",
+      fontWeight: 600,
+      fontSize: "14px",
+      padding: "12px 16px",
+      textTransform: "none",
+      letterSpacing: "0.3px",
+      borderBottom: "2px solid #e0e0e0",
+    },
+  });
+
+  const headerStyles = getHeaderStyles();
+
+  // Columns for assessments table with Score column added
   const assessmentColumns = [
     {
       name: "formName",
       label: "Task Name",
       options: {
+        setCellHeaderProps: () => ({
+          style: headerStyles.headCell,
+        }),
         customBodyRender: (value) => (
           <span style={{ fontWeight: 500, color: "#333" }}>{value}</span>
         ),
       },
     },
     {
+      name: "scorePercentage",
+      label: "Score",
+      options: {
+        setCellHeaderProps: () => ({
+          style: headerStyles.headCell,
+        }),
+        customBodyRender: (value, tableMeta) => {
+          const rowIndex = tableMeta.rowIndex;
+          const row = facilityAssessments[rowIndex];
+          const score = row.assessmentScore;
+          const maxScore = row.assessmentMaxScore;
+          const percentage = row.scorePercentage;
+
+          const scoreColor = getScoreColor(percentage);
+
+          return (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: scoreColor,
+                  fontSize: "1rem",
+                }}>
+                {percentage}%
+              </span>
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  color: "#666",
+                  marginTop: "2px",
+                }}>
+                ({score} / {maxScore})
+              </span>
+            </div>
+          );
+        },
+      },
+    },
+    {
       name: "time",
       label: "Time",
       options: {
+        setCellHeaderProps: () => ({
+          style: headerStyles.headCell,
+        }),
         customBodyRender: (value) => (
           <span
             style={{
@@ -211,6 +294,9 @@ const TeamFacilityDetailPage = () => {
       name: "date",
       label: "Date",
       options: {
+        setCellHeaderProps: () => ({
+          style: headerStyles.headCell,
+        }),
         customBodyRender: (value) => (
           <span
             style={{
@@ -223,24 +309,12 @@ const TeamFacilityDetailPage = () => {
       },
     },
     {
-      name: "hoursWorked",
-      label: "Hours Worked",
-      options: {
-        customBodyRender: (value) => (
-          <span
-            style={{
-              color: value === "N/A" ? "#999999" : "#000000",
-              fontWeight: value === "N/A" ? 400 : 500,
-            }}>
-            {value === "N/A" ? "N/A" : `${value} hours`}
-          </span>
-        ),
-      },
-    },
-    {
       name: "formStatus",
       label: "Task Status",
       options: {
+        setCellHeaderProps: () => ({
+          style: headerStyles.headCell,
+        }),
         customBodyRender: (value) => {
           const style = {
             padding: "4px 8px",
@@ -265,6 +339,9 @@ const TeamFacilityDetailPage = () => {
       options: {
         filter: false,
         sort: false,
+        setCellHeaderProps: () => ({
+          style: headerStyles.headCell,
+        }),
         customBodyRenderLite: (dataIndex) => {
           const row = facilityAssessments[dataIndex];
 
@@ -352,6 +429,11 @@ const TeamFacilityDetailPage = () => {
         ),
       },
     },
+    setHeaderProps: () => ({
+      style: {
+        backgroundColor: "#f5f5f5",
+      },
+    }),
   };
 
   if (!facility) {
@@ -658,14 +740,41 @@ const TeamFacilityDetailPage = () => {
               </p>
             </div>
           ) : (
-            <MUIDataTable
-              data={facilityAssessments}
-              columns={assessmentColumns}
-              options={assessmentTableOptions}
-            />
+            <div className="basic-data-table">
+              <MUIDataTable
+                data={facilityAssessments}
+                columns={assessmentColumns}
+                options={assessmentTableOptions}
+              />
+            </div>
           )}
         </div>
       </div>
+      <style>
+        {`
+          .MuiTableCell-root { padding: 16px 16px 16px 0px !important;}
+          .css-1w1rijm-MuiButtonBase-root-MuiButton-root { padding: 4px 12px 4px 0px !important; }
+          .basic-data-table .tss-1akey0g-MUIDataTableHeadCell-root {
+            text-transform: none !important;
+            font-weight: 600 !important;
+            font-size: 14px !important;
+            color: #333 !important;
+            background-color: #f5f5f5 !important;
+          }
+          .basic-data-table th {
+            text-transform: none !important;
+            font-weight: 600 !important;
+            font-size: 14px !important;
+            color: #333 !important;
+            background-color: #f5f5f5 !important;
+            padding: 12px 16px !important;
+            border-bottom: 2px solid #e0e0e0 !important;
+          }
+          .basic-data-table td {
+            padding: 12px 16px !important;
+          }
+        `}
+      </style>
     </MasterLayout>
   );
 };

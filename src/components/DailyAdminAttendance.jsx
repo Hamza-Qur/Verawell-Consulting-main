@@ -1,5 +1,11 @@
-// src/components/DailyAdminAttendance.jsx - CLEANED
-import React, { useState, useEffect, useRef } from "react";
+// src/components/DailyAdminAttendance.jsx - UPDATED
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import MUIDataTable from "mui-datatables";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +22,7 @@ import { getMyFacilities } from "../redux/slices/facilitySlice";
 import DateFilter from "./DateFilter";
 import useDateFilter from "./useDateFilter";
 
-const DailyAdminAttendance = () => {
+const DailyAdminAttendance = forwardRef((props, ref) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -47,6 +53,24 @@ const DailyAdminAttendance = () => {
     message: "",
     type: "info",
   });
+
+  // Expose getFilterParams method to parent component
+  useImperativeHandle(ref, () => ({
+    getFilterParams: () => {
+      const dateRange = getDateRange();
+      const params = {
+        from_date: dateRange.from_date,
+        to_date: dateRange.to_date,
+      };
+
+      // Only add facility_id if it's not "all"
+      if (selectedFacilityId !== "all") {
+        params.facility_id = selectedFacilityId;
+      }
+
+      return params;
+    },
+  }));
 
   useEffect(() => {
     dispatch(getMyFacilities(1));
@@ -853,6 +877,9 @@ const DailyAdminAttendance = () => {
         )}
     </>
   );
-};
+});
+
+// Set display name for debugging
+DailyAdminAttendance.displayName = "DailyAdminAttendance";
 
 export default DailyAdminAttendance;

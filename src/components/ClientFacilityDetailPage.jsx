@@ -121,6 +121,14 @@ const ClientFacilityDetailPage = () => {
     }
   };
 
+  // Get score color based on percentage (copied from FacilityDetailDashboardData)
+  const getScoreColor = (percentage) => {
+    if (percentage < 0) return "#dc3545"; // Negative - Red
+    if (percentage < 40) return "#dc3545"; // Below 40% - Red
+    if (percentage < 70) return "#fd7e14"; // 40-69% - Orange
+    return "#28a745"; // 70% and above - Green
+  };
+
   // Transform API data for current facility assessments
   const transformFacilityAssessments = () => {
     const facilityAssessments = getFacilityAssessments();
@@ -161,6 +169,14 @@ const ClientFacilityDetailPage = () => {
       // Use category_name for form name
       const formName = assessment.category_name || "Assessment";
 
+      // Calculate score percentage
+      const assessmentScore = assessment.assessment_score || 0;
+      const assessmentMaxScore = assessment.assessment_max_score || 0;
+      const scorePercentage =
+        assessmentMaxScore > 0
+          ? Math.round((assessmentScore / assessmentMaxScore) * 100)
+          : 0;
+
       return {
         id: assessment.id,
         formName: formName,
@@ -169,19 +185,25 @@ const ClientFacilityDetailPage = () => {
         hoursWorked: hoursWorked,
         formStatus: formStatusInfo.isCompleted,
         facility: assessment.facility_name || facility?.facility_name || "N/A",
+        // Score fields
+        assessmentScore: assessmentScore,
+        assessmentMaxScore: assessmentMaxScore,
+        scorePercentage: scorePercentage,
         // Original API data for reference (needed for navigation)
         originalData: {
           id: assessment.id,
           submitted_assessment_id: assessment.submitted_assessment_id,
           category_id: assessment.category_id,
           category_name: assessment.category_name,
+          assessment_score: assessment.assessment_score,
+          assessment_max_score: assessment.assessment_max_score,
           // Include any other fields you might need
         },
       };
     });
   };
 
-  // Columns for assessments table (with action column - only View button)
+  // Columns for assessments table (with Score column added)
   const assessmentColumns = [
     {
       name: "formName",
@@ -190,6 +212,42 @@ const ClientFacilityDetailPage = () => {
         customBodyRender: (value) => (
           <span style={{ fontWeight: 500, color: "#333" }}>{value}</span>
         ),
+      },
+    },
+    {
+      name: "scorePercentage",
+      label: "Score",
+      options: {
+        customBodyRender: (value, tableMeta) => {
+          const rowIndex = tableMeta.rowIndex;
+          const row = facilityAssessments[rowIndex];
+          const score = row.assessmentScore;
+          const maxScore = row.assessmentMaxScore;
+          const percentage = row.scorePercentage;
+
+          const scoreColor = getScoreColor(percentage);
+
+          return (
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: scoreColor,
+                  fontSize: "1rem",
+                }}>
+                {percentage}%
+              </span>
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  color: "#666",
+                  marginTop: "2px",
+                }}>
+                ({score} / {maxScore})
+              </span>
+            </div>
+          );
+        },
       },
     },
     {
@@ -218,21 +276,6 @@ const ClientFacilityDetailPage = () => {
               fontWeight: value === "N/A" ? 400 : 500,
             }}>
             {value}
-          </span>
-        ),
-      },
-    },
-    {
-      name: "hoursWorked",
-      label: "Hours Worked",
-      options: {
-        customBodyRender: (value) => (
-          <span
-            style={{
-              color: value === "N/A" ? "#999999" : "#000000",
-              fontWeight: value === "N/A" ? 400 : 500,
-            }}>
-            {value === "N/A" ? "N/A" : `${value} hours`}
           </span>
         ),
       },
@@ -666,6 +709,11 @@ const ClientFacilityDetailPage = () => {
           )}
         </div>
       </div>
+      <style>
+        {`
+        .MuiTableCell-root { padding: 16px 16px 16px 0px !important;}
+          .css-1w1rijm-MuiButtonBase-root-MuiButton-root { padding: 4px 12px 4px 0px !important; }`}
+      </style>
     </MasterLayout>
   );
 };

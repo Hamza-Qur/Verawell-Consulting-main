@@ -41,7 +41,6 @@ const TeamStatistics = () => {
         address: facility.facility_address,
       }));
       setFacilities(facilityList);
-      console.log("Facilities loaded:", facilityList); // Debug log
     }
   }, [myFacilities]);
 
@@ -56,7 +55,6 @@ const TeamStatistics = () => {
     // Only add facility_id to params if a facility is selected
     if (selectedFacility && selectedFacility !== "") {
       params.facility_id = selectedFacility;
-      console.log("Fetching with facility_id:", selectedFacility); // Debug log
     }
 
     dispatch(getTeamTaskGraph(params));
@@ -71,7 +69,6 @@ const TeamStatistics = () => {
 
   // Handle facility filter change
   const handleFacilityChange = (facilityId) => {
-    console.log("Selected facility ID:", facilityId); // Debug log
     setSelectedFacility(facilityId);
   };
 

@@ -1,34 +1,42 @@
-// src/pages/LoginHistoryPage.jsx
-import React from "react";
+// src/pages/ManageDailyAttendance.jsx
+import React, { useRef } from "react";
 import MasterLayout from "../otherImages/MasterLayout";
 import DefaultTopBar from "../components/DefaultTopBar";
 import { useDispatch, useSelector } from "react-redux";
 import { downloadAdminAttendanceCSV } from "../redux/slices/dailyAttendanceSlice";
-import Toast from "../components/Toast"; // If you have a Toast component
+import Toast from "../components/Toast";
 import DailyAdminAttendance from "../components/DailyAdminAttendance";
 
 const ManageDailyAttendance = () => {
   const dispatch = useDispatch();
 
+  // Create a ref to access DailyAdminAttendance methods
+  const attendanceRef = useRef();
+
   // Get download states from Redux
-  const { isDownloadingCSV, downloadCSVError, successMessage } = useSelector(
-    (state) => state.attendance,
-  );
+  const { isDownloadingAdminCSV, downloadAdminCSVError, successMessage } =
+    useSelector((state) => state.dailyAttendance);
 
   const handleDownloadCSV = () => {
-    dispatch(downloadAdminAttendanceCSV());
+    // Get the current filter parameters from the DailyAdminAttendance component
+    if (attendanceRef.current) {
+      const filterParams = attendanceRef.current.getFilterParams();
+      dispatch(downloadAdminAttendanceCSV(filterParams));
+    } else {
+      // Fallback: dispatch without params if ref not available
+      dispatch(downloadAdminAttendanceCSV());
+    }
   };
 
   return (
     <>
-      {/* If you have a Toast component for error messages */}
-      {downloadCSVError && (
+      {downloadAdminCSVError && (
         <Toast
-          show={!!downloadCSVError}
-          message={downloadCSVError}
+          show={!!downloadAdminCSVError}
+          message={downloadAdminCSVError}
           type="error"
           onClose={() => {
-            /* Clear error if needed */
+            // Clear error if needed
           }}
           duration={3000}
         />
@@ -36,16 +44,16 @@ const ManageDailyAttendance = () => {
 
       <MasterLayout>
         <DefaultTopBar
-          title="Daily Attendance"
+          title="Facility Attendance"
           btnText2="Download CSV"
           btnLink2="#"
           isApiButton2={true}
           onBtn2Click={handleDownloadCSV}
-          isBtn2Loading={isDownloadingCSV}
+          isBtn2Loading={isDownloadingAdminCSV}
           btn2LoadingText="Downloading..."
         />
 
-        <DailyAdminAttendance />
+        <DailyAdminAttendance ref={attendanceRef} />
       </MasterLayout>
     </>
   );

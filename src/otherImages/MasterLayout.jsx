@@ -52,7 +52,6 @@ const MasterLayout = ({ children, Chain }) => {
     if (cachedProfile) {
       const parsedProfile = JSON.parse(cachedProfile);
       // You can set a local state here if needed
-      console.log("Profile updated:", parsedProfile);
     }
   }, [profile]);
 
@@ -203,7 +202,7 @@ const MasterLayout = ({ children, Chain }) => {
                       height="23"
                       style={{ marginRight: "10px" }}
                     />
-                    <span>Daily Attendance</span>
+                    <span>Facility Attendance</span>
                   </NavLink>
                 </li>
                 <li>
@@ -295,7 +294,7 @@ const MasterLayout = ({ children, Chain }) => {
                     <span>Tasks</span>
                   </NavLink>
                 </li>
-                {/* <li>
+                <li>
                   <NavLink
                     to="/my-attendance"
                     className={(navData) =>
@@ -308,9 +307,9 @@ const MasterLayout = ({ children, Chain }) => {
                       height="23"
                       style={{ marginRight: "10px" }}
                     />
-                    <span>Daily Attendance</span>
+                    <span>Facility Attendance</span>
                   </NavLink>
-                </li> */}
+                </li>
                 <li>
                   <NavLink
                     to="/chat"

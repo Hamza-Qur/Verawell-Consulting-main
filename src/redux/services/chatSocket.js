@@ -130,9 +130,7 @@ const sendPing = () => {
   if (socket?.readyState === WebSocket.OPEN) {
     try {
       socket.send(JSON.stringify({ type: "ping" }));
-    } catch (error) {
-      console.error("Failed to send ping:", error);
-    }
+    } catch (error) {}
   }
 };
 
@@ -140,9 +138,7 @@ const sendPong = () => {
   if (socket?.readyState === WebSocket.OPEN) {
     try {
       socket.send(JSON.stringify({ type: "pong" }));
-    } catch (error) {
-      console.error("Failed to send pong:", error);
-    }
+    } catch (error) {}
   }
 };
 
@@ -181,24 +177,18 @@ export const sendChatMessage = ({
     data: files,
   };
 
-  // Always include conversation_id if we have it
   if (conversationId) {
     messageData.conversation_id = conversationId;
   }
 
-  // Only include receiver_id if it's provided and not null/undefined
-  // This allows us to send receiver_id for individual chats but omit it for groups
   if (receiverId !== null && receiverId !== undefined) {
     messageData.receiver_id = receiverId;
   }
-
-  console.log("Sending chat message:", messageData);
 
   try {
     socket.send(JSON.stringify(messageData));
     return true;
   } catch (error) {
-    console.error("Failed to send message:", error);
     return false;
   }
 };
@@ -215,9 +205,7 @@ export const joinConversation = (conversationId) => {
 
   try {
     socket.send(JSON.stringify(joinMessage));
-  } catch (error) {
-    console.error("Failed to join conversation:", error);
-  }
+  } catch (error) {}
 };
 
 export const getSocketStatus = () => {

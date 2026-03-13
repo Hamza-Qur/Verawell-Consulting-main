@@ -97,9 +97,6 @@ export const addDailyAttendance = createAsyncThunk(
     try {
       const token = localStorage.getItem("token");
 
-      console.log("=== DEBUG ADD DAILY ATTENDANCE ===");
-      console.log("Attendance data:", attendanceData);
-
       const response = await fetch(`${BASE_URL}/api/attendance/store`, {
         method: "POST",
         headers: {
@@ -111,7 +108,6 @@ export const addDailyAttendance = createAsyncThunk(
       });
 
       const data = await response.json();
-      console.log("Add daily attendance response:", data);
 
       if (!response.ok || !data.success) {
         return rejectWithValue(
@@ -121,7 +117,6 @@ export const addDailyAttendance = createAsyncThunk(
 
       return data;
     } catch (err) {
-      console.error("Add daily attendance error:", err);
       return rejectWithValue("Network error");
     }
   },
@@ -134,9 +129,6 @@ export const updateDailyAttendance = createAsyncThunk(
     try {
       const token = localStorage.getItem("token");
 
-      console.log("=== DEBUG UPDATE DAILY ATTENDANCE ===");
-      console.log("Attendance data:", attendanceData);
-
       const response = await fetch(`${BASE_URL}/api/attendance/update`, {
         method: "PATCH",
         headers: {
@@ -148,7 +140,6 @@ export const updateDailyAttendance = createAsyncThunk(
       });
 
       const data = await response.json();
-      console.log("Update daily attendance response:", data);
 
       if (!response.ok || !data.success) {
         return rejectWithValue(
@@ -158,7 +149,6 @@ export const updateDailyAttendance = createAsyncThunk(
 
       return data;
     } catch (err) {
-      console.error("Update daily attendance error:", err);
       return rejectWithValue("Network error");
     }
   },
@@ -212,9 +202,15 @@ export const downloadAdminAttendanceCSV = createAsyncThunk(
       if (params.from_date) queryParams.append("from_date", params.from_date);
       if (params.to_date) queryParams.append("to_date", params.to_date);
 
+      // Add facility_id parameter if it exists and is not "all"
+      if (params.facility_id && params.facility_id !== "all") {
+        queryParams.append("facility_id", params.facility_id);
+      }
+
       if (queryParams.toString()) {
         url += `?${queryParams.toString()}`;
       }
+
 
       const response = await fetch(url, {
         method: "GET",
@@ -253,7 +249,7 @@ export const downloadAdminAttendanceCSV = createAsyncThunk(
   },
 );
 
-// Download my attendance CSV (team member)
+// Download my attendance CSV (team member) - UPDATED to accept params
 export const downloadMyAttendanceCSV = createAsyncThunk(
   "dailyAttendance/downloadMyAttendanceCSV",
   async (params = {}, { rejectWithValue }) => {
@@ -268,9 +264,15 @@ export const downloadMyAttendanceCSV = createAsyncThunk(
       if (params.from_date) queryParams.append("from_date", params.from_date);
       if (params.to_date) queryParams.append("to_date", params.to_date);
 
+      // Add facility_id parameter if it exists and is not "all"
+      if (params.facility_id && params.facility_id !== "all") {
+        queryParams.append("facility_id", params.facility_id);
+      }
+
       if (queryParams.toString()) {
         url += `?${queryParams.toString()}`;
       }
+
 
       const response = await fetch(url, {
         method: "GET",

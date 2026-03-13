@@ -1,5 +1,11 @@
-// src/components/DailyTeamAttendance.jsx - FIXED facility mapping
-import React, { useState, useEffect, useRef } from "react";
+// src/components/DailyTeamAttendance.jsx - UPDATED with forwardRef
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import MUIDataTable from "mui-datatables";
 import { Icon } from "@iconify/react";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +21,7 @@ import { getMyFacilities } from "../redux/slices/facilitySlice";
 import DateFilter from "./DateFilter";
 import useDateFilter from "./useDateFilter";
 
-const DailyTeamAttendance = () => {
+const DailyTeamAttendance = forwardRef((props, ref) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -46,6 +52,24 @@ const DailyTeamAttendance = () => {
     message: "",
     type: "info",
   });
+
+  // Expose getFilterParams method to parent component
+  useImperativeHandle(ref, () => ({
+    getFilterParams: () => {
+      const dateRange = getDateRange();
+      const params = {
+        from_date: dateRange.from_date,
+        to_date: dateRange.to_date,
+      };
+
+      // Only add facility_id if it's not "all"
+      if (selectedFacilityId !== "all") {
+        params.facility_id = selectedFacilityId;
+      }
+
+      return params;
+    },
+  }));
 
   useEffect(() => {
     dispatch(getMyFacilities(1));
@@ -300,10 +324,10 @@ const DailyTeamAttendance = () => {
       name: "customergroupname",
       label: "Group Name",
     },
-    {
-      name: "customerName",
-      label: "Customer Name",
-    },
+    // {
+    //   name: "customerName",
+    //   label: "Customer Name",
+    // },
     {
       name: "startDate",
       label: "Date",
@@ -711,7 +735,7 @@ const DailyTeamAttendance = () => {
               />
               <span>View Details</span>
             </div>
-            <div
+            {/* <div
               style={{
                 padding: "10px 16px",
                 cursor: "pointer",
@@ -732,12 +756,15 @@ const DailyTeamAttendance = () => {
               onClick={() => handleEdit(filteredData[dropdownOpen])}>
               <Icon icon="line-md:edit" width="18" height="18" color="#666" />
               <span>Edit</span>
-            </div>
+            </div> */}
           </div>,
           document.body,
         )}
     </>
   );
-};
+});
+
+// Set display name for debugging
+DailyTeamAttendance.displayName = "DailyTeamAttendance";
 
 export default DailyTeamAttendance;
