@@ -1809,7 +1809,7 @@ button.MuiIconButton-sizeMedium[aria-label="Search"] svg {
 }
 
 .toggle.grey:checked {
-  background: #8e44ad; /* Grey for need improvement */
+  background: #aa0b0b; /* Grey for need improvement */
 }
 
 .toggle::before {

@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import Toast from "../components/Toast";
 
 // Import slice actions
-import { getAllUsers } from "../redux/slices/userSlice"; // CHANGED: using userSlice instead
+import { getAllUsers } from "../redux/slices/userSlice";
 import { getMyFacilities } from "../redux/slices/facilitySlice";
 import { getCategories } from "../redux/slices/formSlice";
 import { assignAssessment } from "../redux/slices/facilitySlice";
@@ -16,7 +16,7 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
   const fullState = useSelector((state) => state);
 
   // Destructure with fallbacks
-  const userState = fullState.user || {}; // CHANGED: using user state instead of dashboard
+  const userState = fullState.user || {};
   const facilityState = fullState.facility || {};
   const formState = fullState.form || {};
 
@@ -37,6 +37,10 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
   const [selectedFacility, setSelectedFacility] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
+  // New schedule states
+  const [scheduleName, setScheduleName] = useState("");
+  const [scheduleType, setScheduleType] = useState("week");
+  const [offset, setOffset] = useState(1);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
   // Fetch facilities and categories on component mount
@@ -48,19 +52,15 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
   // Fetch users when facility is selected
   useEffect(() => {
     if (selectedFacility) {
-      // Clear previous user selection
       setSelectedUser("");
-
-      // Fetch users with facility_id parameter
       dispatch(
         getAllUsers({
           page: 1,
-          perPage: 100, // Get more users since it's filtered by facility
-          facility_id: selectedFacility, // ADDED: facility filter parameter
+          perPage: 100,
+          facility_id: selectedFacility,
         }),
       );
     } else {
-      // Clear users list when no facility is selected
       setSelectedUser("");
     }
   }, [selectedFacility, dispatch]);
@@ -90,16 +90,29 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
     e.preventDefault();
 
     // Validation
-    if (!selectedFacility || !selectedUser || !selectedCategory) {
-      showToast("Please select Facility, User, and Category", "error");
+    if (
+      !selectedFacility ||
+      !selectedUser ||
+      !selectedCategory ||
+      !scheduleName
+    ) {
+      showToast("Please fill in all required fields", "error");
       return;
     }
 
-    // Prepare the assignment data
+    if (offset < 1) {
+      showToast("Offset must be a positive number", "error");
+      return;
+    }
+
+    // Prepare the assignment data with schedule fields
     const assignmentData = {
       category_id: selectedCategory,
       facility_id: selectedFacility,
       user_id: selectedUser,
+      schedule_name: scheduleName,
+      type: scheduleType,
+      offset: Number(offset),
     };
 
     // Dispatch the new assessment assignment action
@@ -108,25 +121,21 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
         if (result.payload?.success) {
           showToast("Assessment assigned successfully!", "success");
 
-          // Call onSuccess callback if provided
           if (onSuccess) {
             onSuccess(assignmentData);
           }
 
-          // Close modal after success
           if (onClose) {
             setTimeout(() => {
               onClose();
             }, 1500);
           }
         } else if (result.error) {
-          // Show error from the rejected action
           const errorMessage = result.payload || "Failed to assign assessment";
           showToast(errorMessage, "error");
         }
       })
       .catch((error) => {
-        // Catch any unexpected errors
         showToast("An unexpected error occurred", "error");
         console.error("Assignment error:", error);
       });
@@ -137,6 +146,9 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
     setSelectedFacility("");
     setSelectedUser("");
     setSelectedCategory("");
+    setScheduleName("");
+    setScheduleType("week");
+    setOffset(1);
     if (onClose) onClose();
   };
 
@@ -168,7 +180,7 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
 
       <form onSubmit={handleSubmit}>
         <div className="row position-relative">
-          {/* Facility Selection - First and Full Width */}
+          {/* Facility Selection */}
           <div className="col-md-12">
             <div className="form-group mb-20">
               <label htmlFor="facilitySelect" className="fw-bold mb-2">
@@ -204,7 +216,7 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
             </div>
           </div>
 
-          {/* User Selection - Full Width (depends on facility) */}
+          {/* User Selection */}
           <div className="col-md-12">
             <div className="form-group mb-20">
               <label htmlFor="userSelect" className="fw-bold mb-2">
@@ -237,15 +249,10 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
                   <option disabled>No users found for this facility</option>
                 ) : null}
               </select>
-              {selectedFacility && !isLoadingUsers && users.length === 0 && (
-                <small className="text-muted d-block mt-1">
-                  No users available for the selected facility
-                </small>
-              )}
             </div>
           </div>
 
-          {/* Category Selection - Full Width */}
+          {/* Category Selection */}
           <div className="col-md-12">
             <div className="form-group mb-20">
               <label htmlFor="categorySelect" className="fw-bold mb-2">
@@ -276,7 +283,67 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
             </div>
           </div>
 
-          {/* Submit Button - Full Width */}
+          {/* Schedule Name */}
+          <div className="col-md-12">
+            <div className="form-group mb-20">
+              <label htmlFor="scheduleName" className="fw-bold mb-2">
+                Schedule Name *
+              </label>
+              <input
+                type="text"
+                id="scheduleName"
+                className="form-control"
+                value={scheduleName}
+                onChange={(e) => setScheduleName(e.target.value)}
+                placeholder="Enter schedule name"
+                disabled={isAssigningAssessment}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Schedule Type and Offset */}
+          <div className="col-md-6">
+            <div className="form-group mb-20">
+              <label htmlFor="scheduleType" className="fw-bold mb-2">
+                Type *
+              </label>
+              <select
+                id="scheduleType"
+                className="form-control"
+                value={scheduleType}
+                onChange={(e) => setScheduleType(e.target.value)}
+                disabled={isAssigningAssessment}
+                required>
+                <option value="day">Day</option>
+                <option value="week">Week</option>
+                <option value="month">Month</option>
+                <option value="year">Year</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <div className="form-group">
+              <label htmlFor="offset" className="fw-bold mb-2">
+                Offset *
+              </label>
+              <input
+                type="number"
+                id="offset"
+                className="form-control"
+                value={offset}
+                onChange={(e) => setOffset(parseInt(e.target.value) || 1)}
+                min="1"
+                step="1"
+                placeholder="Enter offset"
+                disabled={isAssigningAssessment}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Submit Button */}
           <div className="col-md-12 d-flex justify-content-end">
             <button
               type="submit"
@@ -285,7 +352,9 @@ const AssignFacilityModal = ({ onClose, onSuccess }) => {
                 isAssigningAssessment ||
                 !selectedFacility ||
                 !selectedUser ||
-                !selectedCategory
+                !selectedCategory ||
+                !scheduleName ||
+                offset < 1
               }>
               {isAssigningAssessment ? (
                 <>

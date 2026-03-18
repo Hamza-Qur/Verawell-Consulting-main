@@ -93,14 +93,14 @@ const CustomerDashboardData = () => {
         sort: true,
       },
     },
-    // {
-    //   name: "hoursWorked",
-    //   label: "Hours Worked",
-    //   options: {
-    //     filter: true,
-    //     sort: true,
-    //   },
-    // },
+    {
+      name: "hoursWorked",
+      label: "Hours Worked",
+      options: {
+        filter: true,
+        sort: true,
+      },
+    },
     {
       name: "formsSubmitted",
       label: "Tasks Submitted",

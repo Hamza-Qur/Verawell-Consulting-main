@@ -164,18 +164,18 @@ const TeamStatistics = () => {
       name: "Total Hours",
       data: chartData.total,
     },
-    {
-      name: "Assigned Tasks Hours",
-      data: chartData.assigned,
-    },
-    {
-      name: "Other Tasks Hours",
-      data: chartData.unassigned,
-    },
-    {
-      name: "Attendance Hours",
-      data: chartData.attendance,
-    },
+    // {
+    //   name: "Assigned Tasks Hours",
+    //   data: chartData.assigned,
+    // },
+    // {
+    //   name: "Other Tasks Hours",
+    //   data: chartData.unassigned,
+    // },
+    // {
+    //   name: "Attendance Hours",
+    //   data: chartData.attendance,
+    // },
   ];
 
   // Chart options with area chart configuration
@@ -273,53 +273,72 @@ const TeamStatistics = () => {
       custom: function ({ series, seriesIndex, dataPointIndex, w }) {
         const month = months[dataPointIndex];
 
-        const total = series[0][dataPointIndex] || 0;
-        const assigned = series[1][dataPointIndex] || 0;
-        const unassigned = series[2][dataPointIndex] || 0;
-        const attendance = series[3][dataPointIndex] || 0;
+        // Safely access series data with fallbacks
+        const total = series[0]?.[dataPointIndex] || 0;
+        const assigned = series[1]?.[dataPointIndex] || 0;
+        const unassigned = series[2]?.[dataPointIndex] || 0;
+        const attendance = series[3]?.[dataPointIndex] || 0;
 
         const dateRange = getDateRange();
         const facilityName = getFacilityName(selectedFacility);
 
         return `
-          <div style="padding: 12px; background: #fff; border-radius: 6px; border: 1px solid #e2e8f0; min-width: 280px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <div style="font-size: 15px; color: #1a202c; font-weight: 600; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
-              ${month}
-            </div>
-            
-            <div style="font-size: 13px; color: #4a5568; margin-bottom: 6px; display: flex; justify-content: space-between;">
-              <span>Period:</span>
-              <span style="font-weight: 500;">${dateRange.label}</span>
-            </div>
-            
-            <div style="font-size: 13px; color: #4a5568; margin-bottom: 10px; display: flex; justify-content: space-between;">
-              <span>Facility:</span>
-              <span style="font-weight: 500;">${facilityName}</span>
-            </div>
+      <div style="padding: 12px; background: #fff; border-radius: 6px; border: 1px solid #e2e8f0; min-width: 280px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+        <div style="font-size: 15px; color: #1a202c; font-weight: 600; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
+          ${month}
+        </div>
+        
+        <div style="font-size: 13px; color: #4a5568; margin-bottom: 6px; display: flex; justify-content: space-between;">
+          <span>Period:</span>
+          <span style="font-weight: 500;">${dateRange.label}</span>
+        </div>
+        
+        <div style="font-size: 13px; color: #4a5568; margin-bottom: 10px; display: flex; justify-content: space-between;">
+          <span>Facility:</span>
+          <span style="font-weight: 500;">${facilityName}</span>
+        </div>
 
-            <div style="background: #f7fafc; padding: 8px; border-radius: 4px;">
-              <div style="font-size: 14px; color: #8B2885; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between;">
-                <span>Total Hours:</span>
-                <span>${total.toFixed(1)}</span>
-              </div>
-              
-              <div style="font-size: 13px; color: #4a5568; margin-bottom: 4px; display: flex; justify-content: space-between;">
-                <span style="color: #FF6B6B;">● Assigned Tasks:</span>
-                <span>${assigned.toFixed(1)}</span>
-              </div>
-              
-              <div style="font-size: 13px; color: #4a5568; margin-bottom: 4px; display: flex; justify-content: space-between;">
-                <span style="color: #4ECDC4;">● Other Tasks:</span>
-                <span>${unassigned.toFixed(1)}</span>
-              </div>
-              
-              <div style="font-size: 13px; color: #4a5568; margin-bottom: 4px; display: flex; justify-content: space-between;">
-                <span style="color: #45B7D1;">● Attendance:</span>
-                <span>${attendance.toFixed(1)}</span>
-              </div>
-            </div>
+        <div style="background: #f7fafc; padding: 8px; border-radius: 4px;">
+          <div style="font-size: 14px; color: #8B2885; font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between;">
+            <span>Total Hours:</span>
+            <span>${total.toFixed(1)}</span>
           </div>
-        `;
+          
+          ${
+            assigned > 0
+              ? `
+          <div style="font-size: 13px; color: #4a5568; margin-bottom: 4px; display: flex; justify-content: space-between;">
+            <span style="color: #FF6B6B;">● Assigned Tasks:</span>
+            <span>${assigned.toFixed(1)}</span>
+          </div>
+          `
+              : ""
+          }
+          
+          ${
+            unassigned > 0
+              ? `
+          <div style="font-size: 13px; color: #4a5568; margin-bottom: 4px; display: flex; justify-content: space-between;">
+            <span style="color: #4ECDC4;">● Other Tasks:</span>
+            <span>${unassigned.toFixed(1)}</span>
+          </div>
+          `
+              : ""
+          }
+          
+          ${
+            attendance > 0
+              ? `
+          <div style="font-size: 13px; color: #4a5568; margin-bottom: 4px; display: flex; justify-content: space-between;">
+            <span style="color: #45B7D1;">● Attendance:</span>
+            <span>${attendance.toFixed(1)}</span>
+          </div>
+          `
+              : ""
+          }
+        </div>
+      </div>
+    `;
       },
       x: {
         show: true,

@@ -1,4 +1,4 @@
-// src/components/EditDailyAttendanceModal.jsx - CLEANED
+// src/components/EditDailyAttendanceModal.jsx
 import React, { useState, useEffect } from "react";
 import { Icon } from "@iconify/react";
 
@@ -18,6 +18,13 @@ const EditDailyAttendanceModal = ({
   });
 
   const [dateError, setDateError] = useState("");
+  const [durationInfo, setDurationInfo] = useState({
+    text: "",
+    isValid: true,
+    isOverMax: false,
+    isUnderMin: false,
+    isZero: false,
+  });
 
   const getCurrentDateTimeLocal = () => {
     const now = new Date();
@@ -44,22 +51,135 @@ const EditDailyAttendanceModal = ({
         }
       };
 
+      const start = formatDateForInput(attendanceData.originalData?.start_time);
+      const end = formatDateForInput(attendanceData.originalData?.end_time);
+
       setFormData({
-        startDateTime: formatDateForInput(
-          attendanceData.originalData?.start_time,
-        ),
-        endDateTime: formatDateForInput(attendanceData.originalData?.end_time),
+        startDateTime: start,
+        endDateTime: end,
         facility_id: attendanceData.facility_id || "",
       });
+
+      // Calculate initial duration
+      if (start && end) {
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+
+        // Check if dates are the same
+        if (startDate.getTime() === endDate.getTime()) {
+          setDurationInfo({
+            text: "0h 0m",
+            isValid: false,
+            isOverMax: false,
+            isUnderMin: false,
+            isZero: true,
+          });
+        } else {
+          const duration = calculateDuration(start, end);
+          if (duration) {
+            const validation = validateDuration(duration);
+            setDurationInfo({
+              text: duration.formatted,
+              ...validation,
+            });
+          }
+        }
+      }
     }
   }, [attendanceData, isEditMode]);
 
+  const calculateDuration = (start, end) => {
+    if (!start || !end) return null;
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffHours = (endDate - startDate) / (1000 * 60 * 60);
+
+    if (diffHours <= 0) return null;
+
+    const hours = Math.floor(diffHours);
+    const minutes = Math.floor((diffHours - hours) * 60);
+
+    return {
+      hours,
+      minutes,
+      totalHours: diffHours,
+      formatted: `${hours}h ${minutes}m`,
+    };
+  };
+
+  const validateDuration = (duration) => {
+    if (!duration)
+      return {
+        isValid: true,
+        isOverMax: false,
+        isUnderMin: false,
+        isZero: false,
+      };
+
+    const isOverMax = duration.totalHours > 24;
+    const isUnderMin = duration.totalHours < 0.5 && duration.totalHours > 0;
+    const isZero = duration.totalHours === 0;
+    const isValid = !isOverMax && !isUnderMin && !isZero;
+
+    return { isValid, isOverMax, isUnderMin, isZero };
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => {
+      const newData = {
+        ...prev,
+        [name]: value,
+      };
+
+      // Calculate and validate duration when both dates are set
+      if (newData.startDateTime && newData.endDateTime) {
+        const startDate = new Date(newData.startDateTime);
+        const endDate = new Date(newData.endDateTime);
+
+        // Check if dates are the same
+        if (startDate.getTime() === endDate.getTime()) {
+          setDurationInfo({
+            text: "0h 0m",
+            isValid: false,
+            isOverMax: false,
+            isUnderMin: false,
+            isZero: true,
+          });
+        } else {
+          const duration = calculateDuration(
+            newData.startDateTime,
+            newData.endDateTime,
+          );
+          if (duration) {
+            const validation = validateDuration(duration);
+            setDurationInfo({
+              text: duration.formatted,
+              ...validation,
+            });
+          } else {
+            setDurationInfo({
+              text: "",
+              isValid: true,
+              isOverMax: false,
+              isUnderMin: false,
+              isZero: false,
+            });
+          }
+        }
+      } else {
+        setDurationInfo({
+          text: "",
+          isValid: true,
+          isOverMax: false,
+          isUnderMin: false,
+          isZero: false,
+        });
+      }
+
+      return newData;
+    });
 
     if (name === "startDateTime" || name === "endDateTime") {
       setDateError("");
@@ -83,6 +203,23 @@ const EditDailyAttendanceModal = ({
 
     if (endDate < startDate) {
       setDateError("End date cannot be before start date");
+      return false;
+    }
+
+    // Check if dates are the same (zero duration)
+    if (startDate.getTime() === endDate.getTime()) {
+      setDateError("Start and end times cannot be the same");
+      return false;
+    }
+
+    // Check duration limits
+    if (durationInfo.isOverMax) {
+      setDateError("Attendance period cannot exceed 24 hours");
+      return false;
+    }
+
+    if (durationInfo.isUnderMin) {
+      setDateError("Attendance period must be at least 30 minutes");
       return false;
     }
 
@@ -139,6 +276,12 @@ const EditDailyAttendanceModal = ({
     display: "flex",
     alignItems: "center",
     gap: "4px",
+  };
+
+  const getDurationColor = () => {
+    if (durationInfo.isZero) return "#D32F2F";
+    if (durationInfo.isOverMax || durationInfo.isUnderMin) return "#D32F2F";
+    return "#28a745";
   };
 
   return (
@@ -199,6 +342,15 @@ const EditDailyAttendanceModal = ({
               borderColor: dateError ? "#D32F2F" : "#E0E0E0",
             }}
           />
+          <small
+            style={{
+              display: "block",
+              fontSize: "11px",
+              color: "#666",
+              marginTop: "4px",
+            }}>
+            Cannot select future dates
+          </small>
         </div>
 
         <div style={{ marginBottom: "20px" }}>
@@ -225,6 +377,77 @@ const EditDailyAttendanceModal = ({
               borderColor: dateError ? "#D32F2F" : "#E0E0E0",
             }}
           />
+          <small
+            style={{
+              display: "block",
+              fontSize: "11px",
+              color: "#666",
+              marginTop: "4px",
+            }}>
+            Cannot select future dates
+          </small>
+
+          {/* Duration display with color coding */}
+          {durationInfo.text && (
+            <div
+              style={{
+                fontSize: "13px",
+                color: getDurationColor(),
+                marginTop: "8px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontWeight:
+                  durationInfo.isZero ||
+                  durationInfo.isOverMax ||
+                  durationInfo.isUnderMin
+                    ? "500"
+                    : "400",
+                padding: "4px 8px",
+                backgroundColor:
+                  durationInfo.isZero ||
+                  durationInfo.isOverMax ||
+                  durationInfo.isUnderMin
+                    ? "#ffebee"
+                    : "#f0f9f0",
+                borderRadius: "4px",
+              }}>
+              <Icon
+                icon={
+                  durationInfo.isZero ||
+                  durationInfo.isOverMax ||
+                  durationInfo.isUnderMin
+                    ? "mdi:alert-circle"
+                    : "mdi:clock-check"
+                }
+                width="16"
+                height="16"
+              />
+              <span>
+                Duration: {durationInfo.text}
+                {durationInfo.isZero &&
+                  " (Start and end times cannot be the same)"}
+                {durationInfo.isOverMax && " (Exceeds 24h limit)"}
+                {durationInfo.isUnderMin && " (Below 30min minimum)"}
+              </span>
+            </div>
+          )}
+
+          {/* Time limit helper text */}
+          <div
+            style={{
+              display: "flex",
+              gap: "16px",
+              marginTop: "12px",
+              fontSize: "11px",
+              color: "#666",
+              borderTop: "1px dashed #E0E0E0",
+              paddingTop: "8px",
+            }}>
+            <span>• Max: 24 hours</span>
+            <span>• Min: 30 minutes</span>
+            <span>• Cannot be same time</span>
+          </div>
         </div>
 
         {dateError && (
@@ -258,18 +481,39 @@ const EditDailyAttendanceModal = ({
           </button>
           <button
             type="submit"
-            disabled={isSaving || isLoadingFacilities}
+            disabled={
+              isSaving ||
+              isLoadingFacilities ||
+              !durationInfo.isValid ||
+              durationInfo.isZero
+            }
             style={{
               padding: "8px 16px",
               border: "none",
               backgroundColor:
-                isSaving || isLoadingFacilities ? "#cccccc" : "#8B2885",
+                isSaving ||
+                isLoadingFacilities ||
+                !durationInfo.isValid ||
+                durationInfo.isZero
+                  ? "#cccccc"
+                  : "#8B2885",
               color: "white",
               borderRadius: "6px",
               cursor:
-                isSaving || isLoadingFacilities ? "not-allowed" : "pointer",
+                isSaving ||
+                isLoadingFacilities ||
+                !durationInfo.isValid ||
+                durationInfo.isZero
+                  ? "not-allowed"
+                  : "pointer",
               fontSize: "14px",
-              opacity: isSaving || isLoadingFacilities ? 0.7 : 1,
+              opacity:
+                isSaving ||
+                isLoadingFacilities ||
+                !durationInfo.isValid ||
+                durationInfo.isZero
+                  ? 0.7
+                  : 1,
               display: "flex",
               alignItems: "center",
               gap: "8px",

@@ -48,12 +48,12 @@ export const getMyFacilities = createAsyncThunk(
       // date parameters if they exist
       if (params.from_date) queryParams.append("from_date", params.from_date);
       if (params.to_date) queryParams.append("to_date", params.to_date);
-      
+
       //user_id parameter if it exists
       if (params.user_id) queryParams.append("user_id", params.user_id);
 
       // customer_group_name parameter if it exists
-       if (params.customer_group_name) {
+      if (params.customer_group_name) {
         queryParams.append("customer_group_name", params.customer_group_name);
       }
 
@@ -148,7 +148,10 @@ export const assignUserToFacility = createAsyncThunk(
 
 export const assignAssessment = createAsyncThunk(
   "facility/assignAssessment",
-  async ({ category_id, facility_id, user_id }, { rejectWithValue }) => {
+  async (
+    { category_id, facility_id, user_id, schedule_name, type, offset },
+    { rejectWithValue },
+  ) => {
     try {
       const token = localStorage.getItem("token");
 
@@ -163,6 +166,9 @@ export const assignAssessment = createAsyncThunk(
           category_id,
           facility_id,
           user_id,
+          schedule_name,
+          type,
+          offset,
         }),
       });
 

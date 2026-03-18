@@ -14,8 +14,9 @@ import {
 import PDFIcon from "../otherImages/pdf-icon.svg";
 import Toast from "../components/Toast";
 import CustomerGroupFilter from "./CustomerGroupFilter";
-import DateFilter from "./DateFilter"; // Import DateFilter
-import useDateFilter from "./useDateFilter"; // Import useDateFilter hook
+import DateFilter from "./DateFilter";
+import useDateFilter from "./useDateFilter";
+import DocumentPreviewPanel from "./DocumentPreviewPanel"; // We'll create this new component
 
 const ClientDocumentsData = () => {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ const ClientDocumentsData = () => {
     successMessage,
   } = useSelector((state) => state.document);
 
-  // Use date filter hook - exactly like FacilityDataTable
+  // Use date filter hook
   const { dateFilter, updateFilter, getDateRange } = useDateFilter();
 
   // Add state for customer group filter
@@ -44,7 +45,11 @@ const ClientDocumentsData = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const buttonRefs = useRef([]);
 
-  // Fetch assessments with date filters and customer group filter - exactly like FacilityDataTable
+  // New state for preview panel
+  const [previewAssessment, setPreviewAssessment] = useState(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // Fetch assessments with date filters and customer group filter
   useEffect(() => {
     const dateRange = getDateRange();
 
@@ -96,8 +101,23 @@ const ClientDocumentsData = () => {
   // Handle customer group filter change
   const handleGroupChange = (group) => {
     setCustomerGroup(group);
-    // Reset to first page when filter changes
     setCurrentPage(1);
+  };
+
+  // Handle preview - NEW FUNCTION
+  const handlePreview = (assessment) => {
+    setPreviewAssessment(assessment);
+    setIsPreviewOpen(true);
+    setDropdownOpen(null);
+  };
+
+  // Handle close preview - NEW FUNCTION
+  const handleClosePreview = () => {
+    setIsPreviewOpen(false);
+    // Optional: Clear preview after animation completes
+    setTimeout(() => {
+      setPreviewAssessment(null);
+    }, 300);
   };
 
   // Function to download PDF using Redux thunk
@@ -119,6 +139,7 @@ const ClientDocumentsData = () => {
         }
       });
     } catch (error) {
+      console.error("Error downloading PDF:", error);
       showToast(`Error downloading PDF: ${error.message}`, "error");
     } finally {
       setDropdownOpen(null);
@@ -542,7 +563,7 @@ const ClientDocumentsData = () => {
         onClose={() => setToast({ show: false, message: "", type: "" })}
       />
 
-      {/* Date Filter and Customer Group Filter - exactly like FacilityDataTable */}
+      {/* Date Filter and Customer Group Filter */}
       <div className="mb-4 pb-2 border-bottom">
         <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
           <div style={{ minWidth: "300px" }}>
@@ -627,6 +648,30 @@ const ClientDocumentsData = () => {
               zIndex: 9999,
             }}
             onClick={(e) => e.stopPropagation()}>
+            {/* Preview Option - NEW */}
+            <div
+              style={{
+                padding: "10px 16px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                fontSize: "14px",
+                color: "#333",
+                transition: "background-color 0.2s",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#F5F5F5")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "transparent")
+              }
+              onClick={() => handlePreview(documentData[dropdownOpen])}>
+              <Icon icon="mdi:sidebar" width="18" height="18" color="#666" />
+              <span>Quick Preview</span>
+            </div>
+
+            {/* Download Option */}
             <div
               style={{
                 padding: "10px 16px",
@@ -675,6 +720,8 @@ const ClientDocumentsData = () => {
                 </>
               )}
             </div>
+
+            {/* Delete Option */}
             <div
               style={{
                 padding: "10px 16px",
@@ -727,6 +774,13 @@ const ClientDocumentsData = () => {
           </div>,
           document.body,
         )}
+
+      {/* Document Preview Panel - NEW */}
+      <DocumentPreviewPanel
+        isOpen={isPreviewOpen}
+        onClose={handleClosePreview}
+        assessment={previewAssessment}
+      />
     </>
   );
 };
